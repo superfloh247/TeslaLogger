@@ -500,7 +500,7 @@ namespace TeslaLogger
                 return;
             }
 
-            Logfile.Log($"UpdateTripElevation start:{startPos} ende:{maxPosId}");
+            Logfile.Log($"UpdateTripElevation start:{startPos} end:{maxPosId}");
 
             string inhalt = "";
             try
@@ -509,7 +509,7 @@ namespace TeslaLogger
                 SRTM.SRTMData srtmData = new SRTM.SRTMData(FileManager.GetSRTMDataPath());
 
                 DataTable dt = new DataTable();
-                MySqlDataAdapter da = new MySqlDataAdapter($"SELECT id, lat, lng, odometer FROM pos where id > {startPos} and id < {maxPosId} and speed > 0 and altitude is null and lat is not null and lng is not null and lat > 0 and lng > 0 order by id", DBConnectionstring);
+                MySqlDataAdapter da = new MySqlDataAdapter($"SELECT id, lat, lng, odometer FROM pos where id >= {startPos} and id <= {maxPosId} and altitude is null and lat is not null and lng is not null", DBConnectionstring);
                 da.Fill(dt);
 
                 int x = 0;
@@ -552,7 +552,7 @@ namespace TeslaLogger
                 Logfile.Log(ex.ToString());
             }
 
-            Logfile.Log($"UpdateTripElevation finished start:{startPos} ende:{maxPosId}");
+            Logfile.Log($"UpdateTripElevation finished start:{startPos} end:{maxPosId}");
         }
 
         private static void UpdateTripElevationSubcall(DataTable dt, int Start, int End)
@@ -671,7 +671,7 @@ namespace TeslaLogger
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
                     con.Open();
-                    MySqlCommand cmd = new MySqlCommand("SELECT max(id) FROM pos where altitude > 0", con);
+                    MySqlCommand cmd = new MySqlCommand("SELECT min(id) FROM pos where altitude is null and lat is not null and lng is not null", con);
                     object o = cmd.ExecuteScalar();
 
                     if (o != null && o != DBNull.Value)
