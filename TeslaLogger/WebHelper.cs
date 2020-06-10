@@ -45,6 +45,13 @@ namespace TeslaLogger
         private string _lastShift_State = "P";
         private static readonly Regex regexAssemblyVersion = new Regex("\n\\[assembly: AssemblyVersion\\(\"([0-9\\.]+)\"", RegexOptions.Compiled);
 
+        private class TeslaAPITimeoutException : Exception
+        {
+            public TeslaAPITimeoutException(string message) : base(message)
+            {
+            }
+        }
+
         static WebHelper()
         {
             //Damit Mono keine Zertifikatfehler wirft :-(
@@ -2246,5 +2253,29 @@ FROM
         }
 
         public bool ExistsWakeupFile => System.IO.File.Exists(FileManager.GetFilePath(TLFilename.WakeupFilename)) || TaskerWakeupfile();
+
+        private void CheckTeslaAPITimeOut(string resultContent)
+        {
+            object jsonResult = new JavaScriptSerializer().DeserializeObject(resultContent);
+            Dictionary<string, object> r1 = null;
+            try
+            {
+                r1 = (Dictionary<string, object>)jsonResult;
+            }
+            catch (Exception) { }
+            if (r1 != null)
+            {
+                foreach (string key1 in r1.Keys)
+                {
+                    if (key1.Equals("error"))
+                    {
+                        if (r1[key1] != null && r1[key1].ToString().StartsWith("vehicle unavailable") && r1[key1].ToString().Contains("timeout"))
+                        {
+                            throw new TeslaAPITimeoutException("vehicle unavailable: timeout");
+                        }
+                    }
+                }
+            }
+        }
     }
 }
