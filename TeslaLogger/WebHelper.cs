@@ -2277,5 +2277,39 @@ FROM
                 }
             }
         }
+
+        private static void SetHttpClientTimeOut()
+        {
+            object cacheValue = MemoryCache.Default.Get(Program.TLMemCacheKey.HttpClientTimeOuts.ToString());
+            int timeouts = 1;
+            if (cacheValue != null)
+            {
+                timeouts += (int)cacheValue;
+            }
+            MemoryCache.Default.Set(Program.TLMemCacheKey.HttpClientTimeOuts.ToString(), timeouts, new CacheItemPolicy() { RemovedCallback = new CacheEntryRemovedCallback(HttpClientTimeOutCacheRemovedCallback), AbsoluteExpiration = DateTime.Now.AddMinutes(2) });
+        }
+
+        private static void HttpClientTimeOutCacheRemovedCallback(CacheEntryRemovedArguments arguments)
+        {
+            int timeouts = 1;
+            object cacheValue = arguments.CacheItem;
+            if (cacheValue != null)
+            {
+                timeouts = (int)cacheValue;
+            }
+            timeouts--;
+            MemoryCache.Default.Set(Program.TLMemCacheKey.HttpClientTimeOuts.ToString(), timeouts, new CacheItemPolicy() { RemovedCallback = new CacheEntryRemovedCallback(HttpClientTimeOutCacheRemovedCallback), AbsoluteExpiration = DateTime.Now.AddMinutes(2) });
+        }
+
+        private static TimeSpan GetHttpClientTimeOut()
+        {
+            object cacheValue = MemoryCache.Default.Get(Program.TLMemCacheKey.HttpClientTimeOuts.ToString());
+            int timeouts = 0;
+            if (cacheValue != null)
+            {
+                timeouts = (int)cacheValue;
+            }
+            return TimeSpan.FromSeconds(5 + (timeouts * 5));
+        }
     }
 }
