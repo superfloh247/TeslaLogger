@@ -160,7 +160,7 @@ namespace TeslaLogger
             }
         }
 
-        private static bool IsHighFrequenceLoggingEnabled(bool justcheck = false)
+        public static bool IsHighFrequenceLoggingEnabled(bool justcheck = false)
         {
             if (highFrequencyLogging)
             {
@@ -333,6 +333,8 @@ namespace TeslaLogger
             }
             else
             {
+                webhelper.IsDriving(true); // insert a last position. Maybe the last one is too old
+
                 DriveFinished();
 
                 ShareData sd = new ShareData(webhelper.TaskerHash);

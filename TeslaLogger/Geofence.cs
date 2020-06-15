@@ -75,11 +75,13 @@ namespace TeslaLogger
         private FileSystemWatcher fsw;
 
         public bool RacingMode = false;
+        bool _RacingMode = false;
 
         private static int FSWCounter = 0;
 
-        public Geofence()
+        public Geofence(bool RacingMode)
         {
+            _RacingMode = RacingMode;
             Init();
             
             if (fsw == null)
@@ -102,7 +104,7 @@ namespace TeslaLogger
         {
             List<Address> list = new List<Address>();
 
-            if (File.Exists(FileManager.GetFilePath(TLFilename.GeofenceRacingFilename)) && ApplicationSettings.Default.RacingMode)
+            if (File.Exists(FileManager.GetFilePath(TLFilename.GeofenceRacingFilename)) && _RacingMode)
             {
                 ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofenceRacingFilename));
                 RacingMode = true;
@@ -180,9 +182,9 @@ namespace TeslaLogger
 
                             int radius = 50;
 
-                            string[] args = line.Split(',');
+                            string[] args = Regex.Split(line, ",");
 
-                            if (args.Length > 3)
+                            if (args.Length > 3 && args[3] != null && args[3].Length > 0)
                             {
                                 int.TryParse(args[3], out radius);
                             }
@@ -192,7 +194,7 @@ namespace TeslaLogger
                                 double.Parse(args[2].Trim(), Tools.ciEnUS.NumberFormat),
                                 radius);
 
-                            if (args.Length > 4)
+                            if (args.Length > 4 && args[4] != null)
                             {
                                 string flags = args[4];
                                 Logfile.Log(args[0].Trim() + ": special flags found: " + flags);

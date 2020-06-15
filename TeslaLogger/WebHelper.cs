@@ -57,7 +57,7 @@ namespace TeslaLogger
             //Damit Mono keine Zertifikatfehler wirft :-(
             ServicePointManager.ServerCertificateValidationCallback += (p1, p2, p3, p4) => true;
 
-            geofence = new Geofence();
+            geofence = new Geofence(ApplicationSettings.Default.RacingMode);
         }
 
         public WebHelper()
@@ -348,7 +348,7 @@ namespace TeslaLogger
                 if (charging_state == "Charging")
                 {
                     lastCharging_State = charging_state;
-                    DBHelper.InsertCharging(timestamp, battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp.Result, false, charger_pilot_current, charge_current_request);
+                    DBHelper.InsertCharging(timestamp, battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp.Result, Program.IsHighFrequenceLoggingEnabled(true) ? true : false, charger_pilot_current, charge_current_request);
                     return true;
                 }
                 else if (charging_state == "Complete")
@@ -1835,6 +1835,13 @@ FROM
             try
             {
                 resultContent = await GetCommand("climate_state");
+
+                if (resultContent == null || resultContent.Length == 0 || resultContent == "NULL")
+                {
+                    Logfile.Log("GetOutsideTempAsync: NULL");
+                    return null;
+                }
+
                 Tools.SetThread_enUS();
                 object jsonResult = new JavaScriptSerializer().DeserializeObject(resultContent);
                 object r1 = ((Dictionary<string, object>)jsonResult)["response"];
