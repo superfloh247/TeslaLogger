@@ -508,7 +508,10 @@ namespace TeslaLogger
             string resultContent = "";
             try
             {
-                HttpClient client = new HttpClient();
+                HttpClient client = new HttpClient
+                {
+                    Timeout = GetHttpClientTimeOut()
+                };
                 client.DefaultRequestHeaders.Add("User-Agent", "C# App");
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + Tesla_token);
 
@@ -632,6 +635,7 @@ namespace TeslaLogger
                 catch (Exception ex)
                 {
                     Logfile.ExceptionWriter(ex, resultContent);
+                    SetHttpClientTimeOut();
                 }
 
                 return state;
@@ -639,6 +643,7 @@ namespace TeslaLogger
             catch (Exception ex)
             {
                 Logfile.ExceptionWriter(ex, resultContent);
+                SetHttpClientTimeOut();
             }
 
             return "NULL";
@@ -1928,7 +1933,10 @@ FROM
             string resultContent = "";
             try
             {
-                HttpClient client = new HttpClient();
+                HttpClient client = new HttpClient
+                {
+                    Timeout = GetHttpClientTimeOut()
+                };
                 client.DefaultRequestHeaders.Add("User-Agent", "C# App");
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + Tesla_token);
 
@@ -1944,6 +1952,7 @@ FROM
             catch (Exception ex)
             {
                 Logfile.ExceptionWriter(ex, resultContent);
+                SetHttpClientTimeOut();
             }
 
             return "NULL";
@@ -1956,7 +1965,10 @@ FROM
             string resultContent = "";
             try
             {
-                HttpClient client = new HttpClient();
+                HttpClient client = new HttpClient
+                {
+                    Timeout = GetHttpClientTimeOut()
+                };
                 client.DefaultRequestHeaders.Add("User-Agent", "C# App");
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + Tesla_token);
 
@@ -1974,6 +1986,7 @@ FROM
             catch (Exception ex)
             {
                 Logfile.ExceptionWriter(ex, resultContent);
+                SetHttpClientTimeOut();
             }
 
             return "NULL";
