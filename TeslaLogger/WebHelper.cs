@@ -235,8 +235,6 @@ namespace TeslaLogger
                         Logfile.Log("charging_state: vehicle unavailable");
                     }
 
-                    Thread.Sleep(10000);
-
                     return lastCharging_State == "Charging";
                 }
 
@@ -367,7 +365,6 @@ namespace TeslaLogger
                 if (resultContent == null || resultContent == "NULL")
                 {
                     Logfile.Log("isCharging = NULL");
-                    Thread.Sleep(10000);
                 }
                 else if (!resultContent.Contains("upstream internal error"))
                 {
@@ -495,8 +492,6 @@ namespace TeslaLogger
 
                         ex = ex.InnerException;
                     }
-
-                    Thread.Sleep(30000);
                 }
             }
         }
@@ -1142,7 +1137,6 @@ namespace TeslaLogger
                 if (resultContent == null || resultContent == "NULL")
                 {
                     Logfile.Log("IsDriving = NULL!");
-                    Thread.Sleep(10000);
                 }
                 else
                 {
@@ -1887,9 +1881,7 @@ FROM
                             DBHelper.currentJSON.CreateCurrentJSON();
 
                             // write into Database
-                            Thread.Sleep(5000);
                             IsDriving(true);
-                            Thread.Sleep(5000);
                         }
                     }
                 }
@@ -1905,9 +1897,7 @@ FROM
                     DBHelper.currentJSON.CreateCurrentJSON();
 
                     // write into Database
-                    Thread.Sleep(5000);
                     IsDriving(true);
-                    Thread.Sleep(5000);
                 }
 
                 MemoryCache.Default.Add(Program.TLMemCacheKey.GetOutsideTempAsync.ToString(), (double)outside_temp, DateTime.Now.AddMinutes(1));
