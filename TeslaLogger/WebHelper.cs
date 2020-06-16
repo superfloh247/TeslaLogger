@@ -2322,12 +2322,8 @@ FROM
             {
                 timeouts = (int)cacheValue;
             }
-            TimeSpan timeout = TimeSpan.FromSeconds(defaultHttpClientTimeout * 2 + (timeouts * 2.5));
-            if (timeout.TotalSeconds > 30)
-            {
-                timeout = new TimeSpan(0, 0, 30);
-            }
-            return timeout;
+            // avg from DB * 2 + dynamic adjustment
+            return TimeSpan.FromSeconds(Math.Min(defaultHttpClientTimeout * 2 + timeouts, 10));
         }
 
         private static void InitHttpClientTimeout()
