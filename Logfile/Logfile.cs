@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace TeslaLogger
 {
@@ -53,36 +54,41 @@ namespace TeslaLogger
         {
             try
             {
+                if (ex is TaskCanceledException)
+                {
+                    // http client timeout reached
+                    return;
+                }
                 if (inhalt != null)
                 {
                     if (inhalt.Contains("vehicle unavailable:"))
                     {
                         Log("vehicle unavailable");
-                        System.Threading.Thread.Sleep(30000);
+                        //System.Threading.Thread.Sleep(30000);
                         return;
                     }
                     else if (inhalt.Contains("upstream internal error"))
                     {
                         Log("upstream internal error");
-                        System.Threading.Thread.Sleep(10000);
+                        //System.Threading.Thread.Sleep(10000);
                         return;
                     }
                     else if (inhalt.Contains("Connection refused"))
                     {
                         Log("Connection refused");
-                        System.Threading.Thread.Sleep(30000);
+                        //System.Threading.Thread.Sleep(30000);
                         return;
                     }
                     else if (inhalt.Contains("No route to host"))
                     {
                         Log("No route to host");
-                        System.Threading.Thread.Sleep(60000);
+                        //System.Threading.Thread.Sleep(60000);
                         return;
                     }
                     else if (inhalt.Contains("You have been temporarily blocked for making too many requests!"))
                     {
                         Log("temporarily blocked for making too many requests!");
-                        System.Threading.Thread.Sleep(30000);
+                        //System.Threading.Thread.Sleep(30000);
                         return;
                     }
                 }
@@ -98,55 +104,61 @@ namespace TeslaLogger
                 if (temp.Contains("The operation has timed out"))
                 {
                     Log(prefix + "HTTP Timeout");
-                    System.Threading.Thread.Sleep(15000);
+                    //System.Threading.Thread.Sleep(15000);
+                    return;
+                }
+                else if (temp.Contains("The operation was canceled"))
+                {
+                    Log(prefix + "HttpClient Timeout");
+                    //System.Threading.Thread.Sleep(15000);
                     return;
                 }
                 if (inhalt.Contains("operation_timedout with 10s timeout for txid"))
                 {
                     Log(prefix + "Mothership Timeout");
-                    System.Threading.Thread.Sleep(20000);
+                    //System.Threading.Thread.Sleep(20000);
                     return;
                 }
                 if (inhalt.Contains("{\"response\":null,\"error\":\"not_found\",\"error_description\":\"\"}"))
                 {
                     Log(prefix + "Mothership response:null");
-                    System.Threading.Thread.Sleep(20000);
+                    //System.Threading.Thread.Sleep(20000);
                     return;
                 }
                 if (inhalt.Contains("502 Bad Gateway"))
                 {
                     Log(prefix + "Mothership 502 Bad Gateway");
-                    System.Threading.Thread.Sleep(30000);
+                    //System.Threading.Thread.Sleep(30000);
                     return;
                 }
                 else if (temp.Contains("Connection refused"))
                 {
                     Log(prefix + "Connection refused");
-                    System.Threading.Thread.Sleep(50000);
+                    //System.Threading.Thread.Sleep(50000);
                     return;
                 }
                 else if (temp.Contains("No such host is known"))
                 {
                     Log(prefix + "No such host is known");
-                    System.Threading.Thread.Sleep(50000);
+                    //System.Threading.Thread.Sleep(50000);
                     return;
                 }
                 else if (temp.Contains("Connection timed out"))
                 {
                     Log(prefix + "Connection timed out");
-                    System.Threading.Thread.Sleep(50000);
+                    //System.Threading.Thread.Sleep(50000);
                     return;
                 }
                 else if (temp.Contains("We're sorry, but something went wrong (500)"))
                 {
                     Log(prefix + "HTTP Error 500");
-                    System.Threading.Thread.Sleep(50000);
+                    //System.Threading.Thread.Sleep(50000);
                     return;
                 }
                 else if (temp.Contains("Connection reset by peer"))
                 {
                     Log(prefix + "Connection reset by peer");
-                    System.Threading.Thread.Sleep(30000);
+                    //System.Threading.Thread.Sleep(30000);
                     return;
                 }
                 else

@@ -107,7 +107,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void AddMothershipDataToDB(string command, DateTime start, int httpcode)
+        public static void AddMothershipDataToDB(string command, DateTime start, int httpcode, double timeout = 0)
         {
             if (mothershipEnabled == false)
             {
@@ -117,10 +117,10 @@ namespace TeslaLogger
             DateTime end = DateTime.UtcNow;
             TimeSpan ts = end - start;
             double duration = ts.TotalSeconds;
-            AddMothershipDataToDB(command, duration, httpcode);
+            AddMothershipDataToDB(command, duration, httpcode, timeout);
         }
 
-        public static void AddMothershipDataToDB(string command, double duration, int httpcode)
+        public static void AddMothershipDataToDB(string command, double duration, int httpcode, double timeout = 0)
         {
 
             if (!mothershipCommands.ContainsKey(command))
@@ -131,11 +131,12 @@ namespace TeslaLogger
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
-                MySqlCommand cmd = new MySqlCommand("insert mothership (ts, commandid, duration, httpcode) values (@ts, @commandid, @duration, @httpcode)", con);
+                MySqlCommand cmd = new MySqlCommand("insert mothership (ts, commandid, duration, httpcode, timeout) values (@ts, @commandid, @duration, @httpcode, @timeout)", con);
                 cmd.Parameters.AddWithValue("@ts", DateTime.Now);
                 cmd.Parameters.AddWithValue("@commandid", mothershipCommands[command]);
                 cmd.Parameters.AddWithValue("@duration", duration);
                 cmd.Parameters.AddWithValue("@httpcode", httpcode);
+                cmd.Parameters.AddWithValue("@timeout", timeout);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -1188,6 +1189,21 @@ namespace TeslaLogger
             dt = dt.ToLocalTime();
             return dt;
 
+        }
+
+        public static double GetAvgMothershipCommandDuration(int limit = 5000)
+        {
+            using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+            {
+                con.Open();
+                MySqlCommand cmd = new MySqlCommand($"SELECT AVG(duration) FROM mothership ORDER BY ts DESC LIMIT {limit}", con);
+                MySqlDataReader dr = cmd.ExecuteReader();
+                if (dr.Read())
+                {
+                    return Convert.ToDouble(dr[0]);
+                }
+            }
+            return Math.PI;
         }
 
         public static int CountPos()

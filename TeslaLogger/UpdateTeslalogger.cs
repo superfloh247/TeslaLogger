@@ -150,6 +150,14 @@ namespace TeslaLogger
                     DBHelper.ExecuteSQLQuery("ALTER TABLE mothership ADD COLUMN httpcode int NULL", 600);
                     Logfile.Log("ALTER TABLE OK");
                 }
+                if (!DBHelper.ColumnExists("mothership", "timeout"))
+                {
+                    Logfile.Log("ALTER TABLE mothership ADD COLUMN timeout DOUBLE NULL");
+                    DBHelper.ExecuteSQLQuery("ALTER TABLE mothership ADD COLUMN timeout DOUBLE NULL", 600);
+                    Logfile.Log("ALTER TABLE OK");
+                    DBHelper.ExecuteSQLQuery("UPDATE mothership set timeout = 0 where timeout IS NULL", 600);
+                    Logfile.Log("UPDATE TABLE OK");
+                }
                 if (!DBHelper.TableExists("httpcodes"))
                 {
                     Logfile.Log("CREATE TABLE httpcodes (id int NOT NULL, text varchar(50) NOT NULL, PRIMARY KEY(id))");

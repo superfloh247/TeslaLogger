@@ -45,6 +45,8 @@ namespace TeslaLogger
         private string _lastShift_State = "P";
         private static readonly Regex regexAssemblyVersion = new Regex("\n\\[assembly: AssemblyVersion\\(\"([0-9\\.]+)\"", RegexOptions.Compiled);
 
+        private static double defaultHttpClientTimeout = Math.PI;
+
         private class TeslaAPITimeoutException : Exception
         {
             public TeslaAPITimeoutException(string message) : base(message)
@@ -58,6 +60,7 @@ namespace TeslaLogger
             ServicePointManager.ServerCertificateValidationCallback += (p1, p2, p3, p4) => true;
 
             geofence = new Geofence(ApplicationSettings.Default.RacingMode);
+            InitHttpClientTimeout();
         }
 
         public WebHelper()
@@ -167,7 +170,7 @@ namespace TeslaLogger
                 HttpResponseMessage result = await client.PostAsync(apiaddress + "oauth/token", content);
                 resultContent = await result.Content.ReadAsStringAsync();
                 
-                DBHelper.AddMothershipDataToDB("GetTokenAsync()", start, (int)result.StatusCode);
+                DBHelper.AddMothershipDataToDB("GetTokenAsync()", start, (int)result.StatusCode, client.Timeout.TotalSeconds);
 
                 if (resultContent.Contains("authorization_required"))
                 {
@@ -397,7 +400,7 @@ namespace TeslaLogger
 
                     HttpResponseMessage result = resultTask.Result;
                     resultContent = result.Content.ReadAsStringAsync().Result;
-                    DBHelper.AddMothershipDataToDB("GetVehicles()", start, (int)result.StatusCode);
+                    DBHelper.AddMothershipDataToDB("GetVehicles()", start, (int)result.StatusCode, (int)client.Timeout.TotalMilliseconds);
     
                     if (result.StatusCode == HttpStatusCode.Unauthorized)
                     {
@@ -515,7 +518,7 @@ namespace TeslaLogger
                 DateTime start = DateTime.UtcNow;
                 HttpResponseMessage result = await client.GetAsync(adresse);
                 resultContent = await result.Content.ReadAsStringAsync();
-                DBHelper.AddMothershipDataToDB("IsOnline()", start, (int)result.StatusCode);
+                DBHelper.AddMothershipDataToDB("IsOnline()", start, (int)result.StatusCode, client.Timeout.TotalSeconds);
 
                 if (result.StatusCode == HttpStatusCode.Unauthorized)
                 {
@@ -1935,7 +1938,7 @@ FROM
                 DateTime start = DateTime.UtcNow;
                 HttpResponseMessage result = await client.GetAsync(adresse);
                 resultContent = await result.Content.ReadAsStringAsync();
-                DBHelper.AddMothershipDataToDB("GetCommand(" + cmd + ")", start, (int)result.StatusCode);
+                DBHelper.AddMothershipDataToDB("GetCommand(" + cmd + ")", start, (int)result.StatusCode, client.Timeout.TotalSeconds);
 
                 return resultContent;
             }
@@ -1969,7 +1972,7 @@ FROM
                 DateTime start = DateTime.UtcNow;
                 HttpResponseMessage result = await client.PostAsync(url, data != null ? queryString : null);
                 resultContent = await result.Content.ReadAsStringAsync();
-                DBHelper.AddMothershipDataToDB("PostCommand(" + cmd + ")", start, (int)result.StatusCode);
+                DBHelper.AddMothershipDataToDB("PostCommand(" + cmd + ")", start, (int)result.StatusCode, client.Timeout.TotalSeconds);
 
                 return resultContent;
             }
@@ -2003,7 +2006,7 @@ FROM
                 Task<HttpResponseMessage> resultTask = client.GetAsync(adresse);
                 HttpResponseMessage result = resultTask.Result;
                 resultContent = result.Content.ReadAsStringAsync().Result;
-                DBHelper.AddMothershipDataToDB("GetCachedRollupData()", start, 0);
+                DBHelper.AddMothershipDataToDB("GetCachedRollupData()", start, 0, client.Timeout.TotalSeconds);
 
                 Tools.SetThread_enUS();
                 object jsonResult = new JavaScriptSerializer().DeserializeObject(resultContent);
@@ -2319,7 +2322,17 @@ FROM
             {
                 timeouts = (int)cacheValue;
             }
-            return TimeSpan.FromSeconds(5 + (timeouts * 5));
+            TimeSpan timeout = TimeSpan.FromSeconds(defaultHttpClientTimeout * 2 + (timeouts * 2.5));
+            if (timeout.TotalSeconds > 30)
+            {
+                timeout = new TimeSpan(0, 0, 30);
+            }
+            return timeout;
+        }
+
+        private static void InitHttpClientTimeout()
+        {
+            defaultHttpClientTimeout = DBHelper.GetAvgMothershipCommandDuration();
         }
     }
 }
