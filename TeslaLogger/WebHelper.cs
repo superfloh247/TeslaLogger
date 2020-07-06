@@ -723,6 +723,15 @@ namespace TeslaLogger
                     int maxRange = DBHelper.GetAvgMaxRage();
                     if (maxRange > 500)
                     {
+                        if (double.TryParse(carSettings.DB_Wh_TR, System.Globalization.NumberStyles.Any, Tools.ciEnUS, out double wh))
+                        {
+                            if (wh >= 0.174 && wh <= 0.181)
+                            {
+                                WriteCarSettings("0.178", "S Raven LR P");
+                                return;
+                            }
+                        }
+
                         WriteCarSettings("0.169", "S Raven LR");
                     }
                     else
@@ -2224,7 +2233,7 @@ FROM
             if (ExistsWakeupFile)
             {
                 Logfile.Log("Delete Wakeup file");
-                System.IO.File.Delete(FileManager.GetFilePath(TLFilename.WakeupFilename));
+                System.IO.File.Delete(FileManager.GetWakeupTeslaloggerPath);
                 ret = true;
             }
 
@@ -2253,6 +2262,6 @@ FROM
             return "";
         }
 
-        public bool ExistsWakeupFile => System.IO.File.Exists(FileManager.GetFilePath(TLFilename.WakeupFilename)) || TaskerWakeupfile();
+        public bool ExistsWakeupFile => System.IO.File.Exists(FileManager.GetWakeupTeslaloggerPath) || TaskerWakeupfile();
     }
 }
