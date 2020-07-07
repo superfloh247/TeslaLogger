@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Net;
 using System.Runtime.Caching;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -24,6 +25,7 @@ namespace TeslaLogger
 
         public static void EnableMothership()
         {
+            GetMothershipCommandsFromDB();
             mothershipEnabled = true;
         }
 
@@ -522,8 +524,6 @@ namespace TeslaLogger
                     string sql = null;
                     try
                     {
-                        System.Threading.Thread.Sleep(1);
-
                         double latitude = (double)dr[1];
                         double longitude = (double)dr[2];
 
@@ -713,8 +713,6 @@ namespace TeslaLogger
         {
             try
             {
-                System.Threading.Thread.Sleep(5);
-
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
                     con.Open();
@@ -1614,8 +1612,6 @@ namespace TeslaLogger
         {
             try
             {
-                System.Threading.Thread.Sleep(5);
-
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
                     con.Open();

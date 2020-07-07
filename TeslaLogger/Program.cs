@@ -26,6 +26,11 @@ namespace TeslaLogger
             GoSleep
         }
 
+        public enum TLMemCacheKey
+        {
+            GetOutsideTempAsync
+        }
+
         // encapsulate state
         private static TeslaState _currentState = TeslaState.Start;
 
@@ -35,6 +40,7 @@ namespace TeslaLogger
         private static DateTime lastCarUsed = DateTime.Now;
         private static DateTime lastOdometerChanged = DateTime.Now;
         private static DateTime lastTryTokenRefresh = DateTime.Now;
+        private static string lastSetChargeLimitAddressName = string.Empty;
         private static bool goSleepWithWakeup = false;
         private static double odometerLastTrip;
         private static bool highFrequencyLogging = false;
@@ -173,7 +179,7 @@ namespace TeslaLogger
                         if (ts.TotalMilliseconds > 0)
                         {
                             return true;
-                        } 
+                        }
                         break;
                     default:
                         break;
@@ -371,7 +377,7 @@ namespace TeslaLogger
                     lastCarUsed = DateTime.Now;
                     if (IsHighFrequenceLoggingEnabled())
                     {
-                        Logfile.Log("HighFrequenceLogging ...");
+                        Logfile.Log("HighFrequencyLogging ...");
                     }
                     else
                     {
@@ -391,7 +397,8 @@ namespace TeslaLogger
         private static void HandleState_Online()
         {
             {
-                if (webhelper.IsDriving() && DBHelper.currentJSON.current_speed > 0)
+                //if (webhelper.IsDriving() && DBHelper.currentJSON.current_speed > 0)
+                if (webhelper.IsDriving() && (webhelper.GetLastShiftState().Equals("R") || webhelper.GetLastShiftState().Equals("N") || webhelper.GetLastShiftState().Equals("D")))
                 {
                     webhelper.ResetLastChargingState();
                     lastCarUsed = DateTime.Now;
@@ -417,9 +424,9 @@ namespace TeslaLogger
                         }
                     }
 
-                    SetCurrentState(TeslaState.Drive);
                     webhelper.StartStreamThread(); // für altitude
                     DBHelper.StartDriveState();
+                    SetCurrentState(TeslaState.Drive);
 
                     Task.Run(() => webhelper.DeleteWakeupFile());
                     return;
@@ -967,6 +974,11 @@ namespace TeslaLogger
                                 break;
                             case Address.SpecialFlags.EnableSentryMode:
                                 break;
+                            case Address.SpecialFlags.SetChargeLimit:
+                                HandleSpecialFlag_SetChargeLimit(addr, flag.Value);
+                                break;
+                            case Address.SpecialFlags.ClimateOff:
+                                break;
                             default:
                                 Logfile.Log("handleShiftStateChange unhandled special flag " + flag.ToString());
                                 break;
@@ -1003,6 +1015,11 @@ namespace TeslaLogger
                             break;
                         case Address.SpecialFlags.EnableSentryMode:
                             HandleSpeciaFlag_EnableSentryMode(flag.Value, _oldState, _newState);
+                            break;
+                        case Address.SpecialFlags.SetChargeLimit:
+                            break;
+                        case Address.SpecialFlags.ClimateOff:
+                            HandleSpeciaFlag_ClimateOff(flag.Value, _oldState, _newState);
                             break;
                         default:
                             Logfile.Log("handleShiftStateChange unhandled special flag " + flag.ToString());
