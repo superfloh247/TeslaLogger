@@ -43,3 +43,5 @@ TeslaLogger/bin/MySql.Data.xml
 TeslaLogger/bin/MySql.Web.xml
 TLNUnit/bin/car_settings.xml
 TLNUnit/bin/geofence-private.csv
+TeslaLogger/bin/TASKERTOKEN
+TeslaLogger/bin/weather.ini
