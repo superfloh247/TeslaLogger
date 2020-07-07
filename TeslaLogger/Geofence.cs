@@ -317,7 +317,7 @@ namespace TeslaLogger
             Match m = Regex.Match(_flag, pattern);
             if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1)
             {
-                _addr.specialFlags.Add(Address.SpecialFlags.EnableSentryMode, m.Groups[0].Captures[1].ToString() + "->" + m.Groups[0].Captures[2].ToString());
+                _addr.specialFlags.Add(Address.SpecialFlags.EnableSentryMode, m.Groups[1].Captures[0].ToString() + "->" + m.Groups[2].Captures[0].ToString());
             }
             else
             {
