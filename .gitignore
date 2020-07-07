@@ -41,3 +41,5 @@ TeslaLogger/bin/MySql.Data.EntityFramework.xml
 TeslaLogger/bin/MySQL.Data.EntityFrameworkCore.xml
 TeslaLogger/bin/MySql.Data.xml
 TeslaLogger/bin/MySql.Web.xml
+TLNUnit/bin/car_settings.xml
+TLNUnit/bin/geofence-private.csv
