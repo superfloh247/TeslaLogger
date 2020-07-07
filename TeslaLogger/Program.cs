@@ -1018,6 +1018,28 @@ namespace TeslaLogger
                 string result = webhelper.PostCommand("command/set_sentry_mode?on=false", null).Result;
                 Logfile.Log("DisableSentryMode(): " + result);
             }*/
+         }
+
+        private static void HandleSpecialFlag_SetChargeLimit(Address _addr, string _flagconfig)
+        {
+            string pattern = "([0-9]+)";
+            Match m = Regex.Match(_flagconfig, pattern);
+            if (m.Success && m.Groups.Count == 2 && m.Groups[1].Captures.Count == 1)
+            {
+                if (m.Groups[1].Captures[0] != null && int.TryParse(m.Groups[1].Captures[0].ToString(), out int chargelimit))
+                {
+                    if (!lastSetChargeLimitAddressName.Equals(_addr.name))
+                    {
+                        Task.Factory.StartNew(() =>
+                        {
+                            Logfile.Log($"SetChargeLimit to {chargelimit} ...");
+                            string result = webhelper.PostCommand("command/set_charge_limit", "{\"percent\":" + chargelimit + "}", true).Result;
+                            Logfile.Log("set_charge_limit(): " + result);
+                            lastSetChargeLimitAddressName = _addr.name;
+                        });
+                    }
+                }
+            }
         }
 
         private static void HandleSpecialFlag_HighFrequencyLogging(string _flagconfig)
@@ -1070,9 +1092,12 @@ namespace TeslaLogger
             Match m = Regex.Match(_flagconfig, pattern);
             if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1 && m.Groups[1].Captures[0].ToString().Contains(_oldState) && m.Groups[2].Captures[0].ToString().Contains(_newState))
             {
-                Logfile.Log("OpenChargePort ...");
-                string result = webhelper.PostCommand("command/charge_port_door_open", null).Result;
-                Logfile.Log("openChargePort(): " + result);
+                Task.Factory.StartNew(() =>
+                {
+                    Logfile.Log("OpenChargePort ...");
+                    string result = webhelper.PostCommand("command/charge_port_door_open", null).Result;
+                    Logfile.Log("charge_port_door_open(): " + result);
+                });
             }
         }
 
@@ -1082,9 +1107,27 @@ namespace TeslaLogger
             Match m = Regex.Match(_flagconfig, pattern);
             if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1 && m.Groups[1].Captures[0].ToString().Contains(_oldState) && m.Groups[2].Captures[0].ToString().Contains(_newState))
             {
-                Logfile.Log("EnableSentryMode ...");
-                string result = webhelper.PostCommand("command/set_sentry_mode?on=true", null).Result;
-                Logfile.Log("EnableSentryMode(): " + result);
+                Task.Factory.StartNew(() =>
+                {
+                    Logfile.Log("EnableSentryMode ...");
+                    string result = webhelper.PostCommand("command/set_sentry_mode", "{\"on\":true}", true).Result;
+                    Logfile.Log("set_sentry_mode(): " + result);
+                });
+            }
+        }
+
+        private static void HandleSpeciaFlag_ClimateOff(string _flagconfig, string _oldState, string _newState)
+        {
+            string pattern = "([PRND]+)->([PRND]+)";
+            Match m = Regex.Match(_flagconfig, pattern);
+            if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1 && m.Groups[1].Captures[0].ToString().Contains(_oldState) && m.Groups[2].Captures[0].ToString().Contains(_newState))
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    Logfile.Log("ClimateOff ...");
+                    string result = webhelper.PostCommand("command/auto_conditioning_stop", null).Result;
+                    Logfile.Log("auto_conditioning_stop(): " + result);
+                });
             }
         }
     }

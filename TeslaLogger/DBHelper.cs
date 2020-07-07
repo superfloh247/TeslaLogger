@@ -485,7 +485,10 @@ namespace TeslaLogger
             currentJSON.current_speed = 0;
             currentJSON.current_power = 0;
 
-            UpdateTripElevation(StartPos, MaxPosId);
+            Task.Factory.StartNew(() =>
+              {
+                  UpdateTripElevation(StartPos, MaxPosId);
+              });
         }
 
         public static void UpdateTripElevation(int startPos, int maxPosId)
