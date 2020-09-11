@@ -7,6 +7,9 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using System.Web.Script.Serialization;
 using System.Threading;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("TLNUnit")]
 
 namespace TeslaLogger
 {
