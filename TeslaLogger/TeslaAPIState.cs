@@ -147,7 +147,14 @@ namespace TeslaLogger
 
         private void GetPosition(string name, out string timestamp, out double latitude, out double longitude, out int speed, out int power, out double odometerKM, out double ideal_battery_range_km, out double battery_range, out int battery_level, out double outside_temp)
         {
-            timestamp = storage[name][Key.Timestamp].ToString();
+            if (GetDouble("lat", out _))
+            {
+                timestamp = storage["lat"][Key.Timestamp].ToString();
+            }
+            else
+            {
+                timestamp = storage[name][Key.Timestamp].ToString();
+            }
             GetDouble("latitude", out latitude);
             GetDouble("longitude", out longitude);
             GetInt("speed", out speed);

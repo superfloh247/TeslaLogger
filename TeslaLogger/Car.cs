@@ -195,6 +195,15 @@ namespace TeslaLogger
             }
         }
 
+        internal bool IsCharging()
+        {
+            if (teslaAPIState.GetString("charging_state", out string charging_state) && charging_state != null && charging_state.Equals("Chargin"))
+            {
+                return true;
+            }
+            return false;
+        }
+
         private void InitStage3()
         {
             if (!webhelper.RestoreToken())
@@ -1271,8 +1280,8 @@ $"  AND CarID = {CarInDB}", con);
         public bool IsParked()
         {
             // online and parked
-            if (teslaAPIState.GetString("state", out string state) && state.Equals("online")
-                && (teslaAPIState.GetString("shift_state", out string shift_state)
+            if (teslaAPIState.GetString("state", out string state) && state != null &&state.Equals("online")
+                && (teslaAPIState.GetString("shift_state", out string shift_state) && shift_state != null
                     && (shift_state.Equals("P") || shift_state.Equals("undef")))
                )
             { 
