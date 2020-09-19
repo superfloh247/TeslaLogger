@@ -111,13 +111,13 @@ namespace TeslaLogger
                         }
                         break;
                     case "battery_level":
-                        if (car.IsParked())
+                        if (car.IsParked() && !car.IsCharging())
                         {
                             Tools.DebugLog($"#{car.CarInDB}: TeslaAPIHandleStateChange {name} {oldvalue} -> {newvalue}");
                             // write car data to DB eg to update Grafana Dashboard status
                             GetPosition(name, out timestamp, out latitude, out longitude, out speed, out power, out odometerKM, out ideal_battery_range_km, out battery_range, out battery_level, out outside_temp);
                             Tools.DebugLog($"TeslaAPIHandleStateChange InsertPos timestamp {timestamp} latitude {latitude} longitude {longitude} speed {speed} power {power} odometerKM {odometerKM} ideal_battery_range_km {ideal_battery_range_km} battery_range {battery_range} battery_level {battery_level} outside_temp {outside_temp}");
-                            //car.dbHelper.InsertPos(timestamp, latitude, longitude, speed, power, odometerKM, ideal_battery_range_km, battery_range, battery_level, outside_temp, "");
+                            car.dbHelper.InsertPos(timestamp, latitude, longitude, speed, power, odometerKM, ideal_battery_range_km, battery_range, battery_level, outside_temp, "");
                         }
                         break;
                     case "charge_port_door_open":
@@ -132,11 +132,12 @@ namespace TeslaLogger
                         break;
                     case "charging_state":
                         Tools.DebugLog($"#{car.CarInDB}: TeslaAPIHandleStateChange {name} {oldvalue} -> {newvalue}");
+                        // charging just started
                         if (!oldvalue.ToString().Equals("Charging") && newvalue.ToString().Equals("Charging"))
                         {
                             GetPosition(name, out timestamp, out latitude, out longitude, out speed, out power, out odometerKM, out ideal_battery_range_km, out battery_range, out battery_level, out outside_temp);
                             Tools.DebugLog($"TeslaAPIHandleStateChange InsertPos timestamp {timestamp} latitude {latitude} longitude {longitude} speed {speed} power {power} odometerKM {odometerKM} ideal_battery_range_km {ideal_battery_range_km} battery_range {battery_range} battery_level {battery_level} outside_temp {outside_temp}");
-                            //car.dbHelper.InsertPos(timestamp, latitude, longitude, speed, power, odometerKM, ideal_battery_range_km, battery_range, battery_level, outside_temp, "");
+                            car.dbHelper.InsertPos(timestamp, latitude, longitude, speed, power, odometerKM, ideal_battery_range_km, battery_range, battery_level, outside_temp, "");
                         }
                         break;
                     default:
