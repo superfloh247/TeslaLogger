@@ -111,7 +111,17 @@ namespace TeslaLogger
                         }
                         break;
                     case "battery_level":
-                        if (car.IsParked() && !car.IsCharging())
+                        if (car.IsParked() && !car.IsCharging() && oldvalue != null && int.TryParse(oldvalue.ToString(), out int battery_level_old) && newvalue != null && int.TryParse(newvalue.ToString(), out int battery_level_new) && battery_level_old > battery_level_new)
+                        {
+                            Tools.DebugLog($"#{car.CarInDB}: TeslaAPIHandleStateChange {name} {oldvalue} -> {newvalue}");
+                            // write car data to DB eg to update Grafana Dashboard status
+                            GetPosition(name, out timestamp, out latitude, out longitude, out speed, out power, out odometerKM, out ideal_battery_range_km, out battery_range, out battery_level, out outside_temp);
+                            Tools.DebugLog($"TeslaAPIHandleStateChange InsertPos timestamp {timestamp} latitude {latitude} longitude {longitude} speed {speed} power {power} odometerKM {odometerKM} ideal_battery_range_km {ideal_battery_range_km} battery_range {battery_range} battery_level {battery_level} outside_temp {outside_temp}");
+                            car.dbHelper.InsertPos(timestamp, latitude, longitude, speed, power, odometerKM, ideal_battery_range_km, battery_range, battery_level, outside_temp, "");
+                        }
+                        break;
+                    case "ideal_battery_range":
+                        if (car.IsParked() && !car.IsCharging() && oldvalue != null && double.TryParse(oldvalue.ToString(), out double ideal_battery_range_old) && newvalue != null && double.TryParse(newvalue.ToString(), out double ideal_battery_range_new) && ideal_battery_range_old > ideal_battery_range_new)
                         {
                             Tools.DebugLog($"#{car.CarInDB}: TeslaAPIHandleStateChange {name} {oldvalue} -> {newvalue}");
                             // write car data to DB eg to update Grafana Dashboard status
