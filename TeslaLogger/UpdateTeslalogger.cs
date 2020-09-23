@@ -396,6 +396,7 @@ namespace TeslaLogger
                     }
                     catch (Exception ex)
                     {
+                        Logfile.Log("Exception during download from github: " + ex.ToString());
                         Logfile.ExceptionWriter(ex, "Exception during download from github");
                     }
 
@@ -431,6 +432,7 @@ namespace TeslaLogger
                         }
                         catch (Exception ex)
                         {
+                            Logfile.Log("Exception during unzip of downloaded update package: " + ex.ToString());
                             Logfile.ExceptionWriter(ex, "Exception during unzip of downloaded update package");
                         }
                     }
