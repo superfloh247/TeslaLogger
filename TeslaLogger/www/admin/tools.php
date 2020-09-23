@@ -6,6 +6,15 @@ function isDocker()
     return file_exists($dockerfile);
 }
 
+function GetTeslaloggerURL($path)
+{
+    $url = "http://localhost:5000/";
+    if (isDocker())
+        $url = "http://teslalogger:5000/";
+
+    return $url.$path;
+}
+
 function isShareData()
 {
     $prefix = "/etc/teslalogger/";
@@ -33,5 +42,12 @@ function setShareData($share)
         if (file_exists($prefix."sharedata.txt"))
             unlink($prefix."sharedata.txt");
     }
+}
+
+function JSONDatetoString($jsondate)
+{
+    $ts = preg_replace( '/[^0-9]/', '', $jsondate);
+    $date = date("Y-m-d H:i:s", $ts / 1000);
+    return $date;
 }
 ?>

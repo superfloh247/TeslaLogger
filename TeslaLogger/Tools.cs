@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web.Script.Serialization;
+using MySql.Data.MySqlClient;
 
 namespace TeslaLogger
 {
@@ -21,8 +26,9 @@ namespace TeslaLogger
         private static string _length = "km";
         private static string _language = "de";
         private static string _URL_Admin = "";
+        private static string _URL_Grafana = "http://raspberry:3000/";
         private static string _Range = "IR";
-        private static DateTime lastGrafanaSettings = DateTime.UtcNow.AddDays(-1);
+        public static DateTime lastGrafanaSettings = DateTime.UtcNow.AddDays(-1);
         private static DateTime lastSleepingHourMinutsUpdated = DateTime.UtcNow.AddDays(-1);
 
         private static string _OSVersion = string.Empty;
@@ -31,16 +37,75 @@ namespace TeslaLogger
 
         public static void SetThread_enUS()
         {
-            System.Threading.Thread.CurrentThread.CurrentCulture = ciEnUS;
+            Thread.CurrentThread.CurrentCulture = ciEnUS;
         }
 
-        public static void DebugLog(string text, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
+        public static long ToUnixTime(DateTime dateTime)
+        {
+            return (long)(dateTime - new DateTime(1970, 1, 1)).TotalSeconds;
+        }
+
+        public static void DebugLog(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
         {
             if (Program.VERBOSE)
             {
                 string temp = "DEBUG : " + text + " (" + Path.GetFileName(_cfp) + ":" + _cln + ")";
                 Logfile.Log(temp);
+                if (ex != null)
+                {
+
+                }
             }
+        }
+
+        // source: https://stackoverflow.com/questions/6994852
+        private static void TraceException(Exception e)
+        {
+            try
+            {
+                MethodBase site = e.TargetSite;//Get the methodname from the exception.
+                string methodName = site == null ? "" : site.Name;//avoid null ref if it's null.
+                methodName = ExtractBracketed(methodName);
+
+                StackTrace stkTrace = new System.Diagnostics.StackTrace(e, true);
+                for (int i = 0; i < 3; i++)
+                {
+                    //In most cases GetFrame(0) will contain valid information, but not always. That's why a small loop is needed. 
+                    var frame = stkTrace.GetFrame(i);
+                    int lineNum = frame.GetFileLineNumber();//get the line and column numbers
+                    int colNum = frame.GetFileColumnNumber();
+                    string className = ExtractBracketed(frame.GetMethod().ReflectedType.FullName);
+                    Logfile.Log(ThreadAndDateInfo + "Exception: " + className + "." + methodName + ", Ln " + lineNum + " Col " + colNum + ": " + e.Message);
+                    if (lineNum + colNum > 0)
+                        break; //exit the for loop if you have valid info. If not, try going up one frame...
+                }
+
+            }
+            catch (Exception ee)
+            {
+                //Avoid any situation that the Trace is what crashes you application. While trace can log to a file. Console normally not output to the same place.
+                Logfile.Log("Tracing exception in TraceException(Exception e)" + ee.Message);
+            }
+        }
+
+        private static string ExtractBracketed(string str)
+        {
+            string s;
+            if (str.IndexOf('<') > -1) //using the Regex when the string does not contain <brackets> returns an empty string.
+                s = Regex.Match(str, @"\<([^>]*)\>").Groups[1].Value;
+            else
+                s = str;
+            if (s == "")
+                return "'Emtpy'"; //for log visibility we want to know if something it's empty.
+            else
+                return s;
+
+        }
+
+        private static string ThreadAndDateInfo
+        {
+            //returns thread number and precise date and time.
+            get { return "[" + Thread.CurrentThread.ManagedThreadId + " - " + DateTime.Now.ToString("dd/MM HH:mm:ss.ffffff") + "] "; }
         }
 
         public static string GetMonoRuntimeVersion()
@@ -150,6 +215,31 @@ namespace TeslaLogger
             }
         }
 
+        internal static int GetHttpPort()
+        {
+            int httpport = 5000; // default
+            try
+            {
+                string filePath = FileManager.GetFilePath(TLFilename.SettingsFilename);
+                if (!File.Exists(filePath))
+                {
+                    Logfile.Log("settings file not found at " + filePath);
+                    return httpport;
+                }
+                string json = File.ReadAllText(filePath);
+                dynamic j = new JavaScriptSerializer().DeserializeObject(json);
+                if (IsPropertyExist(j, "HTTPPort"))
+                {
+                    int.TryParse(j["HTTPPort"], out httpport);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logfile.Log(ex.ToString());
+            }
+            return httpport;
+        }
+
         internal static void StartSleeping(out int startSleepingHour, out int startSleepingMinutes)
         {
             TimeSpan ts = DateTime.UtcNow - lastSleepingHourMinutsUpdated;
@@ -202,6 +292,68 @@ namespace TeslaLogger
             }
         }
 
+        public static string Exec_mono(string cmd, string param, bool logging = true, bool stderr2stdout = false)
+        {
+            try
+            {
+                if (!Tools.IsMono())
+                {
+                    return "";
+                }
+
+                Logfile.Log("execute: " + cmd + " " + param);
+
+                StringBuilder sb = new StringBuilder();
+
+                System.Diagnostics.Process proc = new System.Diagnostics.Process
+                {
+                    EnableRaisingEvents = false
+                };
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.FileName = cmd;
+                proc.StartInfo.Arguments = param;
+
+                proc.Start();
+
+                while (!proc.HasExited)
+                {
+                    string line = proc.StandardOutput.ReadToEnd().Replace('\r', '\n');
+
+                    if (logging && line.Length > 0)
+                    {
+                        Logfile.Log(" " + line);
+                    }
+
+                    sb.AppendLine(line);
+
+                    line = proc.StandardError.ReadToEnd().Replace('\r', '\n');
+
+                    if (logging && line.Length > 0)
+                    {
+                        if (stderr2stdout)
+                        {
+                            Logfile.Log(" " + line);
+                        }
+                        else
+                        {
+                            Logfile.Log("Error: " + line);
+                        }
+                    }
+
+                    sb.AppendLine(line);
+                }
+
+                return sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                Logfile.Log("Exception " + cmd + " " + ex.Message);
+                return "Exception";
+            }
+        }
+
         internal static bool UseScanMyTesla()
         {
             try
@@ -234,7 +386,7 @@ namespace TeslaLogger
             return false;
         }
 
-        internal static UpdateType UpdateSettings()
+        internal static UpdateType GetOnlineUpdateSettings()
         {
             try
             {
@@ -269,7 +421,7 @@ namespace TeslaLogger
         }
 
 
-        internal static void GrafanaSettings(out string power, out string temperature, out string length, out string language, out string URL_Admin, out string Range)
+        internal static void GrafanaSettings(out string power, out string temperature, out string length, out string language, out string URL_Admin, out string Range, out string URL_Grafana)
         {
             TimeSpan ts = DateTime.UtcNow - lastGrafanaSettings;
             if (ts.TotalMinutes < 10)
@@ -280,6 +432,7 @@ namespace TeslaLogger
                 language =_language;
                 URL_Admin =_URL_Admin;
                 Range = _Range;
+                URL_Grafana = _URL_Grafana;
                 return;
             }
 
@@ -289,6 +442,7 @@ namespace TeslaLogger
             language = "de";
             URL_Admin = "";
             Range = "IR";
+            URL_Grafana = "http://raspberry:3000/";
 
             try
             {
@@ -339,12 +493,21 @@ namespace TeslaLogger
                     }
                 }
 
+                if (IsPropertyExist(j, "URL_Grafana"))
+                {
+                    if (j["URL_Grafana"].ToString().Length > 0)
+                    {
+                        URL_Grafana = j["URL_Grafana"];
+                    }
+                }
+
                 _power = power;
                 _temperature = temperature;
                 _length = length;
                 _language = language;
                 _URL_Admin = URL_Admin;
                 _Range = Range;
+                _URL_Grafana = URL_Grafana;
 
                 lastGrafanaSettings = DateTime.UtcNow;
             }
@@ -641,6 +804,201 @@ namespace TeslaLogger
                 }
                 ResetLine();
             }
-        };
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public static void Housekeeping()
+        {
+            // df and du before cleanup
+            LogDiskUsage();
+            // log DB usage
+            LogDBUsage();
+            // cleanup Exceptions
+            CleanupExceptionsDir();
+            // cleanup database
+            CleanupDatabaseTableMothership();
+            // run housekeeping regularly:
+            // - after 24h
+            // - but only if car is asleep, otherwise wait another hour
+            CreateMemoryCacheItem(24);
+        }
+
+        private static void LogDBUsage()
+        {
+            /*
+             * https://chartio.com/resources/tutorials/how-to-get-the-size-of-a-table-in-mysql/
+             */
+            Logfile.Log("Housekeeping: database usage");
+            using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+            {
+                con.Open();
+                MySqlCommand cmd = new MySqlCommand("SELECT TABLE_NAME, ROUND(DATA_LENGTH / 1024 / 1024), ROUND(INDEX_LENGTH / 1024 / 1024), TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = \"teslalogger\" AND TABLE_TYPE = \"BASE TABLE\"", con);
+                cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
+                try
+                {
+                    MySqlDataReader dr = cmd.ExecuteReader();
+                    while (dr.Read())
+                    {
+                        Logfile.Log($"Table: {dr[0],20} data:{dr[1],5} MB index:{dr[2],5} MB rows:{dr[3],10}");
+                    }
+                }
+                catch (Exception) { }
+            }
+        }
+
+        private static void CreateMemoryCacheItem(double hours = 24.0)
+        {
+            CacheItemPolicy policy = new CacheItemPolicy();
+            policy.AbsoluteExpiration = DateTime.Now.AddHours(hours);
+            CacheEntryRemovedCallback removeCallback = new CacheEntryRemovedCallback(HousekeepingCallback);
+            policy.RemovedCallback = removeCallback;
+            _ = MemoryCache.Default.Add(Program.TLMemCacheKey.Housekeeping.ToString(), policy, policy);
+        }
+
+        private static void HousekeepingCallback(CacheEntryRemovedArguments arguments)
+        {
+            bool allCarsAsleep = true;
+            foreach (Car car in Car.allcars)
+            {
+                // first car to return false will set allCarsAsleep to false and it'll stay false
+                allCarsAsleep &= car.TLUpdatePossible();
+            }
+            if (allCarsAsleep)
+            {
+                // CacheItem was removed and all cars are asleep, so run housekeeping
+                Program.RunHousekeepingInBackground();
+            }
+            else
+            {
+                // wait another hour to try again
+                CreateMemoryCacheItem(1);
+            }
+        }
+
+        private static void CleanupDatabaseTableMothership()
+        {
+            long mothershipCount = 0;
+            long mothershipMaxId = 0;
+            long mothershipMinId = 0;
+            using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+            {
+                con.Open();
+                MySqlCommand cmd = new MySqlCommand("SELECT COUNT(id), MAX(id), MIN(id) FROM mothership WHERE ts < @tsdate", con);
+                cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
+                try
+                {
+                    MySqlDataReader dr = cmd.ExecuteReader();
+                    if (dr.Read())
+                    {
+                        _ = long.TryParse(dr[0].ToString(), out mothershipCount);
+                        _ = long.TryParse(dr[1].ToString(), out mothershipMaxId);
+                        _ = long.TryParse(dr[2].ToString(), out mothershipMinId);
+                        Logfile.Log($"Housekeeping: database.mothership older than 90 days count: {mothershipCount} minID:{mothershipMinId} maxID:{mothershipMaxId}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logfile.Log(ex.ToString());
+                }
+                con.Close();
+            }
+            if (mothershipCount >= 1000)
+            {
+                // split into chunks to keep database load low
+                for (long dbupdate = mothershipMinId + 1000; dbupdate <= mothershipMaxId; dbupdate += 1000)
+                {
+                    using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                    {
+                        Logfile.Log($"Housekeeping: delete database.mothership chunk {dbupdate}");
+                        con.Open();
+                        string SQLcmd = "DELETE FROM mothership where id < @maxid";
+                        MySqlCommand cmd = new MySqlCommand(SQLcmd, con);
+                        cmd.Parameters.AddWithValue("@maxid", dbupdate);
+                        try
+                        {
+                            cmd.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logfile.Log(ex.ToString());
+                        }
+                        con.Close();
+                    }
+                    Thread.Sleep(5000);
+                }
+                // report again
+                using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                {
+                    con.Open();
+                    MySqlCommand cmd = new MySqlCommand("SELECT COUNT(id) FROM mothership WHERE ts < @tsdate", con);
+                    cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
+                    try
+                    {
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        if (dr.Read())
+                        {
+                            _ = long.TryParse(dr[0].ToString(), out mothershipCount);
+                            Logfile.Log("Housekeeping: database.mothership older than 90 days count: " + mothershipCount);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logfile.Log(ex.ToString());
+                    }
+                    con.Close();
+                }
+            }
+        }
+
+        private static void CleanupExceptionsDir()
+        {
+            bool filesFoundForDeletion = false;
+            int countDeletedFiles = 0;
+            if (Directory.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/Exception"))
+            {
+                foreach (string fs in Directory.EnumerateFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/Exception"))
+                {
+                    if ((DateTime.Now - File.GetLastWriteTime(fs)).TotalDays > 30)
+                    {
+                        try
+                        {
+                            //Logfile.Log("Housekeeping: delete file " + fs);
+                            File.Delete(fs);
+                            filesFoundForDeletion = true;
+                            countDeletedFiles++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logfile.Log(ex.ToString());
+                        }
+                    }
+                }
+            }
+            if (filesFoundForDeletion)
+            {
+                Logfile.Log($"Housekeeping: {countDeletedFiles} file(s) deleted in Exception direcotry");
+                if (Directory.Exists(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Exception"))
+                {
+                    Exec_mono("/usr/bin/du", "-sk " + System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Exception", true, true);
+                }
+            }
+        }
+
+        private static void LogDiskUsage()
+        {
+            _ = Exec_mono("/bin/df", "-k", true, true);
+            if (Directory.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/backup"))
+            {
+                _ = Exec_mono("/usr/bin/du", "-sk " + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/backup", true, true);
+            }
+            if (Directory.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/Exception"))
+            {
+                _ = Exec_mono("/usr/bin/du", "-sk " + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/Exception", true, true);
+            }
+            if (File.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/nohup.out"))
+            {
+                _ = Exec_mono("/usr/bin/du", "-sk " + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/nohup.out", true, true);
+            }
+        }
     }
 }

@@ -17,16 +17,27 @@ namespace TeslaLogger
             HighFrequencyLogging,
             EnableSentryMode,
             SetChargeLimit,
-            ClimateOff
+            ClimateOff,
+            CopyChargePrice
+        }
+
+        public enum GeofenceSource
+        {
+            Geofence,
+            GeofencePrivate
         }
 
         public string name;
+        public string rawName;
         public double lat;
         public double lng;
         public int radius;
         public Dictionary<SpecialFlags, string> specialFlags;
         private bool isHome = false;
         private bool isWork = false;
+        private bool isCharger = false;
+        private bool noSleep = false;
+        internal GeofenceSource geofenceSource;
 
         public bool IsHome
         {
@@ -39,6 +50,7 @@ namespace TeslaLogger
                 }
             }
         }
+
         public bool IsWork
         {
             get => isWork; set
@@ -51,12 +63,17 @@ namespace TeslaLogger
             }
         }
 
-        public Address(string name, double lat, double lng, int radius)
+        public bool IsCharger { get => isCharger; set { isCharger = value; } }
+        public bool NoSleep { get => noSleep; set { noSleep = value; } }
+
+        public Address(string name, double lat, double lng, int radius, GeofenceSource source = GeofenceSource.Geofence)
         {
             this.name = name;
+            this.rawName = name;
             this.lat = lat;
             this.lng = lng;
             this.radius = radius;
+            geofenceSource = source;
             specialFlags = new Dictionary<SpecialFlags, string>();
         }
 
@@ -73,11 +90,11 @@ namespace TeslaLogger
 
     public class Geofence
     {
-        private List<Address> sortedList;
+        internal List<Address> sortedList;
         private FileSystemWatcher fsw;
 
         public bool RacingMode = false;
-        bool _RacingMode = false;
+        private bool _RacingMode = false;
 
         private static int FSWCounter = 0;
 
@@ -102,9 +119,10 @@ namespace TeslaLogger
             }
         }
 
-        private void Init()
+        internal void Init()
         {
             List<Address> list = new List<Address>();
+            int replaceCount = 0;
 
             if (File.Exists(FileManager.GetFilePath(TLFilename.GeofenceRacingFilename)) && _RacingMode)
             {
@@ -117,6 +135,7 @@ namespace TeslaLogger
             {
                 RacingMode = false;
                 ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofenceFilename));
+                Logfile.Log("Geofence: addresses inserted from geofence.csv: " + list.Where(a => a.geofenceSource == Address.GeofenceSource.Geofence).Count());
                 if (!File.Exists(FileManager.GetFilePath(TLFilename.GeofencePrivateFilename)))
                 {
                     Logfile.Log("Create: " + FileManager.GetFilePath(TLFilename.GeofencePrivateFilename));
@@ -124,10 +143,11 @@ namespace TeslaLogger
                 }
 
                 UpdateTeslalogger.Chmod(FileManager.GetFilePath(TLFilename.GeofencePrivateFilename), 666);
-                ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofencePrivateFilename), true);
+                replaceCount += ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofencePrivateFilename), true);
             }
-            
-            Logfile.Log("Addresses inserted: " + list.Count);
+
+            Logfile.Log("Geofence: addresses inserted from geofence-private.csv: " + list.Where(a => a.geofenceSource == Address.GeofenceSource.GeofencePrivate).Count()); ;
+            Logfile.Log($"Geofence: addresses replaced by geofence-private.csv: {replaceCount}");
 
             sortedList = list.OrderBy(o => o.lat).ToList();
         }
@@ -163,9 +183,10 @@ namespace TeslaLogger
             }
         }
 
-        private static void ReadGeofenceFile(List<Address> list, string filename, bool replaceExistiongPOIs = false)
+        private static int ReadGeofenceFile(List<Address> list, string filename, bool replaceExistiongPOIs = false)
         {
             filename = filename.Replace(@"Debug\", "");
+            int replaceCount = 0;
             List<Address> localList = new List<Address>();
             if (File.Exists(filename))
             {
@@ -199,16 +220,29 @@ namespace TeslaLogger
                             if (args.Length > 4 && args[4] != null)
                             {
                                 string flags = args[4];
-                                Logfile.Log(args[0].Trim() + ": special flags found: " + flags);
+                                Tools.DebugLog(args[0].Trim() + ": special flags found: " + flags);
                                 ParseSpecialFlags(addr, flags);
+                            }
+                            if (filename.Equals(FileManager.GetFilePath(TLFilename.GeofencePrivateFilename)))
+                            {
+                                addr.geofenceSource = Address.GeofenceSource.GeofencePrivate;
+                                Logfile.Log("GeofencePrivate: Address inserted: " + args[0]);
+                            }
+
+                            if (addr.name.StartsWith("Supercharger-V3 ") || addr.name.StartsWith("Ionity "))
+                            {
+                                addr.name = "⚡⚡⚡ " + addr.name;
+                            }
+                            else if (addr.name.StartsWith("Supercharger "))
+                            {
+                                addr.name = "⚡⚡ " + addr.name;
+                            }
+                            else if (addr.name.StartsWith("Urbancharger "))
+                            {
+                                addr.name = "⚡ " + addr.name;
                             }
 
                             localList.Add(addr);
-
-                            if (!filename.Contains("geofence.csv"))
-                            {
-                                Logfile.Log("Address inserted: " + args[0]);
-                            }
                         }
                         catch (Exception ex)
                         {
@@ -233,7 +267,8 @@ namespace TeslaLogger
                         {
                             if (addr != null && addr.name != null && localName != null && localName.Equals(addr.name))
                             {
-                                Logfile.Log("replace " + addr.name + " with value(s) from " + filename);
+                                Logfile.Log("replace " + addr.name + " with POI(s) from " + filename);
+                                replaceCount++;
                                 keepAddr = false;
                                 break;
                             }
@@ -243,14 +278,17 @@ namespace TeslaLogger
                             localList.Add(addr);
                         }
                     }
+                    // all entries from geofence that are not overwritten by geofence-private are now copied to locallist
                     list.Clear();
                 }
+                // copy locallist to list
                 list.AddRange(localList);
             }
             else
             {
                 Logfile.Log("ReadGeofenceFile FileNotFound: " + filename);
             }
+            return replaceCount;
         }
 
         private static void ParseSpecialFlags(Address _addr, string _flags)
@@ -268,14 +306,27 @@ namespace TeslaLogger
                 else if (flag.StartsWith("esm"))
                 {
                     SpecialFlag_ESM(_addr, flag);
+                    _addr.name = "👀 " + _addr.name;
                 }
                 else if (flag.Equals("home"))
                 {
                     _addr.IsHome = true;
+                    _addr.name = "🏠 " + _addr.name;
                 }
                 else if (flag.Equals("work"))
                 {
                     _addr.IsWork = true;
+                    _addr.name = "💼 " + _addr.name;
+                }
+                else if (flag.Equals("charger"))
+                {
+                    _addr.IsCharger = true;
+                    _addr.name = "🔌 " + _addr.name;
+                }
+                else if (flag.Equals("nosleep"))
+                {
+                    _addr.NoSleep = true;
+                    _addr.name = "☕ " + _addr.name;
                 }
                 else if (flag.StartsWith("scl"))
                 {
@@ -284,6 +335,10 @@ namespace TeslaLogger
                 else if (flag.StartsWith("cof"))
                 {
                     SpecialFlag_COF(_addr, flag);
+                }
+                else if (flag.Equals("ccp"))
+                {
+                    SpecialFlag_CCP(_addr, flag);
                 }
             }
         }
@@ -316,6 +371,11 @@ namespace TeslaLogger
                 // default
                 _addr.specialFlags.Add(Address.SpecialFlags.ClimateOff, "RND->P");
             }
+        }
+
+        private static void SpecialFlag_CCP(Address _addr, string _flag)
+        {
+            _addr.specialFlags.Add(Address.SpecialFlags.CopyChargePrice, "");
         }
 
         private static void SpecialFlag_SCL(Address _addr, string _flag)
@@ -363,7 +423,7 @@ namespace TeslaLogger
             }
         }
 
-        public Address GetPOI(double lat, double lng, bool logDistance = true)
+        public Address GetPOI(double lat, double lng, bool logDistance = true, string brand = null, int max_power = 0)
         {
             Address ret = null;
             double retDistance = 0;
@@ -389,6 +449,15 @@ namespace TeslaLogger
                         double distance = GetDistance(lng, lat, p.lng, p.lat);
                         if (p.radius > distance)
                         {
+                            if (brand == "Tesla")
+                            {
+                                if (!p.name.Contains("Tesla") && !p.name.Contains("Supercharger"))
+                                    continue;
+
+                                if (max_power > 150 && !p.name.Contains("V3"))
+                                    continue;
+                            }
+
                             found++;
                             if (logDistance)
                             {

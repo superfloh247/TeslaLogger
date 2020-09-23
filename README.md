@@ -8,7 +8,7 @@ https://www.e-mobility-driving-solutions.com/produkt/raspi-teslalogger/?lang=en
 Or a Teslalogger Image for a Raspberry PI 3B+: 
 https://e-mobility-driving-solutions.com/produkt/teslalogger-image/?lang=en
 
-You can also run it in a Docker:
+You can also run it for free in a Docker / Synology:
 [Docker Setup](docker_setup.md)
 
 # Configuration
@@ -23,7 +23,7 @@ http://raspberry/admin/password.php
 Enter the same credentials as you use in your teslaaccount or app.
 
 ## Settings & Language
-Available languages: English, German, Norwegian - Translations are welcome
+Available languages: English, German, Norwegian, Nederlands - Translations are welcome
 
 Change the language and units and reboot the Teslalogger.
 
@@ -64,18 +64,6 @@ http://teslalogger.de/map.php
 Username: pi
 
 Password: teslalogger
-
-## More than one car
-
-Go to \\RASPBERRY\teslalogger with your file Explorer. There is a File: TeslaLogger.exe.config
-```xml
-<setting name="Car" serializeAs="String">
-
-<value>0</value>
-
-</setting>
-```
-value 0 is 1st car / value 1 is 2nd car and so on...
 
 ## Custom Points of Interest (POI)
 

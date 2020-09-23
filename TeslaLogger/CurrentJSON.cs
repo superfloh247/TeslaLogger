@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace TeslaLogger
 {
     public class CurrentJSON
-    {      
+    {
         public bool current_charging = false;
         public bool current_driving = false;
         public bool current_online = false;
@@ -26,6 +25,8 @@ namespace TeslaLogger
         public int current_charger_actual_current = 0;
         public double current_charge_energy_added = 0;
         public int current_charger_power = 0;
+        public double current_charge_rate_km = 0;
+        public double current_time_to_full_charge = 0;
 
         public string current_car_version = "";
 
@@ -65,6 +66,12 @@ namespace TeslaLogger
 
         public string current_json = "";
         private DateTime lastJSONwrite = DateTime.MinValue;
+        Car car;
+
+        public CurrentJSON(Car car)
+        {
+            this.car = car;
+        }
 
         public void CheckCreateCurrentJSON()
         {
@@ -140,6 +147,8 @@ namespace TeslaLogger
                    { "charger_actual_current", current_charger_actual_current},
                    { "charge_energy_added", current_charge_energy_added},
                    { "charger_power", current_charger_power},
+                   { "charge_rate_km", current_charge_rate_km},
+                   { "time_to_full_charge", current_time_to_full_charge},
                    { "car_version", current_car_version },
                    { "trip_start", current_trip_start.ToString("t",Tools.ciDeDE) },
                    { "trip_start_dt", current_trip_start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") },
@@ -158,7 +167,8 @@ namespace TeslaLogger
                    { "is_preconditioning", current_is_preconditioning },
                    { "sentry_mode", current_is_sentry_mode },
                    { "country_code", current_country_code },
-                   { "state", current_state }
+                   { "state", current_state },
+                   { "display_name", car.display_name}
                 };
 
                 TimeSpan ts = DateTime.Now - lastScanMyTeslaReceived;
@@ -174,7 +184,7 @@ namespace TeslaLogger
 
                 current_json = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(values);
 
-                FileManager.WriteCurrentJsonFile(current_json);
+                FileManager.WriteCurrentJsonFile(car.CarInDB, current_json);
                 //FileManager.WriteCurrentJsonFile(new Tools.JsonFormatter(current_json).Format());
             }
             catch (Exception ex)
