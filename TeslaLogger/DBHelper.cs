@@ -669,8 +669,8 @@ namespace TeslaLogger
                 con.Open();
                 MySqlCommand cmd = new MySqlCommand("insert chargingstate (CarID, StartDate, Pos, StartChargingID, fast_charger_brand, fast_charger_type, conn_charge_cable , fast_charger_present ) values (@CarID, @StartDate, @Pos, @StartChargingID, @fast_charger_brand, @fast_charger_type, @conn_charge_cable , @fast_charger_present)", con);
                 cmd.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
+                cmd.Parameters.AddWithValue("@Pos", GetMaxPosidForStartChargingState(out DateTime StartDate));
                 cmd.Parameters.AddWithValue("@StartDate", DateTime.Now);
-                cmd.Parameters.AddWithValue("@Pos", GetMaxPosidForStartChargingState());
                 cmd.Parameters.AddWithValue("@StartChargingID", GetMaxChargeid() + 1);
                 cmd.Parameters.AddWithValue("@fast_charger_brand", wh.fast_charger_brand);
                 cmd.Parameters.AddWithValue("@fast_charger_type", wh.fast_charger_type);
@@ -683,9 +683,10 @@ namespace TeslaLogger
             wh.car.currentJSON.CreateCurrentJSON();
         }
 
-        private int GetMaxPosidForStartChargingState()
+        private int GetMaxPosidForStartChargingState(out DateTime startDate)
         {
             int maxposid = GetMaxPosid(false);
+            startDate = DateTime.Now;
             double maxposlat = double.NaN;
             double laxposlng = double.NaN;
             DateTime maxposdate = DateTime.MinValue;
@@ -714,14 +715,15 @@ namespace TeslaLogger
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                     {
                         con.Open();
-                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed from pos where id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} order by datum desc", con);
+                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} order by datum desc", con);
                         MySqlDataReader dr = cmd.ExecuteReader();
                         while (dr.Read())
                         {
-                            Tools.DebugLog($"GetMaxPosidForStartChargingState() newposid {dr[2]} lat {dr[0]} lng {dr[1]} speed {dr[3]}");
+                            Tools.DebugLog($"GetMaxPosidForStartChargingState() newposid {dr[2]} lat {dr[0]} lng {dr[1]} speed {dr[3]} datum {dr[4]}");
                             if (int.TryParse(dr[3].ToString(), out int newspeed) && newspeed == 0 && int.TryParse(dr[2].ToString(), out int newposid))
                             {
                                 UpdateAddress(car, newposid);
+                                DateTime.TryParse(dr[4].ToString(), out startDate);
                                 return newposid;
                             }
                         }
