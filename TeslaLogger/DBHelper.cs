@@ -787,7 +787,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                     {
                         con.Open();
-                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where power > 0 and power < 10 and id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} and pos >= (select max pos from chargingstate) order by datum desc", con);
+                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where power > 0 and power < 10 and id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} and id >= (select max pos from chargingstate) order by datum desc", con);
                         Tools.DebugLog("SQL: " + cmd.CommandText);
                         MySqlDataReader dr = cmd.ExecuteReader();
                         while (dr.Read())
