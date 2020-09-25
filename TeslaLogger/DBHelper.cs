@@ -699,6 +699,7 @@ namespace TeslaLogger
                         if (dr.Read() && dr.FieldCount > 0 && dr[0] != null)
                         {
                             DateTime.TryParse(dr[0].ToString(), out startDate);
+                            Tools.DebugLog($"GetMaxPosidForStartChargingState return id {posID} {startDate} from MemoryCache");
                             return posID;
                         }
                     }
@@ -747,6 +748,7 @@ namespace TeslaLogger
                             {
                                 UpdateAddress(car, newposid);
                                 DateTime.TryParse(dr[4].ToString(), out startDate);
+                                Tools.DebugLog($"GetMaxPosidForStartChargingState return id {newposid} {startDate} from DB");
                                 return newposid;
                             }
                         }
