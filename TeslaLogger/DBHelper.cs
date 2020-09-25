@@ -685,6 +685,29 @@ namespace TeslaLogger
 
         private int GetMaxPosidForStartChargingState(out DateTime startDate)
         {
+            // try memcache first
+            object cacheValue = MemoryCache.Default.Get(car.GetTeslaAPIState().CacheKey_StartChargingPosID);
+            if (cacheValue != null && int.TryParse(cacheValue.ToString(), out int posID))
+            {
+                try
+                {
+                    using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                    {
+                        con.Open();
+                        MySqlCommand cmd = new MySqlCommand($"select datum from pos where id = {posID} and CarID={car.CarInDB}", con);
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        if (dr.Read() && dr.FieldCount > 0 && dr[0] != null)
+                        {
+                            DateTime.TryParse(dr[0].ToString(), out startDate);
+                            return posID;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Tools.DebugLog("GetMaxPosidForStartChargingState Exception", ex);
+                }
+            }
             int maxposid = GetMaxPosid(false);
             startDate = DateTime.Now;
             double maxposlat = double.NaN;
@@ -715,7 +738,7 @@ namespace TeslaLogger
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                     {
                         con.Open();
-                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} order by datum desc", con);
+                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where power > 0 and power < 10 and id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} order by datum desc", con);
                         MySqlDataReader dr = cmd.ExecuteReader();
                         while (dr.Read())
                         {
