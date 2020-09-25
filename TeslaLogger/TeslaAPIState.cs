@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Caching;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -20,6 +21,8 @@ namespace TeslaLogger
         private HashSet<string> unknownKeys = new HashSet<string>();
         private Car car;
         private bool dumpJSON = false;
+
+        public string CacheKey_StartChargingPosID;
 
         internal bool DumpJSON {
             get => dumpJSON;
@@ -48,6 +51,7 @@ namespace TeslaLogger
         public TeslaAPIState(Car car)
         {
             this.car = car;
+            CacheKey_StartChargingPosID = $"StartChargingPosID_{car.CarInDB}";
         }
 
         private void AddValue(string _name, string _type, object _value, long _timestamp, string _source)
@@ -142,12 +146,15 @@ namespace TeslaLogger
                         break;
                     case "charging_state":
                         Tools.DebugLog($"#{car.CarInDB}: TeslaAPIHandleStateChange {name} {oldvalue} -> {newvalue}");
-                        // charging just started
-                        if (!oldvalue.ToString().Equals("Charging") && newvalue.ToString().Equals("Charging"))
+                        GetPosition(name, out timestamp, out latitude, out longitude, out speed, out power, out odometerKM, out ideal_battery_range_km, out battery_range, out battery_level, out outside_temp);
+                        Tools.DebugLog($"TeslaAPIHandleStateChange InsertPos timestamp {timestamp} latitude {latitude} longitude {longitude} speed {speed} power {power} odometerKM {odometerKM} ideal_battery_range_km {ideal_battery_range_km} battery_range {battery_range} battery_level {battery_level} outside_temp {outside_temp}");
+                        car.dbHelper.InsertPos(timestamp, latitude, longitude, speed, power, odometerKM, ideal_battery_range_km, battery_range, battery_level, outside_temp, "");
+                        // charging should start right away
+                        if (!oldvalue.ToString().Equals("Starting") && newvalue.ToString().Equals("Starting"))
                         {
-                            GetPosition(name, out timestamp, out latitude, out longitude, out speed, out power, out odometerKM, out ideal_battery_range_km, out battery_range, out battery_level, out outside_temp);
-                            Tools.DebugLog($"TeslaAPIHandleStateChange InsertPos timestamp {timestamp} latitude {latitude} longitude {longitude} speed {speed} power {power} odometerKM {odometerKM} ideal_battery_range_km {ideal_battery_range_km} battery_range {battery_range} battery_level {battery_level} outside_temp {outside_temp}");
-                            car.dbHelper.InsertPos(timestamp, latitude, longitude, speed, power, odometerKM, ideal_battery_range_km, battery_range, battery_level, outside_temp, "");
+                            int maxPosID = car.dbHelper.GetMaxPosid(true);
+                            Tools.DebugLog($"MemoryCache.Add {CacheKey_StartChargingPosID} {maxPosID} {DateTime.Now.AddMinutes(1)}");
+                            MemoryCache.Default.Add(CacheKey_StartChargingPosID, maxPosID, DateTime.Now.AddMinutes(1));
                         }
                         break;
                     default:
