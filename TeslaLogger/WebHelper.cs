@@ -31,7 +31,7 @@ namespace TeslaLogger
         public string conn_charge_cable = "";
         public bool fast_charger_present = false;
         public static Geofence geofence;
-        private bool stopStreaming = false;
+        //private bool stopStreaming = false;
         private string elevation = "";
         private DateTime elevation_time = DateTime.Now;
         public DateTime lastTokenRefresh = DateTime.Now;
@@ -120,7 +120,7 @@ namespace TeslaLogger
                     hiddenPassword += "x";
                 }
 
-                Log("Login with : '" + car.TeslaName + "' / '" + hiddenPassword + "'");
+                Log("Login with : '" + Tools.ObfuscateString(car.TeslaName) + "' / '" + hiddenPassword + "'");
 
                 if (car.TeslaName.Length == 0 || car.TeslaPasswort.Length == 0)
                 {
@@ -449,7 +449,7 @@ namespace TeslaLogger
                     */
 
                     string vin = r2["vin"].ToString();
-                    Log("vin: " + vin);
+                    Log("vin: " + Tools.ObfuscateString(vin));
 
                     if (car.vin != vin)
                     {
@@ -459,10 +459,10 @@ namespace TeslaLogger
                     }
 
                     Tesla_id = r2["id"].ToString();
-                    Log("id: " + Tesla_id);
+                    Log("id: " + Tools.ObfuscateString(Tesla_id));
 
                     Tesla_vehicle_id = r2["vehicle_id"].ToString();
-                    Log("vehicle_id: " + Tesla_vehicle_id);
+                    Log("vehicle_id: " + Tools.ObfuscateString(Tesla_vehicle_id));
 
                     byte[] tempTasker = Encoding.UTF8.GetBytes(vin + car.TeslaName);
 
@@ -2247,7 +2247,7 @@ FROM
         public void StopStreaming()
         {
             Log("Request StopStreaming");
-            stopStreaming = true;
+            //stopStreaming = true;
         }
 
         private DateTime lastTaskerWakeupfile = DateTime.Today;
