@@ -25,11 +25,28 @@ namespace TeslaLogger
 
         public static bool Done { get => _done;}
 
+        private static Thread ComfortingMessages = null;
+
+        public static void StopComfortingMessagesThread()
+        {
+            try
+            {
+                if (ComfortingMessages != null)
+                {
+                    ComfortingMessages.Abort();
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.DebugLog("StopComfortingMessagesThread() exception", ex);
+            }
+        }
+
         public static void Start()
         {
             // update may take quite a while, especially if we ALTER TABLEs
             // start a thread that puts comforting messages into the log
-            Thread ComfortingMessages = new Thread(() =>
+            ComfortingMessages = new Thread(() =>
             {
                 Random rnd = new Random();
                 while (!Done)
@@ -286,6 +303,12 @@ namespace TeslaLogger
                     Logfile.Log("ALTER TABLE cars ADD Column vin");
                     DBHelper.ExecuteSQLQuery(@"ALTER TABLE `cars` 
                         ADD COLUMN `vin` VARCHAR(20) NULL DEFAULT NULL", 600);
+                }
+
+                if (!DBHelper.ColumnExists("cars", "freesuc"))
+                {
+                    Logfile.Log("ALTER TABLE cars ADD Column freesuc");
+                    DBHelper.ExecuteSQLQuery(@"ALTER TABLE `cars` ADD `freesuc` TINYINT UNSIGNED NOT NULL DEFAULT '0'", 600);
                 }
 
                 if (!DBHelper.IndexExists("can_ix2", "can"))
