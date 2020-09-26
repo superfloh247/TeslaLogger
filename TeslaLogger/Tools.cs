@@ -817,10 +817,43 @@ namespace TeslaLogger
             CleanupExceptionsDir();
             // cleanup database
             CleanupDatabaseTableMothership();
+            // update elevation
+            UpdateElevation();
             // run housekeeping regularly:
             // - after 24h
             // - but only if car is asleep, otherwise wait another hour
             CreateMemoryCacheItem(24);
+        }
+
+        private static void UpdateElevation()
+        {
+            {
+                int from = 1;
+                int to = 1;
+                try
+                {
+                    using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                    {
+                        con.Open();
+                        MySqlCommand cmd = new MySqlCommand("SELECT min(id), max(id) FROM `pos` where lat is not null and lng is not null and altitude is null group by floor(id/1000)", con);
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        while (dr.Read() && dr[0] != DBNull.Value && dr[1] != DBNull.Value)
+                        {
+                            int.TryParse(dr[0].ToString(), out from);
+                            int.TryParse(dr[1].ToString(), out to);
+                            Logfile.Log($"Housekeeping: UpdateElevation ({from} -> {to}) ...");
+                            DBHelper.UpdateTripElevation(from, to, " (Housekeeping)");
+                            Thread.Sleep(5000);
+                        }
+                        con.Close();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugLog("Exception UpdateElevation()", ex);
+                }
+                Logfile.Log("Housekeeping: UpdateElevation done");
+            }
         }
 
         private static void LogDBUsage()
