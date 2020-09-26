@@ -401,7 +401,10 @@ namespace TeslaLogger
                         // bool
                         case "in_service":
                         case "calendar_enabled":
-                            AddValue(key, "bool", r4[key], 0, "vehicles");
+                            if (r4.TryGetValue(key, out object value))
+                            {
+                                AddValue(key, "bool", value, 0, "vehicles");
+                            }
                             break;
                         // string
                         case "id":
@@ -416,11 +419,17 @@ namespace TeslaLogger
                         case "backseat_token":
                         case "backseat_token_updated_at":
                         case "vehicle_config":
-                            AddValue(key, "string", r4[key], 0, "vehicles");
+                            if (r4.TryGetValue(key, out value))
+                            {
+                                AddValue(key, "string", value, 0, "vehicles");
+                            }
                             break;
                         // int
                         case "api_version":
-                            AddValue(key, "int", r4[key], 0, "vehicles");
+                            if (r4.TryGetValue(key, out value))
+                            {
+                                AddValue(key, "int", value, 0, "vehicles");
+                            }
                             break;
                         // TODO
                         case "tokens":
@@ -516,7 +525,10 @@ namespace TeslaLogger
                             case "not_enough_power_to_heat":
                             case "scheduled_charging_pending":
                             case "trip_charging":
-                                AddValue(key, "bool", r2[key], timestamp, "charge_state");
+                                if (r2.TryGetValue(key, out object value))
+                                {
+                                    AddValue(key, "bool", value, timestamp, "charge_state");
+                                }
                                 break;
                             // string
                             case "charge_port_cold_weather_mode":
@@ -529,7 +541,10 @@ namespace TeslaLogger
                             case "managed_charging_start_time":
                             case "scheduled_charging_start_time":
                             case "user_charge_enable_request":
-                                AddValue(key, "string", r2[key], timestamp, "charge_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "string", value, timestamp, "charge_state");
+                                }
                                 break;
                             // int
                             case "battery_level":
@@ -546,7 +561,10 @@ namespace TeslaLogger
                             case "max_range_charge_counter":
                             case "minutes_to_full_charge":
                             case "usable_battery_level":
-                                AddValue(key, "int", r2[key], timestamp, "charge_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "int", value, timestamp, "charge_state");
+                                }
                                 break;
                             // double
                             case "battery_range":
@@ -557,7 +575,10 @@ namespace TeslaLogger
                             case "est_battery_range":
                             case "ideal_battery_range":
                             case "time_to_full_charge":
-                                AddValue(key, "double", r2[key], timestamp, "charge_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "double", value, timestamp, "charge_state");
+                                }
                                 break;
                             default:
                                 if (!unknownKeys.Contains(key))
@@ -620,7 +641,10 @@ namespace TeslaLogger
                             // string
                             case "native_type":
                             case "shift_state":
-                                AddValue(key, "string", r2[key], timestamp, "drive_state");
+                                if (r2.TryGetValue(key, out object value))
+                                {
+                                    AddValue(key, "string", value, timestamp, "drive_state");
+                                }
                                 break;
                             // int
                             case "gps_as_of":
@@ -628,14 +652,20 @@ namespace TeslaLogger
                             case "native_location_supported":
                             case "power":
                             case "speed":
-                                AddValue(key, "int", r2[key], timestamp, "drive_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "int", value, timestamp, "drive_state");
+                                }
                                 break;
                             // double
                             case "latitude":
                             case "longitude":
                             case "native_latitude":
                             case "native_longitude":
-                                AddValue(key, "double", r2[key], timestamp, "drive_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "double", value, timestamp, "drive_state");
+                                }
                                 break;
                             default:
                                 if (!unknownKeys.Contains(key))
@@ -710,7 +740,10 @@ namespace TeslaLogger
                             case "plg":
                             case "rhd":
                             case "use_range_badging":
-                                AddValue(key, "bool", r2[key], timestamp, "vehicle_config");
+                                if (r2.TryGetValue(key, out object value))
+                                {
+                                    AddValue(key, "bool", value, timestamp, "vehicle_config");
+                                }
                                 break;
                             // string
                             case "car_special_type":
@@ -723,7 +756,10 @@ namespace TeslaLogger
                             case "trim_badging":
                             case "wheel_type":
                             case "perf_config":
-                                AddValue(key, "string", r2[key], timestamp, "vehicle_config");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "string", value, timestamp, "vehicle_config");
+                                }
                                 break;
                             // int
                             case "rear_seat_heaters":
@@ -731,7 +767,10 @@ namespace TeslaLogger
                             case "seat_type":
                             case "sun_roof_installed":
                             case "key_version":
-                                AddValue(key, "int", r2[key], timestamp, "vehicle_config");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "int", value, timestamp, "vehicle_config");
+                                }
                                 break;
                             default:
                                 if (!unknownKeys.Contains(key))
@@ -838,7 +877,10 @@ namespace TeslaLogger
                             case "summon_standby_mode_enabled":
                             case "valet_mode":
                             case "valet_pin_needed":
-                                AddValue(key, "bool", r2[key], timestamp, "vehicle_state");
+                                if (r2.TryGetValue(key, out object value))
+                                {
+                                    AddValue(key, "bool", value, timestamp, "vehicle_state");
+                                }
                                 break;
                             // string
                             case "autopark_state_v2":
@@ -847,7 +889,10 @@ namespace TeslaLogger
                             case "last_autopark_error":
                             case "sun_roof_state":
                             case "vehicle_name":
-                                AddValue(key, "string", r2[key], timestamp, "vehicle_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "string", value, timestamp, "vehicle_state");
+                                }
                                 break;
                             // int
                             case "api_version":
@@ -860,14 +905,23 @@ namespace TeslaLogger
                             case "pr":
                             case "rt":
                             case "sun_roof_percent_open":
-                                AddValue(key, "int", r2[key], timestamp, "vehicle_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "int", value, timestamp, "vehicle_state");
+                                }
                                 break;
                             // double
                             case "odometer":
-                                AddValue(key, "double", r2[key], timestamp, "vehicle_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "double", value, timestamp, "vehicle_state");
+                                }
                                 break;
                             case "software_update":
-                                ParseSoftwareUpdate(r2[key], timestamp);
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    ParseSoftwareUpdate(value, timestamp);
+                                }
                                 break;
                             // TODO
                             case "media_state":
@@ -915,14 +969,25 @@ namespace TeslaLogger
                         case "download_perc":
                         case "expected_duration_sec":
                         case "install_perc":
-                            AddValue($"software_update.{key}", "int", dictionary[key], timestamp, "vehicle_state.software_update");
+                            if (dictionary.TryGetValue(key, out object value))
+                            {
+                                AddValue($"software_update.{key}", "int", value, timestamp, "vehicle_state.software_update");
+                            }
                             break;
                         // string
                         case "status":
                         case "version":
-                            AddValue($"software_update.{key}", "string", dictionary[key], timestamp, "vehicle_state.software_update");
+                            if (dictionary.TryGetValue(key, out value))
+                            {
+                                AddValue($"software_update.{key}", "string", value, timestamp, "vehicle_state.software_update");
+                            }
                             break;
                         default:
+                            if (!unknownKeys.Contains($"software_update.{key}"))
+                            {
+                                Logfile.Log($"ParseSoftwareUpdate: unknown key {key}");
+                                unknownKeys.Add($"software_update.{key}");
+                            }
                             break;
                     }
                 }
@@ -989,11 +1054,17 @@ namespace TeslaLogger
                             case "steering_wheel_heater":
                             case "wiper_blade_heater":
                             case "smart_preconditioning":
-                                AddValue(key, "bool", r2[key], timestamp, "climate_state");
+                                if (r2.TryGetValue(key, out object value))
+                                {
+                                    AddValue(key, "bool", value, timestamp, "climate_state");
+                                }
                                 break;
                             // string
                             case "climate_keeper_mode":
-                                AddValue(key, "string", r2[key], timestamp, "climate_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "string", value, timestamp, "climate_state");
+                                }
                                 break;
                             // int
                             case "defrost_mode":
@@ -1005,7 +1076,10 @@ namespace TeslaLogger
                             case "seat_heater_rear_left":
                             case "seat_heater_rear_right":
                             case "seat_heater_right":
-                                AddValue(key, "int", r2[key], timestamp, "climate_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "int", value, timestamp, "climate_state");
+                                }
                                 break;
                             // double
                             case "driver_temp_setting":
@@ -1014,7 +1088,10 @@ namespace TeslaLogger
                             case "min_avail_temp":
                             case "outside_temp":
                             case "passenger_temp_setting":
-                                AddValue(key, "double", r2[key], timestamp, "climate_state");
+                                if (r2.TryGetValue(key, out value))
+                                {
+                                    AddValue(key, "double", value, timestamp, "climate_state");
+                                }
                                 break;
                             default:
                                 if (!unknownKeys.Contains(key))
