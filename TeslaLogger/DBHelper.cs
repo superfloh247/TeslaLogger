@@ -746,7 +746,7 @@ namespace TeslaLogger
                 SRTM.SRTMData srtmData = new SRTM.SRTMData(FileManager.GetSRTMDataPath());
 
                 DataTable dt = new DataTable();
-                MySqlDataAdapter da = new MySqlDataAdapter($"SELECT id, lat, lng, odometer FROM pos where id >= {startPos} and id <= {maxPosId} and altitude is null and lat is not null and lng is not null and speed > 0", DBConnectionstring);
+                MySqlDataAdapter da = new MySqlDataAdapter($"SELECT id, lat, lng, odometer FROM pos where id >= {startPos} and id <= {maxPosId} and altitude is null and lat is not null and lng is not null", DBConnectionstring);
                 da.Fill(dt);
 
                 int x = 0;
