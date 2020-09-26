@@ -847,8 +847,11 @@ namespace TeslaLogger
             CleanupExceptionsDir();
             // cleanup database
             CleanupDatabaseTableMothership();
-            // update elevation
-            UpdateElevation();
+            // update elevation on Sundays
+            if (DateTime.Now.DayOfWeek == DayOfWeek.Sunday)
+            {
+                UpdateElevation();
+            }
             // run housekeeping regularly:
             // - after 24h
             // - but only if car is asleep, otherwise wait another hour
