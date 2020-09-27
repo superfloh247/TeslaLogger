@@ -733,30 +733,6 @@ $"  AND fast_charger_brand = 'Tesla'", con);
 
         private int GetMaxPosidForStartChargingState(out DateTime startDate)
         {
-            // try memcache first
-            object cacheValue = MemoryCache.Default.Get(car.GetTeslaAPIState().CacheKey_StartChargingPosID);
-            if (cacheValue != null && int.TryParse(cacheValue.ToString(), out int posID))
-            {
-                try
-                {
-                    using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                    {
-                        con.Open();
-                        MySqlCommand cmd = new MySqlCommand($"select datum from pos where id = {posID} and CarID={car.CarInDB}", con);
-                        MySqlDataReader dr = cmd.ExecuteReader();
-                        if (dr.Read() && dr.FieldCount > 0 && dr[0] != null)
-                        {
-                            DateTime.TryParse(dr[0].ToString(), out startDate);
-                            Tools.DebugLog($"GetMaxPosidForStartChargingState return id {posID} {startDate} from MemoryCache");
-                            return posID;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Tools.DebugLog("GetMaxPosidForStartChargingState Exception", ex);
-                }
-            }
             int maxposid = GetMaxPosid(false);
             startDate = DateTime.Now;
             double maxposlat = double.NaN;
@@ -795,7 +771,10 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                             Tools.DebugLog($"GetMaxPosidForStartChargingState() newposid {dr[2]} lat {dr[0]} lng {dr[1]} speed {dr[3]} datum {dr[4]}");
                             if (int.TryParse(dr[3].ToString(), out int newspeed) && newspeed == 0 && int.TryParse(dr[2].ToString(), out int newposid))
                             {
-                                UpdateAddress(car, newposid);
+                                Task.Factory.StartNew(() =>
+                                {
+                                    UpdateAddress(car, newposid);
+                                });
                                 DateTime.TryParse(dr[4].ToString(), out startDate);
                                 Tools.DebugLog($"GetMaxPosidForStartChargingState return id {newposid} {startDate} from DB");
                                 return newposid;
