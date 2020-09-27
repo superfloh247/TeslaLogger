@@ -771,7 +771,10 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                             Tools.DebugLog($"GetMaxPosidForStartChargingState() newposid {dr[2]} lat {dr[0]} lng {dr[1]} speed {dr[3]} datum {dr[4]}");
                             if (int.TryParse(dr[3].ToString(), out int newspeed) && newspeed == 0 && int.TryParse(dr[2].ToString(), out int newposid))
                             {
-                                UpdateAddress(car, newposid);
+                                Task.Factory.StartNew(() =>
+                                {
+                                    UpdateAddress(car, newposid);
+                                });
                                 DateTime.TryParse(dr[4].ToString(), out startDate);
                                 Tools.DebugLog($"GetMaxPosidForStartChargingState return id {newposid} {startDate} from DB");
                                 return newposid;
