@@ -712,13 +712,14 @@ $"  AND fast_charger_brand = 'Tesla'", con);
         public void StartChargingState(WebHelper wh)
         {
             Tools.DebugLog($"DBHelper.StartChargingState()");
-            DateTime StartDate = DateTime.Now;
+            int posID = GetMaxPosidForStartChargingState(out DateTime StartDate);
+            int maxPosID = GetMaxPosid();
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
                 MySqlCommand cmd = new MySqlCommand("insert chargingstate (CarID, StartDate, Pos, StartChargingID, fast_charger_brand, fast_charger_type, conn_charge_cable , fast_charger_present ) values (@CarID, @StartDate, @Pos, @StartChargingID, @fast_charger_brand, @fast_charger_type, @conn_charge_cable , @fast_charger_present)", con);
                 cmd.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
-                cmd.Parameters.AddWithValue("@Pos", GetMaxPosidForStartChargingState(out StartDate));
+                cmd.Parameters.AddWithValue("@Pos", posID);
                 cmd.Parameters.AddWithValue("@StartDate", StartDate);
                 cmd.Parameters.AddWithValue("@StartChargingID", GetMaxChargeid() + 1);
                 cmd.Parameters.AddWithValue("@fast_charger_brand", wh.fast_charger_brand);
@@ -726,6 +727,35 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                 cmd.Parameters.AddWithValue("@conn_charge_cable", wh.conn_charge_cable);
                 cmd.Parameters.AddWithValue("@fast_charger_present", wh.fast_charger_present);
                 cmd.ExecuteNonQuery();
+                if (posID < maxPosID)
+                {
+                    try
+                    {
+                        cmd = new MySqlCommand($"SELECT power, datum, battery_range_km, ideal_battery_range_km, battery_level, outside_temp, battery_heater FROM POS WHERE ID >= {posID} AND CarID = {wh.car.CarInDB} and power <= 0");
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        while (dr.Read())
+                        {
+                            if (
+                                dr[0] != null && int.TryParse(dr[0].ToString(), out int power)
+                                && dr[1] != null && DateTime.TryParse(dr[1].ToString(), out DateTime datum)
+                                && dr[2] != null && double.TryParse(dr[2].ToString(), out double battery_range_km)
+                                && dr[3] != null && double.TryParse(dr[3].ToString(), out double ideal_battery_range_km)
+                                && dr[4] != null && double.TryParse(dr[4].ToString(), out double battery_level)
+                                && dr[5] != null && double.TryParse(dr[5].ToString(), out double outside_temp)
+                                && dr[6] != null && int.TryParse(dr[6].ToString(), out int battery_heater)
+                                )
+                            {
+                                MySqlCommand cmd2 = new MySqlCommand($"insert into charging (battery_level, charge_energy_added, charger_power, datum, ideal_battery_range_km, battery_range_km, outside_temp, battery_heater, carid) values ({battery_level}, 0.0, {-1 * power}, @datum, {ideal_battery_range_km}, {battery_range_km}, {outside_temp}, {battery_heater}, {wh.car.CarInDB})");
+                                cmd2.Parameters.AddWithValue("@datum", datum);
+                                cmd2.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Tools.DebugLog("Exception StartChargingState", ex);
+                    }
+                }
             }
 
             wh.car.currentJSON.current_charging = true;
