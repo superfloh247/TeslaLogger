@@ -712,13 +712,14 @@ $"  AND fast_charger_brand = 'Tesla'", con);
         public void StartChargingState(WebHelper wh)
         {
             Tools.DebugLog($"DBHelper.StartChargingState()");
+            DateTime StartDate = DateTime.Now;
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
                 MySqlCommand cmd = new MySqlCommand("insert chargingstate (CarID, StartDate, Pos, StartChargingID, fast_charger_brand, fast_charger_type, conn_charge_cable , fast_charger_present ) values (@CarID, @StartDate, @Pos, @StartChargingID, @fast_charger_brand, @fast_charger_type, @conn_charge_cable , @fast_charger_present)", con);
                 cmd.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
-                cmd.Parameters.AddWithValue("@Pos", GetMaxPosidForStartChargingState(out DateTime StartDate));
-                cmd.Parameters.AddWithValue("@StartDate", DateTime.Now);
+                cmd.Parameters.AddWithValue("@Pos", GetMaxPosidForStartChargingState(out StartDate));
+                cmd.Parameters.AddWithValue("@StartDate", StartDate);
                 cmd.Parameters.AddWithValue("@StartChargingID", GetMaxChargeid() + 1);
                 cmd.Parameters.AddWithValue("@fast_charger_brand", wh.fast_charger_brand);
                 cmd.Parameters.AddWithValue("@fast_charger_type", wh.fast_charger_type);
@@ -775,9 +776,11 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                                 {
                                     UpdateAddress(car, newposid);
                                 });
-                                DateTime.TryParse(dr[4].ToString(), out startDate);
-                                Tools.DebugLog($"GetMaxPosidForStartChargingState return id {newposid} {startDate} from DB");
-                                return newposid;
+                                if (DateTime.TryParse(dr[4].ToString(), out startDate))
+                                {
+                                    Tools.DebugLog($"GetMaxPosidForStartChargingState return id {newposid} {startDate} from DB");
+                                    return newposid;
+                                }
                             }
                         }
                         con.Close();
