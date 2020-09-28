@@ -791,6 +791,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
             {
                 Tools.DebugLog("GetMaxPosidForStartChargingState Exception", ex);
             }
+            startDate = DateTime.Now;
             return GetMaxPosid(true);
         }
 
