@@ -1146,7 +1146,7 @@ namespace TeslaLogger
         internal void HandleSpecialFlag_CopyChargePrice(Address _addr)
         {
             Logfile.Log("HandleSpecialFlag_CopyChargePrice");
-            // find charging session at Address with cost_total != NULL and cost_kwh_meter_invoice == NULL and cost_idle_fee_total == NULL
+            // find charging session at Address with cost_total != NULL and cost_kwh_meter_invoice == NULL or 0 and cost_idle_fee_total == NULL or 0
             long referenceID = 0;
             double cost_total = -1.0;
             string cost_currency = "";
@@ -1180,8 +1180,8 @@ namespace TeslaLogger
                     $"  AND chargingstate.pos = pos.id " +
                     $"  AND pos.address = '{_addr.name}' " +
                     $"  AND chargingstate.cost_total IS NOT NULL " +
-                    $"  AND chargingstate.cost_kwh_meter_invoice IS NULL " +
-                    $"  AND chargingstate.cost_idle_fee_total IS NULL " +
+                    $"  AND (chargingstate.cost_kwh_meter_invoice IS NULL OR chargingstate.cost_kwh_meter_invoice = 0)" +
+                    $"  AND (chargingstate.cost_idle_fee_total IS NULL OR chargingstate.cost_idle_fee_total = 0)" +
                     $"  AND chargingstate.CarID = {CarInDB}" +
                     $" ORDER BY id DESC " +
                     $" LIMIT 1", con);
