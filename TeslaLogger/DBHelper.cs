@@ -731,8 +731,8 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                 {
                     try
                     {
-                        cmd = new MySqlCommand($"SELECT power, datum, battery_range_km, ideal_battery_range_km, battery_level, outside_temp, battery_heater FROM POS WHERE ID >= {posID} AND CarID = {wh.car.CarInDB} and power <= 0");
-                        MySqlDataReader dr = cmd.ExecuteReader();
+                        MySqlCommand cmd2 = new MySqlCommand($"SELECT power, datum, battery_range_km, ideal_battery_range_km, battery_level, outside_temp, battery_heater FROM POS WHERE ID >= {posID} AND CarID = {wh.car.CarInDB} and power <= 0", con);
+                        MySqlDataReader dr = cmd2.ExecuteReader();
                         while (dr.Read())
                         {
                             if (
@@ -745,9 +745,9 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                                 && dr[6] != null && int.TryParse(dr[6].ToString(), out int battery_heater)
                                 )
                             {
-                                MySqlCommand cmd2 = new MySqlCommand($"insert into charging (battery_level, charge_energy_added, charger_power, datum, ideal_battery_range_km, battery_range_km, outside_temp, battery_heater, carid) values ({battery_level}, 0.0, {-1 * power}, @datum, {ideal_battery_range_km}, {battery_range_km}, {outside_temp}, {battery_heater}, {wh.car.CarInDB})");
-                                cmd2.Parameters.AddWithValue("@datum", datum);
-                                cmd2.ExecuteNonQuery();
+                                MySqlCommand cmd3 = new MySqlCommand($"insert into charging (battery_level, charge_energy_added, charger_power, datum, ideal_battery_range_km, battery_range_km, outside_temp, battery_heater, carid) values ({battery_level}, 0.0, {-1 * power}, @datum, {ideal_battery_range_km}, {battery_range_km}, {outside_temp}, {battery_heater}, {wh.car.CarInDB})", con);
+                                cmd3.Parameters.AddWithValue("@datum", datum);
+                                cmd3.ExecuteNonQuery();
                             }
                         }
                     }
