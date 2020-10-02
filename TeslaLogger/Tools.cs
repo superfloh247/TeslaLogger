@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
@@ -35,6 +37,8 @@ namespace TeslaLogger
 
         public enum UpdateType { all, stable, none};
 
+        internal static SortedDictionary<DateTime, string> debugBuffer = new SortedDictionary<DateTime, string>();
+
         public static void SetThread_enUS()
         {
             Thread.CurrentThread.CurrentCulture = ciEnUS;
@@ -45,16 +49,42 @@ namespace TeslaLogger
             return (long)(dateTime - new DateTime(1970, 1, 1)).TotalSeconds;
         }
 
+        public static void DebugLog(MySqlCommand cmd, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
+        {
+            string msg = cmd.CommandText;
+            foreach (SqlParameter p in cmd.Parameters)
+            {
+                msg = msg.Replace(p.ParameterName, p.Value.ToString());
+            }
+            DebugLog(msg, null, _cfp, _cln);
+        }
+
         public static void DebugLog(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
         {
+            string temp = "DEBUG : " + text + " (" + Path.GetFileName(_cfp) + ":" + _cln + ")";
+            AddToBuffer(temp);
             if (Program.VERBOSE)
             {
-                string temp = "DEBUG : " + text + " (" + Path.GetFileName(_cfp) + ":" + _cln + ")";
                 Logfile.Log(temp);
-                if (ex != null)
+            }
+            if (ex != null)
+            {
+                string exmsg = $"DEBUG : Exception {ex.GetType()} {ex}";
+                AddToBuffer(exmsg);
+                if (Program.VERBOSE)
                 {
-
+                    Logfile.Log(exmsg);
                 }
+            }
+        }
+
+        private static void AddToBuffer(string msg)
+        {
+            debugBuffer.Add(DateTime.Now, msg);
+            if (debugBuffer.Count > 500)
+            {
+                DateTime firstKey = debugBuffer.Keys.First();
+                debugBuffer.Remove(firstKey);
             }
         }
 
@@ -822,10 +852,46 @@ namespace TeslaLogger
             CleanupExceptionsDir();
             // cleanup database
             CleanupDatabaseTableMothership();
+            // update elevation on Sundays
+            if (DateTime.Now.DayOfWeek == DayOfWeek.Sunday)
+            {
+                UpdateElevation();
+            }
             // run housekeeping regularly:
             // - after 24h
             // - but only if car is asleep, otherwise wait another hour
             CreateMemoryCacheItem(24);
+        }
+
+        private static void UpdateElevation()
+        {
+            {
+                int from = 1;
+                int to = 1;
+                try
+                {
+                    using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                    {
+                        con.Open();
+                        MySqlCommand cmd = new MySqlCommand("SELECT min(id), max(id) FROM `pos` where lat is not null and lng is not null and altitude is null group by floor(id/1000)", con);
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        while (dr.Read() && dr[0] != DBNull.Value && dr[1] != DBNull.Value)
+                        {
+                            int.TryParse(dr[0].ToString(), out from);
+                            int.TryParse(dr[1].ToString(), out to);
+                            Logfile.Log($"Housekeeping: UpdateElevation ({from} -> {to}) ...");
+                            DBHelper.UpdateTripElevation(from, to, " (Housekeeping)");
+                            Thread.Sleep(5000);
+                        }
+                        con.Close();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugLog("Exception UpdateElevation()", ex);
+                }
+                Logfile.Log("Housekeeping: UpdateElevation done");
+            }
         }
 
         private static void LogDBUsage()
@@ -1004,6 +1070,23 @@ namespace TeslaLogger
             {
                 _ = Exec_mono("/usr/bin/du", "-sk " + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/nohup.out", true, true);
             }
+        }
+
+        public static string ObfuscateString(string input)
+        {
+            string obfuscated = string.Empty;
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (i % 3 == 0 || i % 5 == 0)
+                {
+                    obfuscated += "X";
+                }
+                else
+                {
+                    obfuscated += input[i];
+                }
+            }
+            return obfuscated;
         }
     }
 }

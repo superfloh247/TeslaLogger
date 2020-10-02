@@ -170,12 +170,25 @@ namespace TeslaLogger
                     case bool _ when request.Url.LocalPath.Equals("/debug/TeslaLogger/states"):
                         Debug_TeslaLoggerStates(request, response);
                         break;
+                    case bool _ when request.Url.LocalPath.Equals("/debug/TeslaLogger/messages"):
+                        Debug_TeslaLoggerMessages(request, response);
+                        break;
                     // developer features
                     case bool _ when request.Url.LocalPath.Equals("/dev/dumpJSON/on"):
                         Dev_DumpJSON(response, true);
                         break;
                     case bool _ when request.Url.LocalPath.Equals("/dev/dumpJSON/off"):
                         Dev_DumpJSON(response, false);
+                        break;
+                    case bool _ when request.Url.LocalPath.Equals("/dev/verbose/on"):
+                        Program.VERBOSE = true;
+                        Logfile.Log("VERBOSE on");
+                        WriteString(response, "VERBOSE on");
+                        break;
+                    case bool _ when request.Url.LocalPath.Equals("/dev/verbose/off"):
+                        Program.VERBOSE = false;
+                        Logfile.Log("VERBOSE off");
+                        WriteString(response, "VERBOSE off");
                         break;
                     default:
                         response.StatusCode = (int)HttpStatusCode.NotFound;
@@ -187,6 +200,20 @@ namespace TeslaLogger
             catch (Exception ex)
             {
                 Logfile.Log($"Localpath: {localpath}\r\n" + ex.ToString());
+            }
+        }
+
+        private void Debug_TeslaLoggerMessages(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            try
+            {
+                response.AddHeader("Content-Type", "text/html; charset=utf-8");
+                WriteString(response, "<html><head></head><body><table border=\"1\">" + string.Concat(Tools.debugBuffer.Select(a => string.Format("<tr><td>{0}&nbsp;{1}</td></tr>", a.Key, a.Value))) + "</table></body></html>");
+            }
+            catch (Exception ex)
+            {
+                Tools.DebugLog("Exception", ex);
+                WriteString(response, ex.ToString());
             }
         }
 
@@ -455,7 +482,7 @@ namespace TeslaLogger
                     { $"Car #{car.CarInDB} GetOdometerLastTrip()", car.GetOdometerLastTrip().ToString() },
                     { $"Car #{car.CarInDB} WebHelper.lastIsDriveTimestamp", car.GetWebHelper().lastIsDriveTimestamp.ToString() },
                     { $"Car #{car.CarInDB} WebHelper.lastUpdateEfficiency", car.GetWebHelper().lastUpdateEfficiency.ToString() },
-                    { $"Car #{car.CarInDB} TeslaAPIState", car.GetTeslaAPIState().ToString().Replace(Environment.NewLine, "<br />") },
+                    { $"Car #{car.CarInDB} TeslaAPIState", car.GetTeslaAPIState().ToString(true).Replace(Environment.NewLine, "<br />") },
                 };
                 string carHTMLtable = "<table>" + string.Concat(carvalues.Select(a => string.Format("<tr><td>{0}</td><td>{1}</td></tr>", a.Key, a.Value))) + "</table>";
                 values.Add($"Car #{car.CarInDB}", carHTMLtable);
