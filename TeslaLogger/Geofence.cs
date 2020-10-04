@@ -257,7 +257,7 @@ namespace TeslaLogger
                     {
                         if (addr != null && addr.name != null)
                         {
-                            uniqueNameList.Add(addr.name);
+                            uniqueNameList.Add(addr.rawName);
                         }
                     }
                     foreach (Address addr in list)
@@ -265,9 +265,9 @@ namespace TeslaLogger
                         bool keepAddr = true;
                         foreach (string localName in uniqueNameList)
                         {
-                            if (addr != null && addr.name != null && localName != null && localName.Equals(addr.name))
+                            if (addr != null && addr.rawName != null && localName != null && localName.Equals(addr.rawName))
                             {
-                                Logfile.Log("replace " + addr.name + " with POI(s) from " + filename);
+                                Logfile.Log("replace '" + addr.rawName + "' with POI(s) from " + filename);
                                 replaceCount++;
                                 keepAddr = false;
                                 break;
@@ -318,15 +318,15 @@ namespace TeslaLogger
                     _addr.IsWork = true;
                     _addr.name = "💼 " + _addr.name;
                 }
-                else if (flag.Equals("charger"))
-                {
-                    _addr.IsCharger = true;
-                    _addr.name = "🔌 " + _addr.name;
-                }
                 else if (flag.Equals("nosleep"))
                 {
                     _addr.NoSleep = true;
                     _addr.name = "☕ " + _addr.name;
+                }
+                else if (flag.Equals("charger"))
+                {
+                    _addr.IsCharger = true;
+                    _addr.name = "🔌 " + _addr.name;
                 }
                 else if (flag.StartsWith("scl"))
                 {
@@ -425,7 +425,12 @@ namespace TeslaLogger
 
         public Address GetPOI(double lat, double lng, bool logDistance = true, string brand = null, int max_power = 0)
         {
-            Address ret = null;
+            // prefer geofence-private
+            Address ret = GetPOI_GeofencePrivate(lat, lng, logDistance, brand, max_power);
+            if (ret != null)
+            {
+                return ret;
+            }
             double retDistance = 0;
             int found = 0;
 
@@ -433,9 +438,8 @@ namespace TeslaLogger
             {
                 double range = 0.2; // apprx 10km
 
-                foreach (Address p in sortedList)
+                foreach (Address p in sortedList.Where(addr => addr.geofenceSource == Address.GeofenceSource.Geofence).ToList().OrderBy(o => o.lat).ToList())
                 {
-                    
                     if (p.lat - range > lat)
                     {
                         return ret; // da die liste sortiert ist, kann nichts mehr kommen
@@ -467,7 +471,69 @@ namespace TeslaLogger
                             if (ret == null)
                             {
                                 ret = p;
-                                retDistance = distance; 
+                                retDistance = distance;
+                            }
+                            else
+                            {
+                                if (distance < retDistance)
+                                {
+                                    ret = p;
+                                    retDistance = distance;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return ret;
+        }
+
+        private Address GetPOI_GeofencePrivate(double lat, double lng, bool logDistance = true, string brand = null, int max_power = 0)
+        {
+            Address ret = null;
+            double retDistance = 0;
+            int found = 0;
+
+            lock (sortedList)
+            {
+                double range = 0.2; // apprx 10km
+
+                foreach (Address p in sortedList.Where(addr => addr.geofenceSource == Address.GeofenceSource.GeofencePrivate).ToList().OrderBy(o => o.lat).ToList())
+                {
+
+                    if (p.lat - range > lat)
+                    {
+                        return ret; // da die liste sortiert ist, kann nichts mehr kommen
+                    }
+
+                    if ((p.lat - range) < lat &&
+                        lat < (p.lat + range) &&
+                        (p.lng - range) < lng &&
+                        lng < (p.lng + range))
+                    {
+                        double distance = GetDistance(lng, lat, p.lng, p.lat);
+                        if (p.radius > distance)
+                        {
+                            if (brand == "Tesla")
+                            {
+                                if (!p.name.Contains("Tesla") && !p.name.Contains("Supercharger"))
+                                    continue;
+
+                                if (max_power > 150 && !p.name.Contains("V3"))
+                                    continue;
+                            }
+
+                            found++;
+                            if (logDistance)
+                            {
+                                Logfile.Log($"Distance: {distance} - Radius: {p.radius} - {p.name}");
+                            }
+
+                            if (ret == null)
+                            {
+                                ret = p;
+                                retDistance = distance;
                             }
                             else
                             {
