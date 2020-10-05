@@ -1196,7 +1196,7 @@ namespace TeslaLogger
 "LIMIT 1", con);
                 cmd.Parameters.AddWithValue("@addr", _addr.name);
                 cmd.Parameters.AddWithValue("@CarID", CarInDB);
-                Tools.DebugLog("SQL:" + cmd.CommandText);
+                Tools.DebugLog(cmd);
                 MySqlDataReader dr = cmd.ExecuteReader();
                 if (dr.Read() && dr[0] != DBNull.Value && dr.FieldCount == 6)
                 {
@@ -1237,7 +1237,7 @@ namespace TeslaLogger
 "LIMIT 1", con);
                     cmd.Parameters.AddWithValue("@addr", _addr.name);
                     cmd.Parameters.AddWithValue("@CarID", CarInDB);
-                    Tools.DebugLog("SQL:" + cmd.CommandText);
+                    Tools.DebugLog(cmd);
                     MySqlDataReader dr = cmd.ExecuteReader();
                     if (dr.Read() && dr[0] != DBNull.Value)
                     {
@@ -1285,7 +1285,7 @@ namespace TeslaLogger
                             cmd.Parameters.AddWithValue("@cost_kwh_meter_invoice", DBNull.Value);
                             cmd.Parameters.AddWithValue("@id", chargeID);
                             cmd.Parameters.AddWithValue("@CarID", CarInDB);
-                            Tools.DebugLog("SQL:" + cmd.CommandText);
+                            Tools.DebugLog(cmd);
                             _ = cmd.ExecuteNonQuery();
                             Logfile.Log($"CopyChargePrice: update charging session at {_addr.name}, ID {chargeID}: cost_total 0.0");
                         }
@@ -1382,13 +1382,13 @@ namespace TeslaLogger
                 {
                     con.Open();
                     MySqlCommand cmd = new MySqlCommand($"Select freesuc from cars where ID={CarInDB}", con);
-                    Tools.DebugLog("HasFreeSuC() SQL:" + cmd.CommandText);
+                    // ("HasFreeSuC() SQL:" + cmd.CommandText);
                     MySqlDataReader dr = cmd.ExecuteReader();
                     if (dr.Read() && dr[0] != null && dr[0] != DBNull.Value && int.TryParse(dr[0].ToString(), out int freesuc))
                     {
-                        Tools.DebugLog($"HasFreeSuC() dr[0]:{dr[0]}");
-                        Tools.DebugLog($"HasFreeSuC() freesuc:{freesuc}");
-                        Tools.DebugLog($"HasFreeSuC() return:{freesuc == 1}");
+                        // Tools.DebugLog($"HasFreeSuC() dr[0]:{dr[0]}");
+                        // Tools.DebugLog($"HasFreeSuC() freesuc:{freesuc}");
+                        // Tools.DebugLog($"HasFreeSuC() return:{freesuc == 1}");
                         return freesuc == 1;
                     }
                 }

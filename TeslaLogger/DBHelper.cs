@@ -434,7 +434,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                         cmd.Parameters.AddWithValue("@cost_per_minute", DBNull.Value);
                         cmd.Parameters.AddWithValue("@cost_idle_fee_total", DBNull.Value);
                         cmd.Parameters.AddWithValue("@cost_kwh_meter_invoice", DBNull.Value);
-                        Tools.DebugLog("SQL:" + cmd.CommandText);
+                        Tools.DebugLog(cmd);
                         int rowsUpdated = cmd.ExecuteNonQuery();
                         if (rowsUpdated > 0)
                         {
@@ -803,7 +803,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                     {
                         con.Open();
                         MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where power > 0 and power < 10 and id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} and id >= (select max(pos) from chargingstate) order by datum desc", con);
-                        Tools.DebugLog("SQL: " + cmd.CommandText);
+                        Tools.DebugLog(cmd);
                         MySqlDataReader dr = cmd.ExecuteReader();
                         while (dr.Read())
                         {
@@ -2155,7 +2155,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                     {
                         if (dr.HasRows && dr[0] != null && dr[1] != null)
                         {
-                            Tools.DebugLog($"Enable_utf8mb4_check_database {dbname} default_character_set_name {dr[0]} default_collation_name {dr[1]}");
+                            // Tools.DebugLog($"Enable_utf8mb4_check_database {dbname} default_character_set_name {dr[0]} default_collation_name {dr[1]}");
                             if (!dr[0].ToString().Equals("utf8mb4") || !dr[1].ToString().Equals("utf8mb4_unicode_ci"))
                             {
                                 Enable_utf8mb4_alter_database(dbname);
@@ -2201,7 +2201,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                     {
                         if (dr.HasRows && dr[0] != null && dr[1] != null)
                         {
-                            Tools.DebugLog($"Enable_utf8mb4_check_tables {dbname} table_name {dr[0]} table_collation {dr[1]}");
+                            // Tools.DebugLog($"Enable_utf8mb4_check_tables {dbname} table_name {dr[0]} table_collation {dr[1]}");
                             if (!dr[1].ToString().Equals("utf8mb4_unicode_ci"))
                             {
                                 Enable_utf8mb4_alter_table(dbname, dr[0].ToString());
@@ -2249,7 +2249,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                     {
                         if (dr.HasRows && dr[0] != null && dr[1] != null && dr[2] != null)
                         {
-                            Tools.DebugLog($"Enable_utf8mb4_check_columns {dbname} table_name {tablename} COLUMN_NAME {dr[0]} CHARACTER_SET_NAME {dr[1]} COLLATION_NAME {dr[2]}");
+                            // Tools.DebugLog($"Enable_utf8mb4_check_columns {dbname} table_name {tablename} COLUMN_NAME {dr[0]} CHARACTER_SET_NAME {dr[1]} COLLATION_NAME {dr[2]}");
                             if (!dr[1].ToString().Equals("utf8mb4") || !dr[2].ToString().Equals("utf8mb4_unicode_ci"))
                             {
                                 Enable_utf8mb4_alter_column(dbname, tablename, dr[0].ToString(), dr[3].ToString());
