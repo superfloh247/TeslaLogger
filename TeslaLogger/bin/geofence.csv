@@ -19,6 +19,7 @@ EnBW DE-Ehrenberg West, 51.265618, 7.245238, 20
 EnBW DE-Im Hegau West, 47.861479, 8.786121, 20
 EnBW DE-Hohenwarsleben, 52.175060, 11.495039, 10
 EnBW DE-Hunsrück West, 49.963341, 7.765829
+EnBW DE-Jagsttal Ost, 49.322951,9.415858, 20
 EnBW DE-Karlsruhe Tollhaus, 49.003884, 8.432467, 10
 EnBW DE-Kraichgau Süd, 49.240896, 8.879563, 20
 EnBW DE-Lonetal West, 48.584012, 10.175805, 6
@@ -28,6 +29,7 @@ EnBW DE-Nürnberg Eibach, 49.399141, 11.038350, 50
 EnBW DE-Meitingen Nord, 48.557666, 10.852404, 20
 EnBW DE-Memmingen, 47.999336, 10.153201, 10
 EnBW DE-München Ottobrunner., 48.10293, 11.625126, 20
+EnBW DE-Ob der Tauber Ost, 49.621641,9.730816 ,20
 EnBW DE-Ruraue Ost, 50.931311, 6.340482
 EnBW DE-Pforzheim Nord, 48.908018, 8.773701, 20
 EnBW DE-Schönbuch Ost, 48.616496, 8.908573, 20
@@ -496,7 +498,7 @@ Supercharger DE-Aichstetten, 47.880376, 10.040434, 7
 Supercharger DE-Aichstetten, 47.880299, 10.04052, 10
 Supercharger DE-Bad Rappenau, 49.21198, 9.07726
 Supercharger DE-Beelitz, 52.266803, 12.922467
-Supercharger-V3 DE-Berlin - EUREF-Campus, 52.480949, 13.355779
+Supercharger-V3 DE-Berlin - EUREF-Campus, 52.4808984, 13.3558539
 Supercharger DE-Bernau am Chiemsee, 47.81445, 12.36792
 Supercharger DE-Bersteland, 51.949066, 13.787906
 Supercharger DE-Bispingen, 53.104326, 9.981842
@@ -1146,7 +1148,7 @@ Aldi DE-Pforzheim, 48.902632, 8.663465
 Aldi DE-Rastatt, 48.85911, 8.238882, 20
 Aldi DE-Wetzendorf, 49.496251, 11.262201
 
-IKEA DE-Berlin-Tempelhof, 52.469888, 13.367839
+IKEA DE-Berlin-Tempelhof, 52.469900100103025,13.367646041278036, 20
 IKEA DE-Dortmund, 51.491557, 7.371048
 IKEA DE-Fürth, 49.484779, 11.008938
 IKEA DE-Hoffheim am Taunus, 50.057362, 8.371885

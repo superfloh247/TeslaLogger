@@ -24,6 +24,10 @@ namespace TeslaLogger
         private static DateTime lastVersionCheck = DateTime.UtcNow;
         internal static DateTime GetLastVersionCheck() { return lastVersionCheck; }
 
+        private static bool _done = false;
+
+        public static bool Done { get => _done;}
+
         public static void Start()
         {
             // update may take quite a while, especially if we ALTER TABLEs
@@ -31,7 +35,7 @@ namespace TeslaLogger
             Thread ComfortingMessages = new Thread(() =>
             {
                 Random rnd = new Random();
-                while (true)
+                while (!Done)
                 {
                     Thread.Sleep(15000 + rnd.Next(15000));
                     switch (rnd.Next(3))
@@ -59,6 +63,7 @@ namespace TeslaLogger
             try
             {
                 shareDataOnStartup = Tools.IsShareData();
+                bool updateAllDrivestateData = false;
 
                 if (!DBHelper.ColumnExists("pos", "battery_level"))
                 {
@@ -70,8 +75,7 @@ namespace TeslaLogger
                 {
                     Logfile.Log("ALTER TABLE drivestate ADD COLUMN outside_temp_avg DOUBLE NULL, ADD COLUMN speed_max INT NULL, ADD COLUMN power_max INT NULL, ADD COLUMN power_min INT NULL, ADD COLUMN power_avg DOUBLE NULL");
                     DBHelper.ExecuteSQLQuery("ALTER TABLE drivestate ADD COLUMN outside_temp_avg DOUBLE NULL, ADD COLUMN speed_max INT NULL, ADD COLUMN power_max INT NULL, ADD COLUMN power_min INT NULL, ADD COLUMN power_avg DOUBLE NULL");
-
-                    DBHelper.UpdateAllDrivestateData();
+                    updateAllDrivestateData = true;
                 }
 
                 if (!DBHelper.ColumnExists("charging", "charger_pilot_current"))
@@ -190,12 +194,13 @@ namespace TeslaLogger
                     Logfile.Log("CREATE TABLE OK");
                 }
 
-                if (!DBHelper.IndexExists("can_ix","can"))
+                /*
+                if (!DBHelper.IndexExists("can_ix", "can"))
                 {
                     Logfile.Log("alter table can add index can_ix (id,datum)");
                     DBHelper.ExecuteSQLQuery("alter table can add index can_ix (id,datum)", 600);
                     Logfile.Log("ALTER TABLE OK");
-                }
+                }*/
 
                 if (!DBHelper.ColumnExists("pos", "battery_range_km"))
                 {
@@ -287,6 +292,12 @@ namespace TeslaLogger
                         ADD COLUMN `vin` VARCHAR(20) NULL DEFAULT NULL", 600);
                 }
 
+                if (!DBHelper.ColumnExists("cars", "freesuc"))
+                {
+                    Logfile.Log("ALTER TABLE cars ADD Column freesuc");
+                    DBHelper.ExecuteSQLQuery(@"ALTER TABLE `cars` ADD `freesuc` TINYINT UNSIGNED NOT NULL DEFAULT '0'", 600);
+                }
+
                 if (!DBHelper.IndexExists("can_ix2", "can"))
                 {
                     Logfile.Log("alter table can add index can_ix2 (id,carid,datum)");
@@ -301,7 +312,54 @@ namespace TeslaLogger
                     Logfile.Log("ALTER TABLE OK");
                 }
 
-                if (!DBHelper.ColumnExists("trip", "outside_temp_avg"))
+                if (!DBHelper.ColumnExists("cars", "lastscanmytesla"))
+                {
+                    Logfile.Log("ALTER TABLE cars ADD Column lastscanmytesla");
+                    DBHelper.ExecuteSQLQuery(@"ALTER TABLE `cars` ADD COLUMN `lastscanmytesla` datetime NULL DEFAULT NULL", 600);
+                }
+
+                if (updateAllDrivestateData)
+                    DBHelper.UpdateAllDrivestateData();
+
+                if (!DBHelper.IndexExists("idx_pos_CarID_id", "pos"))
+                {
+                    Logfile.Log("alter table pos add index idx_pos_CarID_id (CarID, id)");      // used for: select max(id) from pos where CarID=?
+                    DBHelper.ExecuteSQLQuery("alter table pos add index idx_pos_CarID_id (CarID, id)", 600);
+                    Logfile.Log("ALTER TABLE OK");
+                }
+
+                if (!DBHelper.IndexExists("idx_pos_CarID_datum", "pos"))
+                {
+                    Logfile.Log("alter table pos add index idx_pos_CarID_datum (CarID, Datum)");
+                    DBHelper.ExecuteSQLQuery("alter table pos add index idx_pos_CarID_datum (CarID, Datum)", 600);
+                    Logfile.Log("ALTER TABLE OK");
+                }
+
+                if (DBHelper.IndexExists("idx_pos_datum", "pos"))
+                {
+                    Logfile.Log("alter table pos drop index idx_pos_datum");
+                    DBHelper.ExecuteSQLQuery("alter table pos drop index idx_pos_datum", 600);
+                    Logfile.Log("ALTER TABLE OK");
+                }
+
+                if (DBHelper.IndexExists("can_ix", "can"))
+                {
+                    Logfile.Log("alter table can drop index can_ix");
+                    DBHelper.ExecuteSQLQuery("alter table can drop index can_ix", 600);
+                    Logfile.Log("ALTER TABLE OK");
+                }
+
+
+                if (!DBHelper.IndexExists("IX_charging_carid_datum", "charging"))
+                {
+                    Logfile.Log("alter table charging add index IX_charging_carid_datum (CarId, Datum)");
+                    DBHelper.ExecuteSQLQuery("alter table charging add index IX_charging_carid_datum (CarId, Datum)", 600);
+                    Logfile.Log("ALTER TABLE OK");
+                }
+
+
+
+                if (!DBHelper.TableExists("trip") || !DBHelper.ColumnExists("trip", "outside_temp_avg"))
                 {
                     UpdateDBView();
                 }
@@ -314,25 +372,15 @@ namespace TeslaLogger
 
                 DBHelper.UpdateHTTPStatusCodes();
 
+                Logfile.Log("DBUpdate finished.");
+
                 timer = new System.Threading.Timer(FileChecker, null, 10000, 5000);
 
                 Chmod("/var/www/html/admin/wallpapers", 777);
 
                 UpdatePHPini();
-
-                try
-                {
-                    // create empty weather.ini file
-                    string filepath = Path.Combine(FileManager.GetExecutingPath(), "weather.ini");
-                    if (!File.Exists(filepath))
-                    {
-                        File.WriteAllText(filepath, "city = \"Berlin, de\"\r\nappid = \"12345678901234567890123456789012\"");
-                    }
-
-                    Chmod(filepath, 666, false);
-                }
-                catch (Exception)
-                { }
+                CreateEmptyWeatherIniFile();
+                CheckBackupCrontab();
 
                 if (File.Exists("cmd_updated.txt"))
                 {
@@ -366,18 +414,85 @@ namespace TeslaLogger
                     Tools.Exec_mono("rm", "-rf /etc/teslalogger/git");
                     Tools.Exec_mono("mkdir", "/etc/teslalogger/git");
                     Tools.Exec_mono("cert-sync", "/etc/ssl/certs/ca-certificates.crt");
-                    for (int x = 1; x < 10; x++)
-                    {
-                        Logfile.Log("git clone: try " + x);
-                        Tools.Exec_mono("git", "clone --progress https://github.com/bassmaster187/TeslaLogger /etc/teslalogger/git/", true, true);
 
-                        if (Directory.Exists("/etc/teslalogger/git/TeslaLogger/GrafanaPlugins"))
+                    // download update package from github
+                    bool httpDownloadSuccessful = false;
+                    bool zipExtractSuccessful = false;
+                    string GitHubURL = "https://github.com/bassmaster187/TeslaLogger/archive/master.zip";
+                    string updatepackage = "/etc/teslalogger/tmp/master.zip";
+                    try
+                    {
+                        if (!Directory.Exists("/etc/teslalogger/tmp"))
                         {
-                            Logfile.Log("git clone success!");
-                            break;
+                            _ = Directory.CreateDirectory("/etc/teslalogger/tmp");
                         }
-                        Logfile.Log("Git failed. Retry in 30 sec!");
-                        System.Threading.Thread.Sleep(30000);
+                        if (File.Exists(updatepackage))
+                        {
+                            File.Delete(updatepackage);
+                        }
+                        WebClient wc = new WebClient();
+                        Logfile.Log($"downloading update package from {GitHubURL}");
+                        wc.DownloadFile(GitHubURL, updatepackage);
+                        Logfile.Log($"update package downloaded to {updatepackage}");
+                        httpDownloadSuccessful = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logfile.ExceptionWriter(ex, "Exception during download from github");
+                    }
+
+                    // unzip downloaded update package
+                    if (httpDownloadSuccessful)
+                    {
+                        try
+                        {
+                            if (File.Exists(updatepackage))
+                            {
+                                if (Directory.Exists("/etc/teslalogger/git"))
+                                {
+                                    Directory.Delete("/etc/teslalogger/git", true);
+                                }
+                                if (Directory.Exists("/etc/teslalogger/tmp/zip"))
+                                {
+                                    Directory.Delete("/etc/teslalogger/tmp/zip", true);
+                                }
+                                Logfile.Log($"unzip update package {updatepackage} to /etc/teslalogger/tmp/zip");
+                                ZipFile.ExtractToDirectory(updatepackage, "/etc/teslalogger/tmp/zip");
+                                // GitHub zip contains folder "TeslaLogger-master" so we have to move files around
+                                if (Directory.Exists("/etc/teslalogger/tmp/zip/TeslaLogger-master"))
+                                {
+                                    Logfile.Log($"move update files from /etc/teslalogger/tmp/zip/TeslaLogger-master to /etc/teslalogger/git");
+                                    Tools.Exec_mono("mv", "/etc/teslalogger/tmp/zip/TeslaLogger-master /etc/teslalogger/git");
+                                    if (Directory.Exists("/etc/teslalogger/git/TeslaLogger/GrafanaPlugins"))
+                                    {
+                                        Logfile.Log("update package: download and unzip successful");
+                                        zipExtractSuccessful = true;
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logfile.ExceptionWriter(ex, "Exception during unzip of downloaded update package");
+                        }
+                    }
+
+                    // git clone fallback
+                    if (httpDownloadSuccessful == false || zipExtractSuccessful == false)
+                    {
+                        for (int x = 1; x < 10; x++)
+                        {
+                            Logfile.Log("git clone: try " + x);
+                            Tools.Exec_mono("git", "clone --progress https://github.com/bassmaster187/TeslaLogger /etc/teslalogger/git/", true, true);
+
+                            if (Directory.Exists("/etc/teslalogger/git/TeslaLogger/GrafanaPlugins"))
+                            {
+                                Logfile.Log("git clone success!");
+                                break;
+                            }
+                            Logfile.Log("Git failed. Retry in 30 sec!");
+                            System.Threading.Thread.Sleep(30000);
+                        }
                     }
 
                     Tools.CopyFilesRecursively(new DirectoryInfo("/etc/teslalogger/git/TeslaLogger/GrafanaPlugins"), new DirectoryInfo("/var/lib/grafana/plugins"));
@@ -390,8 +505,6 @@ namespace TeslaLogger
                         Directory.CreateDirectory("/var/lib/grafana/dashboards");
                     }
 
-                    Tools.CopyFilesRecursively(new DirectoryInfo("/etc/teslalogger/git/TeslaLogger/bin"), new DirectoryInfo("/etc/teslalogger"));
-
                     try
                     {
                         if (!File.Exists("/etc/teslalogger/MQTTClient.exe.config"))
@@ -399,6 +512,17 @@ namespace TeslaLogger
                             Logfile.Log("Copy empty MQTTClient.exe.config file");
                             Tools.CopyFile("/etc/teslalogger/git/MQTTClient/App.config", "/etc/teslalogger/MQTTClient.exe.config");
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logfile.Log(ex.ToString());
+                    }
+
+                    Tools.CopyFilesRecursively(new DirectoryInfo("/etc/teslalogger/git/TeslaLogger/bin"), new DirectoryInfo("/etc/teslalogger"), "TeslaLogger.exe");
+
+                    try
+                    {
+                            Tools.CopyFile("/etc/teslalogger/git/TeslaLogger/bin/TeslaLogger.exe", "/etc/teslalogger/TeslaLogger.exe");
                     }
                     catch (Exception ex)
                     {
@@ -420,10 +544,51 @@ namespace TeslaLogger
             {
                 try
                 {
+                    _done = true;
                     ComfortingMessages.Abort();
                 }
                 catch (Exception) { }
             }
+        }
+
+        private static void CheckBackupCrontab()
+        {
+            try
+            {
+                // Logfile.Log("check crontab!");
+
+                if (Tools.GetOsVersion().Contains("RPI4"))
+                {
+                    string crontab = "/etc/crontab";
+
+                    if (File.ReadAllText(crontab).Contains("/etc/teslalogger/backup.sh"))
+                        return;
+
+                    Logfile.Log("append backup.sh to crontab!");
+                    File.AppendAllText(crontab, "0 1 * * * root /bin/bash /etc/teslalogger/backup.sh\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logfile.Log(ex.ToString());
+            }
+        }
+
+        private static void CreateEmptyWeatherIniFile()
+        {
+            try
+            {
+                // create empty weather.ini file
+                string filepath = Path.Combine(FileManager.GetExecutingPath(), "weather.ini");
+                if (!File.Exists(filepath))
+                {
+                    File.WriteAllText(filepath, "city = \"Berlin, de\"\r\nappid = \"12345678901234567890123456789012\"");
+                }
+
+                Chmod(filepath, 666, false);
+            }
+            catch (Exception)
+            { }
         }
 
         private static void InsertCarID_Column(string table)
@@ -648,13 +813,14 @@ namespace TeslaLogger
 
                     Logfile.Log("Start Grafana update");
 
-                    if (Tools.GetGrafanaVersion() == "5.5.0-d3b39f39pre1")
+                    string GrafanaVersion = Tools.GetGrafanaVersion();
+                    if (GrafanaVersion == "5.5.0-d3b39f39pre1" || GrafanaVersion == "6.3.5")
                     {
-                        Logfile.Log("upgrade Grafana to 6.3.5!");
+                        Logfile.Log("upgrade Grafana to 7.2.0!");
 
-                        Tools.Exec_mono("wget", @"https://dl.grafana.com/oss/release/grafana_6.3.5_armhf.deb");
+                        Tools.Exec_mono("wget", @"https://dl.grafana.com/oss/release/grafana_7.2.0_armhf.deb");
 
-                        Tools.Exec_mono("dpkg", "-i grafana_6.3.5_armhf.deb");
+                        Tools.Exec_mono("dpkg", "-i grafana_7.2.0_armhf.deb");
 
                         Tools.CopyFilesRecursively(new DirectoryInfo("/etc/teslalogger/git/TeslaLogger/GrafanaPlugins"), new DirectoryInfo("/var/lib/grafana/plugins"));
                     }
