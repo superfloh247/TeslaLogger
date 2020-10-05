@@ -720,23 +720,117 @@ $"  AND fast_charger_brand = 'Tesla'", con);
         public void StartChargingState(WebHelper wh)
         {
             Tools.DebugLog($"DBHelper.StartChargingState()");
+            int posID = GetMaxPosidForStartChargingState(out DateTime StartDate);
+            int maxPosID = GetMaxPosid();
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
                 MySqlCommand cmd = new MySqlCommand("insert chargingstate (CarID, StartDate, Pos, StartChargingID, fast_charger_brand, fast_charger_type, conn_charge_cable , fast_charger_present ) values (@CarID, @StartDate, @Pos, @StartChargingID, @fast_charger_brand, @fast_charger_type, @conn_charge_cable , @fast_charger_present)", con);
                 cmd.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
-                cmd.Parameters.AddWithValue("@StartDate", DateTime.Now);
-                cmd.Parameters.AddWithValue("@Pos", GetMaxPosid());
+                cmd.Parameters.AddWithValue("@Pos", posID);
+                cmd.Parameters.AddWithValue("@StartDate", StartDate);
                 cmd.Parameters.AddWithValue("@StartChargingID", GetMaxChargeid() + 1);
                 cmd.Parameters.AddWithValue("@fast_charger_brand", wh.fast_charger_brand);
                 cmd.Parameters.AddWithValue("@fast_charger_type", wh.fast_charger_type);
                 cmd.Parameters.AddWithValue("@conn_charge_cable", wh.conn_charge_cable);
                 cmd.Parameters.AddWithValue("@fast_charger_present", wh.fast_charger_present);
                 cmd.ExecuteNonQuery();
+                if (posID < maxPosID)
+                {
+                    try
+                    {
+                        MySqlCommand cmd2 = new MySqlCommand($"SELECT power, datum, battery_range_km, ideal_battery_range_km, battery_level, outside_temp, battery_heater FROM POS WHERE ID >= {posID} AND CarID = {wh.car.CarInDB} and power <= 0", con);
+                        MySqlDataReader dr = cmd2.ExecuteReader();
+                        while (dr.Read())
+                        {
+                            if (
+                                dr[0] != null && int.TryParse(dr[0].ToString(), out int power)
+                                && dr[1] != null && DateTime.TryParse(dr[1].ToString(), out DateTime datum)
+                                && dr[2] != null && double.TryParse(dr[2].ToString(), out double battery_range_km)
+                                && dr[3] != null && double.TryParse(dr[3].ToString(), out double ideal_battery_range_km)
+                                && dr[4] != null && double.TryParse(dr[4].ToString(), out double battery_level)
+                                && dr[5] != null && double.TryParse(dr[5].ToString(), out double outside_temp)
+                                && dr[6] != null && int.TryParse(dr[6].ToString(), out int battery_heater)
+                                )
+                            {
+                                MySqlCommand cmd3 = new MySqlCommand($"insert into charging (battery_level, charge_energy_added, charger_power, datum, ideal_battery_range_km, battery_range_km, outside_temp, battery_heater, carid) values ({battery_level}, 0.0, {-1 * power}, @datum, {ideal_battery_range_km}, {battery_range_km}, {outside_temp}, {battery_heater}, {wh.car.CarInDB})", con);
+                                cmd3.Parameters.AddWithValue("@datum", datum);
+                                cmd3.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Tools.DebugLog("Exception StartChargingState", ex);
+                    }
+                }
             }
 
             wh.car.currentJSON.current_charging = true;
             wh.car.currentJSON.CreateCurrentJSON();
+        }
+
+        private int GetMaxPosidForStartChargingState(out DateTime startDate)
+        {
+            int maxposid = GetMaxPosid(false);
+            startDate = DateTime.Now;
+            double maxposlat = double.NaN;
+            double laxposlng = double.NaN;
+            DateTime maxposdate = DateTime.MinValue;
+            // analyze some IDs before max pos id
+            // update pos address UpdateAddress(car, pos);
+            try
+            {
+                // get max pos data
+                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                {
+                    con.Open();
+                    MySqlCommand cmd = new MySqlCommand($"select lat, lng, datum from pos where id = {maxposid} and CarID={car.CarInDB}", con);
+                    MySqlDataReader dr = cmd.ExecuteReader();
+                    if (dr.Read())
+                    {
+                        double.TryParse(dr[0].ToString(), out maxposlat);
+                        double.TryParse(dr[1].ToString(), out laxposlng);
+                        DateTime.TryParse(dr[2].ToString(), out maxposdate);
+                    }
+                    con.Close();
+                }
+                Tools.DebugLog($"GetMaxPosidForStartChargingState() maxposid {maxposid} maxposlat {maxposlat} laxposlng {laxposlng} laxposlng {laxposlng}");
+                if (maxposlat != double.NaN && laxposlng != double.NaN && maxposdate != DateTime.MinValue)
+                {
+                    // get previous 20 pos data rows
+                    using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                    {
+                        con.Open();
+                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where power > 0 and power < 10 and id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} and id >= (select max(pos) from chargingstate) order by datum desc", con);
+                        Tools.DebugLog("SQL: " + cmd.CommandText);
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        while (dr.Read())
+                        {
+                            Tools.DebugLog($"GetMaxPosidForStartChargingState() newposid {dr[2]} lat {dr[0]} lng {dr[1]} speed {dr[3]} datum {dr[4]}");
+                            if (int.TryParse(dr[3].ToString(), out int newspeed) && newspeed == 0 && int.TryParse(dr[2].ToString(), out int newposid))
+                            {
+                                Task.Factory.StartNew(() =>
+                                {
+                                    UpdateAddress(car, newposid);
+                                });
+                                if (DateTime.TryParse(dr[4].ToString(), out startDate))
+                                {
+                                    Tools.DebugLog($"GetMaxPosidForStartChargingState return id {newposid} {startDate} from DB");
+                                    return newposid;
+                                }
+                            }
+                        }
+                        con.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.DebugLog("GetMaxPosidForStartChargingState Exception", ex);
+            }
+            startDate = DateTime.Now;
+            return GetMaxPosid(true);
         }
 
         public void CloseDriveState(DateTime EndDate)
@@ -802,7 +896,7 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                 SRTM.SRTMData srtmData = new SRTM.SRTMData(FileManager.GetSRTMDataPath());
 
                 DataTable dt = new DataTable();
-                MySqlDataAdapter da = new MySqlDataAdapter($"SELECT id, lat, lng, odometer FROM pos where id >= {startPos} and id <= {maxPosId} and altitude is null and lat is not null and lng is not null and speed > 0", DBConnectionstring);
+                MySqlDataAdapter da = new MySqlDataAdapter($"SELECT id, lat, lng, odometer FROM pos where id >= {startPos} and id <= {maxPosId} and altitude is null and lat is not null and lng is not null", DBConnectionstring);
                 da.Fill(dt);
 
                 int x = 0;

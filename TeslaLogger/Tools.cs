@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
@@ -35,6 +37,8 @@ namespace TeslaLogger
 
         public enum UpdateType { all, stable, none};
 
+        internal static SortedDictionary<DateTime, string> debugBuffer = new SortedDictionary<DateTime, string>();
+
         public static void SetThread_enUS()
         {
             Thread.CurrentThread.CurrentCulture = ciEnUS;
@@ -45,16 +49,42 @@ namespace TeslaLogger
             return (long)(dateTime - new DateTime(1970, 1, 1)).TotalSeconds;
         }
 
+        public static void DebugLog(MySqlCommand cmd, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
+        {
+            string msg = cmd.CommandText;
+            foreach (SqlParameter p in cmd.Parameters)
+            {
+                msg = msg.Replace(p.ParameterName, p.Value.ToString());
+            }
+            DebugLog(msg, null, _cfp, _cln);
+        }
+
         public static void DebugLog(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
         {
+            string temp = "DEBUG : " + text + " (" + Path.GetFileName(_cfp) + ":" + _cln + ")";
+            AddToBuffer(temp);
             if (Program.VERBOSE)
             {
-                string temp = "DEBUG : " + text + " (" + Path.GetFileName(_cfp) + ":" + _cln + ")";
                 Logfile.Log(temp);
-                if (ex != null)
+            }
+            if (ex != null)
+            {
+                string exmsg = $"DEBUG : Exception {ex.GetType()} {ex}";
+                AddToBuffer(exmsg);
+                if (Program.VERBOSE)
                 {
-
+                    Logfile.Log(exmsg);
                 }
+            }
+        }
+
+        private static void AddToBuffer(string msg)
+        {
+            debugBuffer.Add(DateTime.Now, msg);
+            if (debugBuffer.Count > 500)
+            {
+                DateTime firstKey = debugBuffer.Keys.First();
+                debugBuffer.Remove(firstKey);
             }
         }
 
@@ -297,7 +327,9 @@ namespace TeslaLogger
             }
         }
 
-        public static string Exec_mono(string cmd, string param, bool logging = true, bool stderr2stdout = false)
+        // timeout in seconds
+        // https://docs.microsoft.com/de-de/dotnet/api/system.diagnostics.process.exitcode?view=netcore-3.1
+        public static string Exec_mono(string cmd, string param, bool logging = true, bool stderr2stdout = false, int timeout = 0)
         {
             try
             {
@@ -306,51 +338,63 @@ namespace TeslaLogger
                     return "";
                 }
 
-                Logfile.Log("execute: " + cmd + " " + param);
+                Logfile.Log("Exec_mono: " + cmd + " " + param);
 
                 StringBuilder sb = new StringBuilder();
 
-                System.Diagnostics.Process proc = new System.Diagnostics.Process
+                using (Process proc = new Process())
                 {
-                    EnableRaisingEvents = false
-                };
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.RedirectStandardError = true;
-                proc.StartInfo.FileName = cmd;
-                proc.StartInfo.Arguments = param;
+                    proc.EnableRaisingEvents = false;
+                    proc.StartInfo.UseShellExecute = false;
+                    proc.StartInfo.RedirectStandardOutput = true;
+                    proc.StartInfo.RedirectStandardError = true;
+                    proc.StartInfo.FileName = cmd;
+                    proc.StartInfo.Arguments = param;
 
-                proc.Start();
+                    proc.Start();
 
-                while (!proc.HasExited)
-                {
-                    string line = proc.StandardOutput.ReadToEnd().Replace('\r', '\n');
-
-                    if (logging && line.Length > 0)
+                    do
                     {
-                        Logfile.Log(" " + line);
-                    }
-
-                    sb.AppendLine(line);
-
-                    line = proc.StandardError.ReadToEnd().Replace('\r', '\n');
-
-                    if (logging && line.Length > 0)
-                    {
-                        if (stderr2stdout)
+                        if (!proc.HasExited)
                         {
-                            Logfile.Log(" " + line);
-                        }
-                        else
-                        {
-                            Logfile.Log("Error: " + line);
-                        }
-                    }
+                            proc.Refresh();
 
-                    sb.AppendLine(line);
+                            if (timeout > 0 && (DateTime.Now - proc.StartTime).TotalSeconds > timeout)
+                            {
+                                proc.Kill();
+                                return "Timeout";
+                            }
+
+                            string line = proc.StandardOutput.ReadToEnd().Replace('\r', '\n');
+
+                            if (logging && line.Length > 0)
+                            {
+                                Logfile.Log(" " + line);
+                            }
+
+                            sb.AppendLine(line);
+
+                            line = proc.StandardError.ReadToEnd().Replace('\r', '\n');
+
+                            if (logging && line.Length > 0)
+                            {
+                                if (stderr2stdout)
+                                {
+                                    Logfile.Log(" " + line);
+                                }
+                                else
+                                {
+                                    Logfile.Log("Error: " + line);
+                                }
+                            }
+
+                            sb.AppendLine(line);
+                        }
+
+                        return sb.ToString();
+                    }
+                    while (!proc.WaitForExit(100));
                 }
-
-                return sb.ToString();
             }
             catch (Exception ex)
             {
@@ -822,10 +866,46 @@ namespace TeslaLogger
             CleanupExceptionsDir();
             // cleanup database
             CleanupDatabaseTableMothership();
+            // update elevation on Sundays
+            if (DateTime.Now.DayOfWeek == DayOfWeek.Sunday)
+            {
+                UpdateElevation();
+            }
             // run housekeeping regularly:
             // - after 24h
             // - but only if car is asleep, otherwise wait another hour
             CreateMemoryCacheItem(24);
+        }
+
+        private static void UpdateElevation()
+        {
+            {
+                int from = 1;
+                int to = 1;
+                try
+                {
+                    using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                    {
+                        con.Open();
+                        MySqlCommand cmd = new MySqlCommand("SELECT min(id), max(id) FROM `pos` where lat is not null and lng is not null and altitude is null group by floor(id/1000)", con);
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        while (dr.Read() && dr[0] != DBNull.Value && dr[1] != DBNull.Value)
+                        {
+                            int.TryParse(dr[0].ToString(), out from);
+                            int.TryParse(dr[1].ToString(), out to);
+                            Logfile.Log($"Housekeeping: UpdateElevation ({from} -> {to}) ...");
+                            DBHelper.UpdateTripElevation(from, to, " (Housekeeping)");
+                            Thread.Sleep(5000);
+                        }
+                        con.Close();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugLog("Exception UpdateElevation()", ex);
+                }
+                Logfile.Log("Housekeeping: UpdateElevation done");
+            }
         }
 
         private static void LogDBUsage()
