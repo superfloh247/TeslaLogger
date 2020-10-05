@@ -253,7 +253,6 @@ namespace TeslaLogger
                 {
                     ExitTeslaLogger("wh.GetVehicles() == NULL");
                 }
-
                 string online = webhelper.IsOnline().Result;
                 Log("Streamingtoken: " + Tools.ObfuscateString(webhelper.Tesla_Streamingtoken));
 
