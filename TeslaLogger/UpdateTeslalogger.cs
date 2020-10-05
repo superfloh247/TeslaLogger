@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using System.Web.Script.Serialization;
 using System.Threading;
+using System.Net;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("TLNUnit")]
