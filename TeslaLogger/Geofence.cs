@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,6 +21,12 @@ namespace TeslaLogger
             CopyChargePrice
         }
 
+        public enum GeofenceSource
+        {
+            Geofence,
+            GeofencePrivate
+        }
+
         public string name;
         public string rawName;
         public double lat;
@@ -32,6 +37,7 @@ namespace TeslaLogger
         private bool isWork = false;
         private bool isCharger = false;
         private bool noSleep = false;
+        internal GeofenceSource geofenceSource;
 
         public bool IsHome
         {
@@ -60,13 +66,14 @@ namespace TeslaLogger
         public bool IsCharger { get => isCharger; set { isCharger = value; } }
         public bool NoSleep { get => noSleep; set { noSleep = value; } }
 
-        public Address(string name, double lat, double lng, int radius)
+        public Address(string name, double lat, double lng, int radius, GeofenceSource source = GeofenceSource.Geofence)
         {
             this.name = name;
             this.rawName = name;
             this.lat = lat;
             this.lng = lng;
             this.radius = radius;
+            geofenceSource = source;
             specialFlags = new Dictionary<SpecialFlags, string>();
         }
 
@@ -81,38 +88,9 @@ namespace TeslaLogger
         }
     }
 
-    public class AddressByLatLng : IComparer<Address>
-    {
-
-        public int Compare(Address x, Address y)
-        {
-            if (x.lat < y.lat)
-            {
-                return -1;
-            }
-            else if (x.lat > y.lat)
-            {
-                return 1;
-            }
-            else
-            {
-                if (x.lng < y.lng)
-                {
-                    return -1;
-                }
-                else if (x.lng > y.lng)
-                {
-                    return 1;
-                }
-            }
-            return 0;
-        }
-    }
-
     public class Geofence
     {
-        internal SortedSet<Address> geofenceList = new SortedSet<Address>(new AddressByLatLng());
-        internal SortedSet<Address> geofencePrivateList = new SortedSet<Address>(new AddressByLatLng());
+        internal List<Address> sortedList;
         private FileSystemWatcher fsw;
 
         public bool RacingMode = false;
@@ -143,9 +121,12 @@ namespace TeslaLogger
 
         internal void Init()
         {
+            List<Address> list = new List<Address>();
+            int replaceCount = 0;
+
             if (File.Exists(FileManager.GetFilePath(TLFilename.GeofenceRacingFilename)) && _RacingMode)
             {
-                ReadGeofenceFile(geofenceList, FileManager.GetFilePath(TLFilename.GeofenceRacingFilename));
+                ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofenceRacingFilename));
                 RacingMode = true;
 
                 Logfile.Log("*** RACING MODE ***");
@@ -153,8 +134,8 @@ namespace TeslaLogger
             else
             {
                 RacingMode = false;
-                ReadGeofenceFile(geofenceList, FileManager.GetFilePath(TLFilename.GeofenceFilename));
-                Logfile.Log("Geofence: addresses inserted from geofence.csv: " + geofenceList.Count);
+                ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofenceFilename));
+                Logfile.Log("Geofence: addresses inserted from geofence.csv: " + list.Where(a => a.geofenceSource == Address.GeofenceSource.Geofence).Count());
                 if (!File.Exists(FileManager.GetFilePath(TLFilename.GeofencePrivateFilename)))
                 {
                     Logfile.Log("Create: " + FileManager.GetFilePath(TLFilename.GeofencePrivateFilename));
@@ -162,10 +143,13 @@ namespace TeslaLogger
                 }
 
                 UpdateTeslalogger.Chmod(FileManager.GetFilePath(TLFilename.GeofencePrivateFilename), 666);
-                ReadGeofenceFile(geofencePrivateList, FileManager.GetFilePath(TLFilename.GeofencePrivateFilename));
+                replaceCount += ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofencePrivateFilename), true);
             }
 
-            Logfile.Log("Geofence: addresses inserted from geofence-private.csv: " + geofencePrivateList.Count);
+            Logfile.Log("Geofence: addresses inserted from geofence-private.csv: " + list.Where(a => a.geofenceSource == Address.GeofenceSource.GeofencePrivate).Count()); ;
+            Logfile.Log($"Geofence: addresses replaced by geofence-private.csv: {replaceCount}");
+
+            sortedList = list.OrderBy(o => o.lat).ToList();
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -199,10 +183,11 @@ namespace TeslaLogger
             }
         }
 
-        private static int ReadGeofenceFile(SortedSet<Address> list, string filename)
+        private static int ReadGeofenceFile(List<Address> list, string filename, bool replaceExistiongPOIs = false)
         {
             filename = filename.Replace(@"Debug\", "");
             int replaceCount = 0;
+            List<Address> localList = new List<Address>();
             if (File.Exists(filename))
             {
                 Logfile.Log("Read Geofence File: " + filename);
@@ -240,6 +225,7 @@ namespace TeslaLogger
                             }
                             if (filename.Equals(FileManager.GetFilePath(TLFilename.GeofencePrivateFilename)))
                             {
+                                addr.geofenceSource = Address.GeofenceSource.GeofencePrivate;
                                 Logfile.Log("GeofencePrivate: Address inserted: " + args[0]);
                             }
 
@@ -256,7 +242,7 @@ namespace TeslaLogger
                                 addr.name = "⚡ " + addr.name;
                             }
 
-                            list.Add(addr);
+                            localList.Add(addr);
                         }
                         catch (Exception ex)
                         {
@@ -264,6 +250,39 @@ namespace TeslaLogger
                         }
                     }
                 }
+                if (replaceExistiongPOIs)
+                {
+                    HashSet<string> uniqueNameList = new HashSet<string>();
+                    foreach (Address addr in localList)
+                    {
+                        if (addr != null && addr.name != null)
+                        {
+                            uniqueNameList.Add(addr.rawName);
+                        }
+                    }
+                    foreach (Address addr in list)
+                    {
+                        bool keepAddr = true;
+                        foreach (string localName in uniqueNameList)
+                        {
+                            if (addr != null && addr.rawName != null && localName != null && localName.Equals(addr.rawName))
+                            {
+                                Logfile.Log("replace '" + addr.rawName + "' with POI(s) from " + filename);
+                                replaceCount++;
+                                keepAddr = false;
+                                break;
+                            }
+                        }
+                        if (keepAddr)
+                        {
+                            localList.Add(addr);
+                        }
+                    }
+                    // all entries from geofence that are not overwritten by geofence-private are now copied to locallist
+                    list.Clear();
+                }
+                // copy locallist to list
+                list.AddRange(localList);
             }
             else
             {
@@ -476,76 +495,60 @@ namespace TeslaLogger
             double retDistance = 0;
             int found = 0;
 
-            // look for POI in geofence-private first
-            lock (geofencePrivateList)
+            lock (sortedList)
             {
-                LookupPOIinList(geofencePrivateList, lat, lng, logDistance, brand, max_power, ref ret, ref retDistance, ref found);
-            }
-            if (ret == null)
-            {
-                lock (geofenceList)
+                double range = 0.2; // apprx 10km
+
+                foreach (Address p in sortedList.Where(addr => addr.geofenceSource == Address.GeofenceSource.GeofencePrivate).ToList().OrderBy(o => o.lat).ToList())
                 {
-                    LookupPOIinList(geofenceList, lat, lng, logDistance, brand, max_power, ref ret, ref retDistance, ref found);
-                }
-            }
 
-            return ret;
-        }
-
-        private void LookupPOIinList(SortedSet<Address> list, double lat, double lng, bool logDistance, string brand, int max_power, ref Address ret, ref double retDistance, ref int found)
-        {
-            double range = 0.2; // apprx 10km
-
-            foreach (Address p in list)
-            {
-                if (p.lat - range > lat)
-                {
-                    break;
-                }
-
-                if ((p.lat - range) < lat &&
-                    lat < (p.lat + range) &&
-                    (p.lng - range) < lng &&
-                    lng < (p.lng + range))
-                {
-                    double distance = GetDistance(lng, lat, p.lng, p.lat);
-                    if (p.radius > distance)
+                    if (p.lat - range > lat)
                     {
-                        if (brand == "Tesla")
+                        return ret; // da die liste sortiert ist, kann nichts mehr kommen
+                    }
+
+                    if ((p.lat - range) < lat &&
+                        lat < (p.lat + range) &&
+                        (p.lng - range) < lng &&
+                        lng < (p.lng + range))
+                    {
+                        double distance = GetDistance(lng, lat, p.lng, p.lat);
+                        if (p.radius > distance)
                         {
-                            if (!p.name.Contains("Tesla") && !p.name.Contains("Supercharger"))
+                            if (brand == "Tesla")
                             {
-                                continue;
+                                if (!p.name.Contains("Tesla") && !p.name.Contains("Supercharger"))
+                                    continue;
+
+                                if (max_power > 150 && !p.name.Contains("V3"))
+                                    continue;
                             }
 
-                            if (max_power > 150 && !p.name.Contains("V3"))
+                            found++;
+                            if (logDistance)
                             {
-                                continue;
+                                Logfile.Log($"Distance: {distance} - Radius: {p.radius} - {p.name}");
                             }
-                        }
 
-                        found++;
-                        if (logDistance)
-                        {
-                            Logfile.Log($"Distance: {distance} - Radius: {p.radius} - {p.name}");
-                        }
-
-                        if (ret == null)
-                        {
-                            ret = p;
-                            retDistance = distance;
-                        }
-                        else
-                        {
-                            if (distance < retDistance)
+                            if (ret == null)
                             {
                                 ret = p;
                                 retDistance = distance;
+                            }
+                            else
+                            {
+                                if (distance < retDistance)
+                                {
+                                    ret = p;
+                                    retDistance = distance;
+                                }
                             }
                         }
                     }
                 }
             }
+
+            return ret;
         }
 
         public double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
