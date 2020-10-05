@@ -39,8 +39,8 @@ namespace TeslaLogger
                 { TLFilename.TeslaTokenFilename,        "tesla_token.txt"},
                 { TLFilename.SettingsFilename,          "settings.json"},
                 { TLFilename.CurrentJsonFilename,       "current_json.txt"},
-                { TLFilename.WakeupFilename,            "wakeupteslalogger.txt"},
-                { TLFilename.CmdGoSleepFilename,        "cmd_gosleep.txt"},
+                { TLFilename.WakeupFilename,            "wakeupteslalogger_ID.txt"},
+                { TLFilename.CmdGoSleepFilename,        "cmd_gosleep_ID.txt"},
                 { TLFilename.GeofenceFilename,          "geofence.csv"},
                 { TLFilename.GeofencePrivateFilename,   "geofence-private.csv"},
                 { TLFilename.GeofenceRacingFilename,    "geofence-racing.csv"},
@@ -55,12 +55,17 @@ namespace TeslaLogger
             return Path.Combine(GetExecutingPath(), Filenames[filename]);
         }
 
-        internal static bool CheckCmdGoSleepFile()
+        internal static string GetFilePath(string filename)
+        {
+            return Path.Combine(GetExecutingPath(), filename);
+        }
+
+        internal static bool CheckCmdGoSleepFile(int carid)
         {
 
-            if (File.Exists(GetGoSleepPath))
+            if (File.Exists(GetGoSleepPath(carid)))
             {
-                File.Delete(GetGoSleepPath);
+                File.Delete(GetGoSleepPath(carid));
                 return true;
             }
             return false;
@@ -81,30 +86,30 @@ namespace TeslaLogger
             }
         }
 
-        private static string GetGoSleepPath
+        private static string GetGoSleepPath(int carid)
         {
-            get
+            String filename = Filenames[TLFilename.CmdGoSleepFilename];
+            filename = filename.Replace("ID", carid.ToString());
+
+            if (Tools.IsDocker())
             {
-                if (Tools.IsDocker())
-                {
-                    return Path.Combine("/tmp/", Filenames[TLFilename.CmdGoSleepFilename]);
-                }
-                else
-                {
-                    return GetFilePath(TLFilename.CmdGoSleepFilename);
-                }
+                return Path.Combine("/tmp/", filename);
+            }
+            else
+            {
+                return GetFilePath(filename);
             }
         }
 
-        internal static string GetWakeupTeslaloggerPath
+        internal static string GetWakeupTeslaloggerPath(int carid)
         {
-            get
-            {
-                if (Tools.IsDocker())
-                    return Path.Combine("/tmp/", Filenames[TLFilename.WakeupFilename]);
-                else
-                    return GetFilePath(TLFilename.WakeupFilename);
-            }
+            string filename = Filenames[TLFilename.WakeupFilename];
+            filename = filename.Replace("ID", carid.ToString());
+
+            if (Tools.IsDocker())
+                return Path.Combine("/tmp/", filename);
+            else
+                return GetFilePath(filename);
         }
 
         internal static string GetTeslaTokenFileContent()

@@ -13,13 +13,22 @@ require_once("tools.php");
 	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
 	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 	<script src="https://code.jquery.com/jquery-migrate-1.4.1.min.js"></script>
+	<script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
 	<link rel='stylesheet' id='genericons-css'  href='https://www.impala64.de/blog/tesla/wp-content/themes/twentyfourteen/genericons/genericons.css?ver=3.0.3' type='text/css' media='all' />
+	<link rel='stylesheet' href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.min.css">
 
 	<script>
 	<?php
 	if (isset($_REQUEST["id"]))
-		echo("var dbid=".$_REQUEST["id"]);
+		echo("var dbid=".$_REQUEST["id"].";\n");
 	?>
+	$(document).ready(function(){
+		$('input[type="checkbox"]').on('click keyup keypress keydown', function (event) {
+    		if($(this).is('[readonly]')) { return false; }
+		});
+
+		$("#cars").DataTable();
+	});
 
 	function save() {
 		if ($("#email").val() == null || $("#email").val() == "") {
@@ -34,6 +43,7 @@ require_once("tools.php");
 					password: $("#password1").val(),
 					carid: $("#carid").val(),
 					id: dbid,
+					freesuc: $("#freesuc").is(':checked'),
 				};
 
 			var jqxhr = $.post("teslaloggerstream.php", {url: "setpassword", data: JSON.stringify(d)}).always(function () {
@@ -45,17 +55,39 @@ require_once("tools.php");
 </script>
 </head>
 <body style="padding-top: 5px; padding-left: 10px;">
+<div style="max-width: 1260px;">
 <?php 
 include "menu.php";
 menu("Credentials");
 	$url = GetTeslaloggerURL("getallcars");
-	$allcars = file_get_contents($url);
+
+	$allcars = @file_get_contents($url);
+	if ($allcars === false)
+    {
+        $error = error_get_last();
+        $error = explode(': ', $error['message']);
+        $error = trim($error[2]);
+		echo("<h1>errortext = 'Error: $error - URL: $url'</h1>");
+		return;
+    }
+	
 	$jcars = json_decode($allcars);
+	//var_dump($allcars);
+	//var_dump($jcars);
+
+	if ($jcars == NULL)
+	{
+		echo("<h1>JSON Parse Error!</h1>");
+		echo("JSON: ". htmlspecialchars($allcars));
+		return;
+	}
+
 if (isset($_REQUEST["id"]))
 {
 	$email = "";
 	$tesla_carid = "0";
 	$disablecarid = "";
+	$freesuc = "";
 	foreach ($jcars as $k => $v) {
 		if ($v->{"id"} == $_REQUEST["id"])
 		{
@@ -66,6 +98,8 @@ if (isset($_REQUEST["id"]))
 			{
 				// $disablecarid = " disabled ";
 			}
+			if ( $v->{"freesuc"} == "1")
+				$freesuc = "checked";
 		}
 	}
 
@@ -77,6 +111,7 @@ if (isset($_REQUEST["id"]))
 <tr><td><?php t("Passwort"); ?>:</td><td><input id="password1" type="password" autocomplete="new-password" /></td></tr>
 <tr><td><?php t("Passwort wiederholen"); ?>:</td><td><input id="password2" type="password" autocomplete="new-password" /></td></tr>
 <tr><td><?php t("Car # in account"); ?>:</td><td><input id="carid" value="<?php echo($tesla_carid) ?>" <?php echo($disablecarid) ?>/></td><td>0 = first car!</td></tr>
+<tr height="35px"><td><?php t("Free Supercharging"); ?>:</td><td><input id="freesuc" type="checkbox" <?= $freesuc ?> /></td></tr>
 <tr><td></td><td><button onclick="save();" style="float: right;"><?php t("Speichern"); ?></button></td></tr>
 </table>
 </div>
@@ -87,10 +122,11 @@ else
 ?>
 <div>
 <h1><?php t("Bitte Fahrzeug auswählen"); ?>:</h1>
-<table>
-<tr><th>DB ID</th><th>Email</th><th>Car in Account</th><th>Name</th><th>Model</th><th>VIN</th><th>Tasker Token</th></tr>
+<table id="cars" class="">
+<thead><tr><th>ID</th><th>Email</th><th>#</th><th>Name</th><th>Model</th><th>VIN</th><th>Tasker Token</th><th style='text-align:center;'>Free SUC</th><th>Edit</th></tr></thead>
+<tbody>
 <?php
-	// var_dump($url);
+	//var_dump($url);
 
 	foreach ($jcars as $k => $v) {
 		$email = $v->{"tesla_name"};
@@ -100,13 +136,20 @@ else
 		$id = $v->{"id"};
 		$vin = $v->{"vin"};
 		$tesla_carid = $v->{"tesla_carid"};
+		$freesuc = $v->{"freesuc"};
+		$freesuccheckbox = '<input type="checkbox" readonly valign="center" />';
+		if ($freesuc == "1")
+			$freesuccheckbox = '<input type="checkbox" checked="checked" readonly valign="center" />';
 		
-		echo("   <tr><td>$id</td><td>$email</td><td>$tesla_carid</td><td>$display_name</td><td>$car</td><td>$vin</td><td>$tasker_token</td><td><a href='password.php?id=$id'>EDIT</a></td></tr>\r\n");
+		
+		echo("   <tr><td>$id</td><td>$email</td><td>$tesla_carid</td><td>$display_name</td><td>$car</td><td>$vin</td><td>$tasker_token</td><td style='text-align:center;'>$freesuccheckbox</td><td><a href='password.php?id=$id'>EDIT</a></td></tr>\r\n");
 	}
 ?>
-<tr><td><a href='password.php?id=-1'>NEUS FAHRZEUG</a></td><td></td><td></td><td></td></tr>
+<tr><td colspan="6"><button onclick="location.href='password.php?id=-1'">NEW CAR</button></td><td></td><td></td><td></td></tr>
+</tbody>
 </table>
 </div>
 <?php
 }
-
+?>
+</div>

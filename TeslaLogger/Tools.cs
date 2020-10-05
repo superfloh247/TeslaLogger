@@ -28,7 +28,7 @@ namespace TeslaLogger
         private static string _URL_Admin = "";
         private static string _URL_Grafana = "http://raspberry:3000/";
         private static string _Range = "IR";
-        private static DateTime lastGrafanaSettings = DateTime.UtcNow.AddDays(-1);
+        public static DateTime lastGrafanaSettings = DateTime.UtcNow.AddDays(-1);
         private static DateTime lastSleepingHourMinutsUpdated = DateTime.UtcNow.AddDays(-1);
 
         private static string _OSVersion = string.Empty;
@@ -128,7 +128,7 @@ namespace TeslaLogger
             return GetMonoRuntimeVersion() != "NULL";
         }
 
-        public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
+        public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target, string excludeFile = null)
         {
             try
             {
@@ -139,11 +139,16 @@ namespace TeslaLogger
 
                 foreach (FileInfo file in source.GetFiles())
                 {
-                    string p = Path.Combine(target.FullName, file.Name);
-
-                    Logfile.Log("Copy '" + file.FullName + "' to '" + p + "'");
-
-                    File.Copy(file.FullName, p, true);
+                    if (excludeFile != null && file.Name.Equals(excludeFile))
+                    {
+                        Logfile.Log($"CopyFilesRecursively: skip {excludeFile}");
+                    }
+                    else
+                    {
+                        string p = Path.Combine(target.FullName, file.Name);
+                        Logfile.Log("Copy '" + file.FullName + "' to '" + p + "'");
+                        File.Copy(file.FullName, p, true);
+                    }
                 }
             }
             catch (Exception ex)
@@ -999,6 +1004,23 @@ namespace TeslaLogger
             {
                 _ = Exec_mono("/usr/bin/du", "-sk " + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/nohup.out", true, true);
             }
+        }
+
+        public static string ObfuscateString(string input)
+        {
+            string obfuscated = string.Empty;
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (i % 3 == 0 || i % 5 == 0)
+                {
+                    obfuscated += "X";
+                }
+                else
+                {
+                    obfuscated += input[i];
+                }
+            }
+            return obfuscated;
         }
     }
 }

@@ -72,8 +72,9 @@ namespace TeslaLogger
                     string display_name = r["display_name"] as String ?? "";
                     string vin = r["vin"] as String ?? "";
                     string tasker_hash = r["tasker_hash"] as String ?? "";
+                    double? wh_tr = r["wh_tr"] as double?;
 
-                    Car car = new Car(id, Name, Password, carid, tesla_token, tesla_token_expire, Model_Name, car_type, car_special_type, display_name, vin, tasker_hash);
+                    Car car = new Car(id, Name, Password, carid, tesla_token, tesla_token_expire, Model_Name, car_type, car_special_type, display_name, vin, tasker_hash, wh_tr);
                 }
                 catch (Exception ex)
                 {
@@ -219,6 +220,10 @@ namespace TeslaLogger
         {
             Thread DBUpdater = new Thread(() =>
             {
+                // wait for DB updates
+                while (!UpdateTeslalogger.Done)
+                    Thread.Sleep(5000);
+
                 Thread.Sleep(30000);
                 DateTime start = DateTime.Now;
                 Logfile.Log("UpdateDbInBackground started");
@@ -254,7 +259,10 @@ namespace TeslaLogger
         {
             Thread Housekeeper = new Thread(() =>
             {
-                Thread.Sleep(30000);
+                // wait for DB updates
+                while (!UpdateTeslalogger.Done)
+                    Thread.Sleep(5000);
+
                 DateTime start = DateTime.Now;
                 Logfile.Log("RunHousekeepingInBackground started");
                 Tools.Housekeeping();
