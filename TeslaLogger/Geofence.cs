@@ -81,7 +81,7 @@ namespace TeslaLogger
 
         public override string ToString()
         {
-            string ret = "Address:\nname:" + name + "\nlat:" + lat + "\nlng:" + lng + "\nradius:" + radius;
+            string ret = "Address:\nname:"+name+"\nlat:"+lat+"\nlng:"+lng+"\nradius:"+radius;
             foreach (KeyValuePair<SpecialFlags, string> flag in specialFlags)
             {
                 ret += "\n" + flag.Key.ToString() + ":" + flag.Value;
@@ -104,12 +104,12 @@ namespace TeslaLogger
         {
             _RacingMode = RacingMode;
             Init();
-
+            
             if (fsw == null)
             {
                 fsw = new FileSystemWatcher(FileManager.GetExecutingPath(), "*.csv");
                 FSWCounter++;
-                if (FSWCounter > 1)
+                if (FSWCounter > 1) 
                 {
                     Logfile.Log("ERROR: more than one FileSystemWatcher created!");
                 }
@@ -128,7 +128,7 @@ namespace TeslaLogger
 
             if (File.Exists(FileManager.GetFilePath(TLFilename.GeofenceRacingFilename)) && _RacingMode)
             {
-                ReadGeofenceFiles(list, FileManager.GetFilePath(TLFilename.GeofenceRacingFilename));
+                ReadGeofenceFile(list, FileManager.GetFilePath(TLFilename.GeofenceRacingFilename));
                 RacingMode = true;
 
                 Logfile.Log("*** RACING MODE ***");
@@ -162,7 +162,7 @@ namespace TeslaLogger
                 Logfile.Log("FileSystemWatcher");
 
                 fsw.EnableRaisingEvents = false;
-
+                
                 DateTime dt = File.GetLastWriteTime(e.FullPath);
                 TimeSpan ts = DateTime.Now - dt;
 
@@ -174,7 +174,7 @@ namespace TeslaLogger
                 }
 
                 Logfile.Log($"CSV File changed: {e.Name} at {dt}");
-
+                
                 Init();
 
                 Task.Factory.StartNew(() => WebHelper.UpdateAllPOIAddresses());
@@ -192,8 +192,9 @@ namespace TeslaLogger
             List<Address> localList = new List<Address>();
             if (File.Exists(filename))
             {
-                ReadGeofenceFile(filename, localList);
-                if (replaceExistingPOIs)
+                Logfile.Log("Read Geofence File: " + filename);
+                string line;
+                using (StreamReader file = new StreamReader(filename))
                 {
                     while ((line = file.ReadLine()) != null)
                     {
@@ -251,33 +252,17 @@ namespace TeslaLogger
                         }
                     }
                 }
-                if (keepAddr)
+                if (replaceExistiongPOIs)
                 {
-                    localList.Add(addr);
-                }
-            }
-        }
-
-        internal static void ReadGeofenceFile(string filename, List<Address> localList)
-        {
-            Logfile.Log("Read Geofence File: " + filename);
-            string line;
-            using (StreamReader file = new StreamReader(filename))
-            {
-                while ((line = file.ReadLine()) != null)
-                {
-                    try
+                    HashSet<string> uniqueNameList = new HashSet<string>();
+                    foreach (Address addr in localList)
                     {
-                        if (string.IsNullOrEmpty(line))
+                        if (addr != null && addr.name != null)
                         {
-                            continue;
+                            uniqueNameList.Add(addr.name);
                         }
-
-                        int radius = 50;
-
-                        ParseGeofenceLine(filename, localList, line, radius);
                     }
-                    catch (Exception ex)
+                    foreach (Address addr in list)
                     {
                         bool keepAddr = true;
                         foreach (string localName in uniqueNameList)
@@ -301,40 +286,9 @@ namespace TeslaLogger
                 // copy locallist to list
                 list.AddRange(localList);
             }
-        }
-
-        internal static void ParseGeofenceLine(string filename, List<Address> localList, string line, int radius)
-        {
-            string[] args = Regex.Split(line, ",");
-
-            if (args == null || args.Length < 3)
+            else
             {
-                Logfile.Log("Malformed line <" + line + "> in file " + filename);
-                return;
-            }
-
-            if (args.Length > 3 && args[3] != null && args[3].Length > 0)
-            {
-                int.TryParse(args[3], out radius);
-            }
-
-            Address addr = new Address(args[0].Trim(),
-                double.Parse(args[1].Trim(), Tools.ciEnUS.NumberFormat),
-                double.Parse(args[2].Trim(), Tools.ciEnUS.NumberFormat),
-                radius);
-
-            if (args.Length > 4 && args[4] != null && args[4].Length > 0)
-            {
-                string flags = args[4];
-                Logfile.Log(args[0].Trim() + ": special flags found: " + flags);
-                ParseSpecialFlags(addr, flags);
-            }
-
-            localList.Add(addr);
-
-            if (!filename.Contains("geofence.csv"))
-            {
-                Logfile.Log("Address inserted: " + args[0]);
+                Logfile.Log("ReadGeofenceFile FileNotFound: " + filename);
             }
             return replaceCount;
         }
@@ -483,7 +437,7 @@ namespace TeslaLogger
 
                 foreach (Address p in sortedList)
                 {
-
+                    
                     if (p.lat - range > lat)
                     {
                         return ret; // da die liste sortiert ist, kann nichts mehr kommen
@@ -515,7 +469,7 @@ namespace TeslaLogger
                             if (ret == null)
                             {
                                 ret = p;
-                                retDistance = distance;
+                                retDistance = distance; 
                             }
                             else
                             {
