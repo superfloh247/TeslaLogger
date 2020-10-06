@@ -1381,14 +1381,11 @@ namespace TeslaLogger
                 using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
                 {
                     con.Open();
-                    MySqlCommand cmd = new MySqlCommand($"Select freesuc from cars where ID={CarInDB}", con);
-                    // ("HasFreeSuC() SQL:" + cmd.CommandText);
+                    MySqlCommand cmd = new MySqlCommand("Select freesuc from cars where ID = @CarID", con);
+                    cmd.Parameters.AddWithValue("@CarID", CarInDB);
                     MySqlDataReader dr = cmd.ExecuteReader();
                     if (dr.Read() && dr[0] != null && dr[0] != DBNull.Value && int.TryParse(dr[0].ToString(), out int freesuc))
                     {
-                        // Tools.DebugLog($"HasFreeSuC() dr[0]:{dr[0]}");
-                        // Tools.DebugLog($"HasFreeSuC() freesuc:{freesuc}");
-                        // Tools.DebugLog($"HasFreeSuC() return:{freesuc == 1}");
                         return freesuc == 1;
                     }
                 }
