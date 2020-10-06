@@ -725,7 +725,12 @@ $"  AND fast_charger_brand = 'Tesla'", con);
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
-                MySqlCommand cmd = new MySqlCommand("insert chargingstate (CarID, StartDate, Pos, StartChargingID, fast_charger_brand, fast_charger_type, conn_charge_cable , fast_charger_present ) values (@CarID, @StartDate, @Pos, @StartChargingID, @fast_charger_brand, @fast_charger_type, @conn_charge_cable , @fast_charger_present)", con);
+                MySqlCommand cmd = new MySqlCommand(
+"INSERT " +
+"  chargingstate " +
+"(CarID, StartDate, Pos, StartChargingID, fast_charger_brand, fast_charger_type, conn_charge_cable , fast_charger_present ) " +
+"VALUES " +
+"(@CarID, @StartDate, @Pos, @StartChargingID, @fast_charger_brand, @fast_charger_type, @conn_charge_cable , @fast_charger_present)", con);
                 cmd.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
                 cmd.Parameters.AddWithValue("@Pos", posID);
                 cmd.Parameters.AddWithValue("@StartDate", StartDate);
@@ -739,7 +744,17 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                 {
                     try
                     {
-                        MySqlCommand cmd2 = new MySqlCommand($"SELECT power, datum, battery_range_km, ideal_battery_range_km, battery_level, outside_temp, battery_heater FROM POS WHERE ID >= {posID} AND CarID = {wh.car.CarInDB} and power <= 0", con);
+                        MySqlCommand cmd2 = new MySqlCommand(
+"SELECT " +
+"  power, datum, battery_range_km, ideal_battery_range_km, battery_level, outside_temp, battery_heater " +
+"FROM " +
+"  pos " +
+"WHERE " +
+"  ID >= @Pos " +
+"  AND CarID = @CarID " +
+"  AND power <= 0", con);
+                        cmd2.Parameters.AddWithValue("@Pos", posID);
+                        cmd2.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
                         MySqlDataReader dr = cmd2.ExecuteReader();
                         while (dr.Read())
                         {
@@ -753,8 +768,20 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                                 && dr[6] != null && int.TryParse(dr[6].ToString(), out int battery_heater)
                                 )
                             {
-                                MySqlCommand cmd3 = new MySqlCommand($"insert into charging (battery_level, charge_energy_added, charger_power, datum, ideal_battery_range_km, battery_range_km, outside_temp, battery_heater, carid) values ({battery_level}, 0.0, {-1 * power}, @datum, {ideal_battery_range_km}, {battery_range_km}, {outside_temp}, {battery_heater}, {wh.car.CarInDB})", con);
+                                MySqlCommand cmd3 = new MySqlCommand(
+"INSERT " +
+"  charging " +
+"(battery_level, charge_energy_added, charger_power, datum, ideal_battery_range_km, battery_range_km, outside_temp, battery_heater, carid) " +
+"VALUES " +
+"(@battery_level, 0.0, @power, @datum, @ideal_battery_range_km, @battery_range_km, @outside_temp, @battery_heater, @CarID)", con);
+                                cmd3.Parameters.AddWithValue("@battery_level", battery_level);
+                                cmd3.Parameters.AddWithValue("@power", (power * -1.0));
                                 cmd3.Parameters.AddWithValue("@datum", datum);
+                                cmd3.Parameters.AddWithValue("@ideal_battery_range_km", ideal_battery_range_km);
+                                cmd3.Parameters.AddWithValue("@battery_range_km", battery_range_km);
+                                cmd3.Parameters.AddWithValue("@outside_temp", outside_temp);
+                                cmd3.Parameters.AddWithValue("@battery_heater", battery_heater);
+                                cmd3.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
                                 cmd3.ExecuteNonQuery();
                             }
                         }
@@ -785,7 +812,18 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
                     con.Open();
-                    MySqlCommand cmd = new MySqlCommand($"select lat, lng, datum from pos where id = {maxposid} and CarID={car.CarInDB}", con);
+                    MySqlCommand cmd = new MySqlCommand(
+"SELECT " +
+"  lat, lng, datum " +
+"FROM " +
+"  pos " +
+"WHERE " +
+"  id = @maxposid " +
+"AND " +
+"  CarID = @CarID", con);
+                    cmd.Parameters.AddWithValue("@maxposid", maxposid);
+                    cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
+                    Tools.DebugLog(cmd);
                     MySqlDataReader dr = cmd.ExecuteReader();
                     if (dr.Read())
                     {
@@ -802,7 +840,24 @@ $"  AND fast_charger_brand = 'Tesla'", con);
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                     {
                         con.Open();
-                        MySqlCommand cmd = new MySqlCommand($"select lat, lng, id, speed, datum from pos where power > 0 and power < 10 and id > {maxposid} - 20 and CarID={car.CarInDB} and lat = {maxposlat} and lng = {laxposlng} and id >= (select max(pos) from chargingstate) order by datum desc", con);
+                        MySqlCommand cmd = new MySqlCommand(
+"SELECT " +
+"  lat, lng, id, speed, datum " +
+"FROM " +
+"  pos " +
+"WHERE " +
+"  power > 0 " +
+"  AND power < 10 " +
+"  AND id > @maxposid - 20 " +
+"  AND CarID = @CarID " +
+"  AND lat = @maxposlat " +
+"  AND lng = @laxposlng " +
+"  AND id >= (SELECT MAX (pos) FROM chargingstate) " +
+"ORDER BY datum DESC", con);
+                        cmd.Parameters.AddWithValue("@maxposid", maxposid);
+                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
+                        cmd.Parameters.AddWithValue("@maxposlat", maxposlat);
+                        cmd.Parameters.AddWithValue("@laxposlng", laxposlng);
                         Tools.DebugLog(cmd);
                         MySqlDataReader dr = cmd.ExecuteReader();
                         while (dr.Read())
