@@ -1511,12 +1511,12 @@ namespace TeslaLogger
                 if (!string.IsNullOrEmpty(ApplicationSettings.Default.MapQuestKey))
                 {
                     MapQuestCount++;
-                    Logfile.Log("Reverse geocoding by MapQuest: " + MapQuestCount);
+                    Logfile.Log("Reverse geocoding by MapQuest " + MapQuestCount);
                 }
                 else
                 {
                     NominatimCount++;
-                    Logfile.Log("Reverse geocoding by Nominatim" + NominatimCount);
+                    Logfile.Log("Reverse geocoding by Nominatim " + NominatimCount);
                 }
 
                 return adresse;
