@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -35,7 +35,7 @@ namespace TeslaLogger
 
         private static string _OSVersion = string.Empty;
 
-        public enum UpdateType { all, stable, none };
+        public enum UpdateType { all, stable, none};
 
         internal static SortedList<DateTime, string> debugBuffer = new SortedList<DateTime, string>();
 
@@ -95,7 +95,7 @@ namespace TeslaLogger
                 }
             }
             // ignore failed inserts
-            catch (Exception) { }
+            catch (Exception) {  }
         }
 
         // source: https://stackoverflow.com/questions/6994852
@@ -328,7 +328,7 @@ namespace TeslaLogger
                         }
                     }
                 }
-
+                
                 _startSleepingHour = startSleepingHour;
                 _startSleepingMinutes = startSleepingMinutes;
 
@@ -475,10 +475,10 @@ namespace TeslaLogger
             if (ts.TotalMinutes < 10)
             {
                 power = _power;
-                temperature = _temperature;
-                length = _length;
-                language = _language;
-                URL_Admin = _URL_Admin;
+                temperature =_temperature;
+                length =_length;
+                language =_language;
+                URL_Admin =_URL_Admin;
                 Range = _Range;
                 URL_Grafana = _URL_Grafana;
                 return;
@@ -646,7 +646,7 @@ namespace TeslaLogger
             {
                 return _OSVersion;
             }
-
+          
             string ret = "";
             try
             {
