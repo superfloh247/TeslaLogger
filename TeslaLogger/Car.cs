@@ -219,6 +219,15 @@ namespace TeslaLogger
             }
         }
 
+        internal bool IsCharging()
+        {
+            if (teslaAPIState.GetString("charging_state", out string charging_state) && charging_state != null && charging_state.Equals("Charging"))
+            {
+                return true;
+            }
+            return false;
+        }
+
         private void InitStage3()
         {
             try
@@ -1330,8 +1339,8 @@ namespace TeslaLogger
         public bool IsParked()
         {
             // online and parked
-            if (teslaAPIState.GetString("state", out string state) && state.Equals("online")
-                && (teslaAPIState.GetString("shift_state", out string shift_state)
+            if (teslaAPIState.GetString("state", out string state) && state != null &&state.Equals("online")
+                && (teslaAPIState.GetString("shift_state", out string shift_state) && shift_state != null
                     && (shift_state.Equals("P") || shift_state.Equals("undef")))
                )
             { 
@@ -1382,13 +1391,9 @@ namespace TeslaLogger
                     using (MySqlCommand cmd = new MySqlCommand($"Select freesuc from cars where ID=@carid", con))
                     {
                         cmd.Parameters.AddWithValue("@carid", CarInDB);
-                        Tools.DebugLog("HasFreeSuC() SQL:" + cmd.CommandText);
                         MySqlDataReader dr = cmd.ExecuteReader();
                         if (dr.Read() && dr[0] != null && dr[0] != DBNull.Value && int.TryParse(dr[0].ToString(), out int freesuc))
                         {
-                            Tools.DebugLog($"HasFreeSuC() dr[0]:{dr[0]}");
-                            Tools.DebugLog($"HasFreeSuC() freesuc:{freesuc}");
-                            Tools.DebugLog($"HasFreeSuC() return:{freesuc == 1}");
                             return freesuc == 1;
                         }
                     }

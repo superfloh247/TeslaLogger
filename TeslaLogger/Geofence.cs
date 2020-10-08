@@ -197,7 +197,7 @@ namespace TeslaLogger
             }
         }
 
-        private static int ReadGeofenceFile(SortedSet<Address> list, string filename)
+        internal static int ReadGeofenceFile(SortedSet<Address> list, string filename)
         {
             filename = filename.Replace(@"Debug\", "");
             int replaceCount = 0;
