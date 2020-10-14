@@ -51,12 +51,69 @@ namespace TeslaLogger
 
         public static void DebugLog(MySqlCommand cmd, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
         {
-            string msg = cmd.CommandText;
-            foreach (SqlParameter p in cmd.Parameters)
+            try
             {
-                msg = msg.Replace(p.ParameterName, p.Value.ToString());
+                string msg = cmd.CommandText;
+                foreach (MySqlParameter p in cmd.Parameters)
+                {
+                    string pValue = "";
+                    switch (p.DbType)
+                    {
+                        case DbType.AnsiString:
+                        case DbType.AnsiStringFixedLength:
+                        case DbType.Date:
+                        case DbType.DateTime:
+                        case DbType.DateTime2:
+                        case DbType.Guid:
+                        case DbType.String:
+                        case DbType.StringFixedLength:
+                        case DbType.Time:
+                            if (p.Value != null)
+                            {
+                                pValue = $"'{p.Value.ToString().Replace("'", "\\'")}'";
+                            }
+                            else
+                            {
+                                pValue = "'NULL'";
+                            }
+                            break;
+                        case DbType.Decimal:
+                        case DbType.Double:
+                        case DbType.Int16:
+                        case DbType.Int32:
+                        case DbType.Int64:
+                        case DbType.UInt16:
+                        case DbType.UInt32:
+                        case DbType.UInt64:
+                        case DbType.VarNumeric:
+                        case DbType.Object:
+                        case DbType.SByte:
+                        case DbType.Single:
+                        case DbType.Binary:
+                        case DbType.Boolean:
+                        case DbType.Byte:
+                        case DbType.Currency:
+                        case DbType.DateTimeOffset:
+                        case DbType.Xml:
+                        default:
+                            if (p.Value != null)
+                            {
+                                pValue = p.Value.ToString();
+                            }
+                            else
+                            {
+                                pValue = "NULL";
+                            }
+                            break;
+                    }
+                    msg = msg.Replace(p.ParameterName, pValue);
+                }
+                DebugLog(msg, null, _cfp, _cln);
             }
-            DebugLog(msg, null, _cfp, _cln);
+            catch (Exception ex)
+            {
+                DebugLog("Exception in SQL DEBUG", ex);
+            }
         }
 
         public static void DebugLog(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
@@ -135,7 +192,7 @@ namespace TeslaLogger
                 s = Regex.Match(str, @"\<([^>]*)\>").Groups[1].Value;
             else
                 s = str;
-            if (s == "")
+            if (s.Length == 0)
                 return "'Emtpy'"; //for log visibility we want to know if something it's empty.
             else
                 return s;
@@ -276,6 +333,9 @@ namespace TeslaLogger
                 if (IsPropertyExist(j, "HTTPPort"))
                 {
                     int.TryParse(j["HTTPPort"], out httpport);
+
+                    if (httpport == 0)
+                        httpport = 5000;
                 }
             }
             catch (Exception ex)
@@ -337,8 +397,16 @@ namespace TeslaLogger
             }
         }
 
-        public static string Exec_mono(string cmd, string param, bool logging = true, bool stderr2stdout = false)
+        // timeout in seconds
+        // https://docs.microsoft.com/de-de/dotnet/api/system.diagnostics.process.exitcode?view=netcore-3.1
+        public static string Exec_mono(string cmd, string param, bool logging = true, bool stderr2stdout = false, int timeout = 0)
         {
+            Logfile.Log("Exec_mono: " + cmd + " " + param);
+
+            StringBuilder sb = new StringBuilder();
+
+            bool bTimeout = false;
+
             try
             {
                 if (!Tools.IsMono())
@@ -346,24 +414,32 @@ namespace TeslaLogger
                     return "";
                 }
 
-                Logfile.Log("execute: " + cmd + " " + param);
-
-                StringBuilder sb = new StringBuilder();
-
-                System.Diagnostics.Process proc = new System.Diagnostics.Process
+                using (Process proc = new Process())
                 {
-                    EnableRaisingEvents = false
-                };
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.RedirectStandardError = true;
-                proc.StartInfo.FileName = cmd;
-                proc.StartInfo.Arguments = param;
+                    proc.EnableRaisingEvents = false;
+                    proc.StartInfo.UseShellExecute = false;
+                    proc.StartInfo.RedirectStandardOutput = true;
+                    proc.StartInfo.RedirectStandardError = true;
+                    proc.StartInfo.FileName = cmd;
+                    proc.StartInfo.Arguments = param;
 
-                proc.Start();
+                    proc.Start();
 
-                while (!proc.HasExited)
-                {
+                    do
+                    {
+                        if (!proc.HasExited)
+                        {
+                            proc.Refresh();
+
+                            if (timeout > 0 && (DateTime.Now - proc.StartTime).TotalSeconds > timeout)
+                            {
+                                proc.Kill();
+                                bTimeout = true;
+                            }
+                        }
+                    }
+                    while (!proc.WaitForExit(100));
+
                     string line = proc.StandardOutput.ReadToEnd().Replace('\r', '\n');
 
                     if (logging && line.Length > 0)
@@ -372,7 +448,6 @@ namespace TeslaLogger
                     }
 
                     sb.AppendLine(line);
-
                     line = proc.StandardError.ReadToEnd().Replace('\r', '\n');
 
                     if (logging && line.Length > 0)
@@ -389,14 +464,13 @@ namespace TeslaLogger
 
                     sb.AppendLine(line);
                 }
-
-                return sb.ToString();
             }
             catch (Exception ex)
             {
                 Logfile.Log("Exception " + cmd + " " + ex.Message);
                 return "Exception";
             }
+            return bTimeout ? "Timeout! " + sb.ToString() : sb.ToString();
         }
 
         internal static bool UseScanMyTesla()
@@ -877,17 +951,20 @@ namespace TeslaLogger
             using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
             {
                 con.Open();
-                MySqlCommand cmd = new MySqlCommand("SELECT TABLE_NAME, ROUND(DATA_LENGTH / 1024 / 1024), ROUND(INDEX_LENGTH / 1024 / 1024), TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = \"teslalogger\" AND TABLE_TYPE = \"BASE TABLE\"", con);
-                cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
-                try
+                using (MySqlCommand cmd = new MySqlCommand("SELECT TABLE_NAME, ROUND(DATA_LENGTH / 1024 / 1024), ROUND(INDEX_LENGTH / 1024 / 1024), TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = \"teslalogger\" AND TABLE_TYPE = \"BASE TABLE\"", con))
                 {
-                    MySqlDataReader dr = cmd.ExecuteReader();
-                    while (dr.Read())
+                    cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
+                    try
                     {
-                        Logfile.Log($"Table: {dr[0],20} data:{dr[1],5} MB index:{dr[2],5} MB rows:{dr[3],10}");
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        while (dr.Read())
+                        {
+                            Logfile.Log($"Table: {dr[0],20} data:{dr[1],5} MB index:{dr[2],5} MB rows:{dr[3],10}");
+                        }
                     }
+                    catch (Exception) { }
+
                 }
-                catch (Exception) { }
             }
         }
 
@@ -928,24 +1005,26 @@ namespace TeslaLogger
             using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
             {
                 con.Open();
-                MySqlCommand cmd = new MySqlCommand("SELECT COUNT(id), MAX(id), MIN(id) FROM mothership WHERE ts < @tsdate", con);
-                cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
-                try
+                using (MySqlCommand cmd = new MySqlCommand("SELECT COUNT(id), MAX(id), MIN(id) FROM mothership WHERE ts < @tsdate", con))
                 {
-                    MySqlDataReader dr = cmd.ExecuteReader();
-                    if (dr.Read())
+                    cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
+                    try
                     {
-                        _ = long.TryParse(dr[0].ToString(), out mothershipCount);
-                        _ = long.TryParse(dr[1].ToString(), out mothershipMaxId);
-                        _ = long.TryParse(dr[2].ToString(), out mothershipMinId);
-                        Logfile.Log($"Housekeeping: database.mothership older than 90 days count: {mothershipCount} minID:{mothershipMinId} maxID:{mothershipMaxId}");
+                        MySqlDataReader dr = cmd.ExecuteReader();
+                        if (dr.Read())
+                        {
+                            _ = long.TryParse(dr[0].ToString(), out mothershipCount);
+                            _ = long.TryParse(dr[1].ToString(), out mothershipMaxId);
+                            _ = long.TryParse(dr[2].ToString(), out mothershipMinId);
+                            Logfile.Log($"Housekeeping: database.mothership older than 90 days count: {mothershipCount} minID:{mothershipMinId} maxID:{mothershipMaxId}");
+                        }
                     }
+                    catch (Exception ex)
+                    {
+                        Logfile.Log(ex.ToString());
+                    }
+                    con.Close();
                 }
-                catch (Exception ex)
-                {
-                    Logfile.Log(ex.ToString());
-                }
-                con.Close();
             }
             if (mothershipCount >= 1000)
             {
@@ -957,17 +1036,19 @@ namespace TeslaLogger
                         Logfile.Log($"Housekeeping: delete database.mothership chunk {dbupdate}");
                         con.Open();
                         string SQLcmd = "DELETE FROM mothership where id < @maxid";
-                        MySqlCommand cmd = new MySqlCommand(SQLcmd, con);
-                        cmd.Parameters.AddWithValue("@maxid", dbupdate);
-                        try
+                        using (MySqlCommand cmd = new MySqlCommand(SQLcmd, con))
                         {
-                            cmd.ExecuteNonQuery();
+                            cmd.Parameters.AddWithValue("@maxid", dbupdate);
+                            try
+                            {
+                                cmd.ExecuteNonQuery();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logfile.Log(ex.ToString());
+                            }
+                            con.Close();
                         }
-                        catch (Exception ex)
-                        {
-                            Logfile.Log(ex.ToString());
-                        }
-                        con.Close();
                     }
                     Thread.Sleep(5000);
                 }
@@ -975,22 +1056,24 @@ namespace TeslaLogger
                 using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
                 {
                     con.Open();
-                    MySqlCommand cmd = new MySqlCommand("SELECT COUNT(id) FROM mothership WHERE ts < @tsdate", con);
-                    cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
-                    try
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT COUNT(id) FROM mothership WHERE ts < @tsdate", con))
                     {
-                        MySqlDataReader dr = cmd.ExecuteReader();
-                        if (dr.Read())
+                        cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
+                        try
                         {
-                            _ = long.TryParse(dr[0].ToString(), out mothershipCount);
-                            Logfile.Log("Housekeeping: database.mothership older than 90 days count: " + mothershipCount);
+                            MySqlDataReader dr = cmd.ExecuteReader();
+                            if (dr.Read())
+                            {
+                                _ = long.TryParse(dr[0].ToString(), out mothershipCount);
+                                Logfile.Log("Housekeeping: database.mothership older than 90 days count: " + mothershipCount);
+                            }
                         }
+                        catch (Exception ex)
+                        {
+                            Logfile.Log(ex.ToString());
+                        }
+                        con.Close();
                     }
-                    catch (Exception ex)
-                    {
-                        Logfile.Log(ex.ToString());
-                    }
-                    con.Close();
                 }
             }
         }
@@ -1048,6 +1131,9 @@ namespace TeslaLogger
 
         public static string ObfuscateString(string input)
         {
+            if (input == null)
+                return null;
+
             string obfuscated = string.Empty;
             for (int i = 0; i < input.Length; i++)
             {
