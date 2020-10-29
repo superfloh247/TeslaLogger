@@ -21,11 +21,9 @@ namespace TeslaLogger
 
         private static void Main(string[] args)
         {
-            InitDebugLogging();
-
             try
             {
-                InitTLStats();
+                InitDebugLogging();
 
                 InitStage1();
 
@@ -42,6 +40,8 @@ namespace TeslaLogger
                 UpdateTeslalogger.StopComfortingMessagesThread();
 
                 MQTTClient.StartMQTTClient();
+
+                InitTLStats();
 
                 UpdateDbInBackground();
 
@@ -133,14 +133,21 @@ namespace TeslaLogger
         {
             try
             {
-                Thread threadOpenTopoDataService = new Thread(() =>
+                if (Tools.UseOpenTopoData())
                 {
-                    OpenTopoDataService.GetSingleton().Run();
-                })
+                    Thread threadOpenTopoDataService = new Thread(() =>
+                    {
+                        OpenTopoDataService.GetSingleton().Run();
+                    })
+                    {
+                        Name = "OpenTopoServiceThread"
+                    };
+                    threadOpenTopoDataService.Start();
+                }
+                else
                 {
-                    Name = "OpenTopoServiceThread"
-                };
-                threadOpenTopoDataService.Start();
+                    Logfile.Log("OpenTopoData disabled (enable in settings)");
+                }
             }
             catch (Exception ex)
             {

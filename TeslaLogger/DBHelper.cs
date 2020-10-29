@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Runtime.Caching;
 using System.Text;
@@ -32,16 +33,12 @@ namespace TeslaLogger
             string DBConnectionstring = string.IsNullOrEmpty(ApplicationSettings.Default.DBConnectionstring)
 ? "Server=127.0.0.1;Database=teslalogger;Uid=root;Password=teslalogger;CharSet=utf8mb4;"
 : ApplicationSettings.Default.DBConnectionstring;
-            Tools.DebugLog($"DBConnectionstring {DBConnectionstring}");
             if (DBConnectionstring.ToLower().Contains("charset="))
             {
                 Match m = Regex.Match(DBConnectionstring.ToLower(), "charset(=.+?);");
                 if (m.Success && m.Groups.Count == 2 && m.Groups[1].Captures.Count == 1)
                 {
-                    Tools.DebugLog("regex match: <" + m.Groups[1].Captures[0].ToString() + ">");
-                    Tools.DebugLog($"old DBConnectionstring {DBConnectionstring}");
                     DBConnectionstring = DBConnectionstring.Replace(m.Groups[1].Captures[0].ToString(), "=utf8mb4");
-                    Tools.DebugLog($"new DBConnectionstring {DBConnectionstring}");
                     _DBConnectionstring = DBConnectionstring;
                 }
                 else
@@ -49,10 +46,7 @@ namespace TeslaLogger
                     m = Regex.Match(DBConnectionstring.ToLower(), "charset(=.+)$");
                     if (m.Success && m.Groups.Count == 2 && m.Groups[1].Captures.Count == 1)
                     {
-                        Tools.DebugLog("regex match: <" + m.Groups[1].Captures[0].ToString() + ">");
-                        Tools.DebugLog($"old DBConnectionstring {DBConnectionstring}");
                         DBConnectionstring = DBConnectionstring.Replace(m.Groups[1].Captures[0].ToString(), "=utf8mb4");
-                        Tools.DebugLog($"new DBConnectionstring {DBConnectionstring}");
                         _DBConnectionstring = DBConnectionstring;
                     }
                 }
@@ -434,8 +428,8 @@ namespace TeslaLogger
 
         public void CloseChargingState()
         {
-            Tools.DebugLog($"CloseChargingState() car.HasFreeSuC(): {car.HasFreeSuC()}");
-            if (car.HasFreeSuC())
+            bool hasFreeSuc = car.HasFreeSuC();
+            if (hasFreeSuc)
             {
                 // get open SuC charging sessions and apply HasFreeSuC
                 try
@@ -444,30 +438,17 @@ namespace TeslaLogger
                     {
                         con.Open();
                         using (MySqlCommand cmd = new MySqlCommand(
-                            @"UPDATE 
-                              chargingstate 
-                            SET 
-                              cost_total= @cost_total, 
-                              cost_currency=@cost_currency, 
-                              cost_per_kwh=@cost_per_kwh, 
-                              cost_per_session=@cost_per_session, 
-                              cost_per_minute=@cost_per_minute, 
-                              cost_idle_fee_total=@cost_idle_fee_total, 
-                              cost_kwh_meter_invoice=@cost_kwh_meter_invoice 
-                            WHERE 
-                              CarID = @carid 
-                              AND EndDate is null 
-                              AND fast_charger_brand = 'Tesla'", con))
+@"UPDATE 
+  chargingstate 
+SET 
+  cost_total= @cost_total
+WHERE 
+  CarID = @carid 
+  AND EndDate is null 
+  AND fast_charger_brand = 'Tesla'", con))
                         {
                             cmd.Parameters.AddWithValue("@carid", car.CarInDB);
                             cmd.Parameters.AddWithValue("@cost_total", 0.0);
-                            cmd.Parameters.AddWithValue("@cost_per_session", 0.0);
-                            cmd.Parameters.AddWithValue("@cost_currency", DBNullIfEmpty(string.Empty));
-                            cmd.Parameters.AddWithValue("@cost_per_kwh", DBNull.Value);
-                            cmd.Parameters.AddWithValue("@cost_per_minute", DBNull.Value);
-                            cmd.Parameters.AddWithValue("@cost_idle_fee_total", DBNull.Value);
-                            cmd.Parameters.AddWithValue("@cost_kwh_meter_invoice", DBNull.Value);
-                            Tools.DebugLog("SQL:" + cmd.CommandText);
                             int rowsUpdated = cmd.ExecuteNonQuery();
                             if (rowsUpdated > 0)
                             {
@@ -775,7 +756,6 @@ namespace TeslaLogger
 
         public void StartChargingState(WebHelper wh)
         {
-            Tools.DebugLog($"DBHelper.StartChargingState()");
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
@@ -784,7 +764,7 @@ namespace TeslaLogger
                     cmd.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
                     cmd.Parameters.AddWithValue("@StartDate", DateTime.Now);
                     cmd.Parameters.AddWithValue("@Pos", GetMaxPosid());
-                    cmd.Parameters.AddWithValue("@StartChargingID", GetMaxChargeid() + 1);
+                    cmd.Parameters.AddWithValue("@StartChargingID", GetMaxChargeid());
                     cmd.Parameters.AddWithValue("@fast_charger_brand", wh.fast_charger_brand);
                     cmd.Parameters.AddWithValue("@fast_charger_type", wh.fast_charger_type);
                     cmd.Parameters.AddWithValue("@conn_charge_cable", wh.conn_charge_cable);
@@ -890,7 +870,7 @@ namespace TeslaLogger
                                 }
                                 else
                                 {
-                                    if (long.TryParse($"{dr[0]}", out long posID))
+                                    if (Tools.UseOpenTopoData() && long.TryParse($"{dr[0]}", out long posID))
                                     {
                                         OpenTopoDataService.GetSingleton().Enqueue(posID, latitude, longitude);
                                     }
@@ -1406,8 +1386,7 @@ namespace TeslaLogger
                     cmd.Parameters.AddWithValue("@lng", longitude.ToString());
                     cmd.Parameters.AddWithValue("@speed", (int)(speed * 1.60934M));
                     cmd.Parameters.AddWithValue("@power", (int)(power * 1.35962M));
-                    cmd.Parameters.AddWithValue("@odometer", odometer.ToString());
-
+                    cmd.Parameters.AddWithValue("@odometer", odometer);
 
                     if (ideal_battery_range_km == -1)
                     {
@@ -1525,7 +1504,34 @@ namespace TeslaLogger
             double kmBattery_Range = battery_range / (double)0.62137;
 
             double powerkW = Convert.ToDouble(charger_power);
+
+            // default waitbetween2pointsdb
             double waitbetween2pointsdb = 1000.0 / powerkW;
+            // if charging started less than 5 minutes ago, insert one charging data point every ~60 seconds
+            try
+            {
+                // get charging_state, must not be older than 5 minutes = 300 seconds = 300000 milliseconds
+                if (car.GetTeslaAPIState().GetState("charging_state", out Dictionary<TeslaAPIState.Key, object> charging_state, 300000)) {
+                    if (charging_state[TeslaAPIState.Key.Value].ToString().Equals("Charging"))
+                    {
+                        // check if charging_state value Charging is not older than 5 minutes
+                        long now = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
+                        if (long.TryParse(charging_state[TeslaAPIState.Key.ValueLastUpdate].ToString(), out long valueLastUpdate))
+                        {
+                            if (now - valueLastUpdate < 300000)
+                            {
+                                // charging_state changed to Charging less than 5 minutes ago
+                                // set waitbetween2pointsdb to 60 seconds
+                                waitbetween2pointsdb = 60;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.DebugLog("Exception waitbetween2pointsdb", ex);
+            }
 
             double deltaSeconds = (DateTime.Now - lastChargingInsert).TotalSeconds;
 
@@ -2194,7 +2200,6 @@ namespace TeslaLogger
         public static void Enable_utf8mb4()
         {
             // https://mathiasbynens.be/notes/mysql-utf8mb4
-            Tools.DebugLog("Enable utf8mb4");
             // check database
             Enable_utf8mb4_check_database("teslalogger");
             // check tables
@@ -2216,7 +2221,6 @@ namespace TeslaLogger
                         {
                             if (dr.HasRows && dr[0] != null && dr[1] != null)
                             {
-                                Tools.DebugLog($"Enable_utf8mb4_check_database {dbname} default_character_set_name {dr[0]} default_collation_name {dr[1]}");
                                 if (!dr[0].ToString().Equals("utf8mb4") || !dr[1].ToString().Equals("utf8mb4_unicode_ci"))
                                 {
                                     Enable_utf8mb4_alter_database(dbname);
@@ -2265,7 +2269,6 @@ namespace TeslaLogger
                         {
                             if (dr.HasRows && dr[0] != null && dr[1] != null)
                             {
-                                Tools.DebugLog($"Enable_utf8mb4_check_tables {dbname} table_name {dr[0]} table_collation {dr[1]}");
                                 if (!dr[1].ToString().Equals("utf8mb4_unicode_ci"))
                                 {
                                     Enable_utf8mb4_alter_table(dbname, dr[0].ToString());
@@ -2316,7 +2319,6 @@ namespace TeslaLogger
                         {
                             if (dr.HasRows && dr[0] != null && dr[1] != null && dr[2] != null)
                             {
-                                Tools.DebugLog($"Enable_utf8mb4_check_columns {dbname} table_name {tablename} COLUMN_NAME {dr[0]} CHARACTER_SET_NAME {dr[1]} COLLATION_NAME {dr[2]}");
                                 if (!dr[1].ToString().Equals("utf8mb4") || !dr[2].ToString().Equals("utf8mb4_unicode_ci"))
                                 {
                                     Enable_utf8mb4_alter_column(dbname, tablename, dr[0].ToString(), dr[3].ToString());

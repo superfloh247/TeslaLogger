@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Runtime.Caching;
@@ -24,7 +25,8 @@ namespace TeslaLogger
             "auto_conditioning_toggle",
             "sentry_mode_on",
             "sentry_mode_off",
-            "sentry_mode_toggle"
+            "sentry_mode_toggle",
+            "wake_up"
         };
 
         public WebServer()
@@ -102,6 +104,36 @@ namespace TeslaLogger
                 {
                     Logfile.Log(ex.ToString());
                 }
+            }
+        }
+
+        void WriteFile(HttpListenerResponse response, string path)
+        {
+            using (FileStream fs = File.OpenRead(path))
+            {
+                string filename = Path.GetFileName(path);
+                //response is HttpListenerContext.Response...
+                response.ContentLength64 = fs.Length;
+                response.SendChunked = false;
+                response.ContentType = System.Net.Mime.MediaTypeNames.Application.Octet;
+                response.AddHeader("Content-disposition", "attachment; filename=" + filename);
+
+                byte[] buffer = new byte[64 * 1024];
+                int read;
+                using (BinaryWriter bw = new BinaryWriter(response.OutputStream))
+                {
+                    while ((read = fs.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        bw.Write(buffer, 0, read);
+                        bw.Flush(); //seems to have no effect
+                    }
+
+                    bw.Close();
+                }
+
+                response.StatusCode = (int)HttpStatusCode.OK;
+                response.StatusDescription = "OK";
+                response.OutputStream.Close();
             }
         }
 
@@ -193,6 +225,9 @@ namespace TeslaLogger
                         Logfile.Log("VERBOSE off");
                         WriteString(response, "VERBOSE off");
                         break;
+                    case bool _ when request.Url.LocalPath.Equals("/logfile"):
+                        GetLogfile(response);
+                        break;
                     default:
                         response.StatusCode = (int)HttpStatusCode.NotFound;
                         WriteString(response, @"URL Not Found!");
@@ -206,6 +241,31 @@ namespace TeslaLogger
             }
         }
 
+        private void GetLogfile(HttpListenerResponse response)
+        {
+            try
+            {
+                string logfilePath = Path.Combine(FileManager.GetExecutingPath(), "nohup.out");
+
+                if (Directory.Exists("zip"))
+                    Directory.Delete("zip", true);
+
+                Directory.CreateDirectory("zip");
+                File.Copy(logfilePath, "zip/logfile.txt");
+
+                if (File.Exists("logfile.zip"))
+                    File.Delete("logfile.zip");
+
+                ZipFile.CreateFromDirectory("zip", "logfile.zip");
+
+                WriteFile(response, "logfile.zip");
+            }
+            catch (Exception ex)
+            {
+                WriteString(response, ex.ToString());
+                Logfile.Log(ex.ToString());
+            }
+        }
 
         private void Debug_TeslaLoggerMessages(HttpListenerRequest request, HttpListenerResponse response)
         {
@@ -268,8 +328,8 @@ namespace TeslaLogger
             Match m = Regex.Match(request.Url.LocalPath, @"/command/([0-9]+)/(.+)");
             if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1)
             {
-                string command = m.Groups[2].Captures[0].ToString();
                 int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
+                string command = m.Groups[2].Captures[0].ToString();
                 if (command.Length > 0 && CarID > 0)
                 {
                     Car car = Car.GetCarByID(CarID);
@@ -311,6 +371,9 @@ namespace TeslaLogger
                                     {
                                         WriteString(response, car.webhelper.PostCommand("command/set_sentry_mode", "{\"on\":true}", true).Result);
                                     }
+                                    break;
+                                case "wake_up":
+                                    WriteString(response, car.webhelper.Wakeup().Result);
                                     break;
                                 default:
                                     WriteString(response, "");
@@ -354,7 +417,7 @@ namespace TeslaLogger
 
                         using (MySqlCommand cmd = new MySqlCommand("select max(id)+1 from cars", con))
                         {
-                            int newid = Convert.ToInt32(cmd.ExecuteScalar());
+                            long newid = cmd.ExecuteScalar() as long? ?? 1;
 
                             using (var cmd2 = new MySqlCommand("insert cars (id, tesla_name, tesla_password, tesla_carid, display_name, freesuc) values (@id, @tesla_name, @tesla_password, @tesla_carid, @display_name, @freesuc)", con))
                             {
@@ -366,7 +429,7 @@ namespace TeslaLogger
                                 cmd2.Parameters.AddWithValue("@freesuc", freesuc ? 1 : 0);
                                 cmd2.ExecuteNonQuery();
 
-                                Car nc = new Car(newid, email, password, teslacarid, "", DateTime.MinValue, "", "", "", "", "", "", null);
+                                Car nc = new Car(Convert.ToInt32(newid), email, password, teslacarid, "", DateTime.MinValue, "", "", "", "", "", "", null);
 
                                 WriteString(response, "OK");
                             }
@@ -461,7 +524,7 @@ namespace TeslaLogger
                         )
                     )
                 );
-                IEnumerable<string> geofenceprivate = WebHelper.geofence.geofenceList.Select(
+                IEnumerable<string> geofenceprivate = WebHelper.geofence.geofencePrivateList.Select(
                     a => string.Format("<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>geofence-private</td></tr>",
                         a.name,
                         a.lat,

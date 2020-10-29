@@ -841,15 +841,35 @@ namespace TeslaLogger
                     Logfile.Log("Start Grafana update");
 
                     string GrafanaVersion = Tools.GetGrafanaVersion();
-                    if (GrafanaVersion == "5.5.0-d3b39f39pre1" || GrafanaVersion == "6.3.5")
+                    if (GrafanaVersion == "5.5.0-d3b39f39pre1" || GrafanaVersion == "6.3.5" || GrafanaVersion == "6.7.3")
                     {
                         Thread threadGrafanaUpdate = new Thread(() =>
                         {
+                            string GrafanaFilename = "grafana_7.2.0_armhf.deb";
+
                             Logfile.Log("upgrade Grafana to 7.2.0!");
 
-                            Tools.Exec_mono("wget", @"https://dl.grafana.com/oss/release/grafana_7.2.0_armhf.deb  --show-progress");
+                            if (File.Exists(GrafanaFilename))
+                                File.Delete(GrafanaFilename);
 
-                            Tools.Exec_mono("dpkg", "-i grafana_7.2.0_armhf.deb");
+                            // use internal downloader
+                            const string grafanaUrl = "https://dl.grafana.com/oss/release/grafana_7.2.0_armhf.deb";
+                            const string grafanaFile = "grafana_7.2.0_armhf.deb";
+                            if (!Tools.DownloadToFile(grafanaUrl, grafanaFile, 300, true).Result) {
+                                // fallback to wget
+                                Logfile.Log($"fallback o wget to download {grafanaUrl}");
+                                Tools.Exec_mono("wget", $"{grafanaUrl}  --show-progress");
+                            }
+
+                            if (File.Exists(GrafanaFilename))
+                            {
+                                Logfile.Log(GrafanaFilename + " Sucessfully Downloaded -  Size:" + new FileInfo(GrafanaFilename).Length);
+
+                                if (GrafanaVersion == "6.7.3") // first Raspberry PI4 install
+                                    Tools.Exec_mono("dpkg", "-r grafana-rpi");
+
+                                Tools.Exec_mono("dpkg", "-i --force-overwrite grafana_7.2.0_armhf.deb");
+                            }
 
                             Logfile.Log("upgrade Grafana DONE!");
 
@@ -964,8 +984,9 @@ namespace TeslaLogger
                             {
                                 s = s.Replace(" speed_max,", "speed_max / 1.609 as speed_max,");
                                 s = s.Replace(" avg_consumption_kWh_100km,", " avg_consumption_kWh_100km * 1.609 as avg_consumption_kWh_100km,");
-                                s = s.Replace(" as avg_kmh,", " / 1.609 as avg_kmh");
+                                s = s.Replace(" as avg_kmh", " / 1.609 as avg_kmh");
                                 s = s.Replace(" km_diff,", " km_diff  / 1.609 as km_diff,");
+                                s = s.Replace("StartRange - EndRange as RangeDiff", "(StartRange - EndRange) / 1.609 as RangeDiff");
 
                                 s = s.Replace("\"max km/h\"", "\"max mph\"");
                                 s = s.Replace("\"Ø km/h\"", "\"Ø mph\"");
