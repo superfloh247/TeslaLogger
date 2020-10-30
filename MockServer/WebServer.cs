@@ -33,11 +33,11 @@ namespace MockServer
                 foreach (DirectoryInfo dir in new DirectoryInfo("JSON").EnumerateDirectories())
                 {
                     Program.Log($"dir: {dir.Name} files: {dir.GetFiles().Length}");
-                    sb.Append(string.Format("<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td></tr>",
+                    sb.Append(string.Format("<tr><td>Name: {0}</td><td>Count: {1}</td><td>{2}</td><td>{3}</td></tr>",
                         dir.Name,
                         dir.GetFiles().Length,
                         GetDirectorySummary(dir),
-                        "TODO Import Button"));
+                        $"<form action=\"/mockserver/import/{dir.Name}\" method=\"get\"><button type=\"submit\">IMPORT</button></form>"));
                 }
                 WriteString(response, html1 + sb.ToString() + html2);
                 return;
@@ -60,7 +60,7 @@ namespace MockServer
             return string.Empty;
         }
 
-        private static void WriteString(HttpListenerResponse response, string responseString)
+        internal static void WriteString(HttpListenerResponse response, string responseString)
         {
             response.ContentEncoding = System.Text.Encoding.UTF8;
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);

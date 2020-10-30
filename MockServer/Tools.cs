@@ -24,6 +24,20 @@ namespace MockServer
             return string.Empty;
         }
 
+        internal static string ExtractEndpointFromJSONFileName(FileInfo file)
+        {
+            string pattern = "^[0-9]+_([a-z_]+)_[0-9]+.json$";
+            Match m = Regex.Match(file.Name, pattern);
+            if (m.Success && m.Groups.Count == 2 && m.Groups[1].Captures.Count == 1)
+            {
+                if (m.Groups[1].Captures[0] != null)
+                {
+                    return m.Groups[1].Captures[0].ToString();
+                }
+            }
+            return string.Empty;
+        }
+
         internal static DateTime ConvertFromFileTimestamp(string timestamp)
         {
             string pattern = "^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{3})";

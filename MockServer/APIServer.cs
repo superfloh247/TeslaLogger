@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace MockServer
@@ -47,6 +49,10 @@ namespace MockServer
                 {
                     case bool _ when request.Url.LocalPath.Equals("/mockserver/listJSONDumps"):
                         WebServer.ListJSONDumps(request, response);
+                        break;
+                    case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/import/.+"):
+                        WebServer.WriteString(response, "");
+                        Importer.importFromDirectory(request.Url.LocalPath.Split('/').Last());
                         break;
                     default:
                         Program.Log("Request: " + request.Url.LocalPath);
