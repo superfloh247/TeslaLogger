@@ -33,6 +33,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="APIServer.cs" />
+    <Compile Include="WebServer.cs" />
+    <Compile Include="Tools.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

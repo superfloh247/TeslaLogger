@@ -45,6 +45,9 @@ namespace MockServer
                 HttpListenerResponse response = context.Response;
                 switch (true)
                 {
+                    case bool _ when request.Url.LocalPath.Equals("/mockserver/listJSONDumps"):
+                        WebServer.ListJSONDumps(request, response);
+                        break;
                     default:
                         Program.Log("Request: " + request.Url.LocalPath);
                         break;
