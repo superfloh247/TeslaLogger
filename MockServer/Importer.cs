@@ -11,7 +11,7 @@ namespace MockServer
 
         internal static void importFromDirectory(string dirname)
         {
-            Program.Log($"importFromDirectory: {dirname}");
+            Tools.Log($"importFromDirectory: {dirname}");
             if (Directory.Exists($"JSON/{dirname}"))
             {
                 DirectoryInfo dir = new DirectoryInfo($"JSON/{dirname}");
@@ -59,15 +59,18 @@ namespace MockServer
 
                 if (charge_state_found && climate_state_found && drive_state_found && vehicle_state_found && vehicles_found)
                 {
-                    Program.Log("Check #1: dump contains endpoints charge_state, climate_state, drive_state, vehicle_state, vehicles");
+                    Tools.Log("Check #1: dump contains endpoints charge_state, climate_state, drive_state, vehicle_state, vehicles");
+
+                    FileInfo first = files.First();
+
                     foreach (FileInfo file in files)
                     {
-                        Database.ImportJSONFile(file);
+                        Database.ImportJSONFile(file, first);
                     }
                 }
                 else
                 {
-                    Program.Log("Check #1: dump incomplete");
+                    Tools.Log("Check #1: dump incomplete");
                 }
             }
             else

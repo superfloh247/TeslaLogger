@@ -32,7 +32,7 @@ namespace MockServer
                 StringBuilder sb = new StringBuilder();
                 foreach (DirectoryInfo dir in new DirectoryInfo("JSON").EnumerateDirectories())
                 {
-                    Program.Log($"dir: {dir.Name} files: {dir.GetFiles().Length}");
+                    Tools.Log($"dir: {dir.Name} files: {dir.GetFiles().Length}");
                     sb.Append(string.Format("<tr><td>Name: {0}</td><td>Count: {1}</td><td>{2}</td><td>{3}</td></tr>",
                         dir.Name,
                         dir.GetFiles().Length,

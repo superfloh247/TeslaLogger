@@ -18,11 +18,11 @@ namespace MockServer
                 listener = new HttpListener();
                 listener.Prefixes.Add("http://*:24780/");
                 listener.Start();
-                Program.Log($"HttpListener bound to http://*:http://*:24780//");
+                Tools.Log($"HttpListener bound to http://*:http://*:24780//");
             }
             catch (Exception ex)
             {
-                Program.Log("Exception", ex);
+                Tools.Log("Exception", ex);
             }
             while (listener != null)
             {
@@ -32,7 +32,7 @@ namespace MockServer
                 }
                 catch (Exception ex)
                 {
-                    Program.Log("Exception", ex);
+                    Tools.Log("Exception", ex);
                 }
             }
         }
@@ -55,13 +55,13 @@ namespace MockServer
                         Importer.importFromDirectory(request.Url.LocalPath.Split('/').Last());
                         break;
                     default:
-                        Program.Log("Request: " + request.Url.LocalPath);
+                        Tools.Log("Request: " + request.Url.LocalPath);
                         break;
                 }
             }
             catch (Exception ex)
             {
-                Program.Log("Exception", ex);
+                Tools.Log("Exception", ex);
             }
         }
     }

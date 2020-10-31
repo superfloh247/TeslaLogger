@@ -9,7 +9,7 @@ namespace MockServer
     {
         public static void Main(string[] args)
         {
-            Log("Starting");
+            Tools.Log("Starting");
             try
             {
                 Thread APIServerThread = new Thread(() =>
@@ -23,16 +23,7 @@ namespace MockServer
             }
             catch (Exception ex)
             {
-                Log("Exception", ex);
-            }
-        }
-
-        internal static void Log(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
-        {
-            Console.WriteLine($"{text} ({Path.GetFileName(_cfp)}:{_cln})");
-            if (ex != null)
-            {
-                Console.WriteLine(ex.ToString());
+                Tools.Log("Exception", ex);
             }
         }
 

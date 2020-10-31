@@ -13,9 +13,9 @@ namespace MockServer
         {
         }
 
-        internal static void ImportJSONFile(FileInfo file)
+        internal static void ImportJSONFile(FileInfo file, FileInfo first)
         {
-            Program.Log($"ImportJSONFile {file.Name}");
+            Tools.Log($"ImportJSONFile {file.Name}");
 
             // TODO
             // - get max id from database.sessions
@@ -23,24 +23,24 @@ namespace MockServer
             switch (Tools.ExtractEndpointFromJSONFileName(file))
             {
                 case "charge_state":
-                    ImportChargeState(file);
+                    ImportChargeState(file, Tools.ExtractTimestampFromJSONFileName(first));
                     break;
                 case "climate_state":
-                    ImportClimateState(file);
+                    ImportClimateState(file, Tools.ExtractTimestampFromJSONFileName(first));
                     break;
                 case "drive_state":
-                    ImportDriveState(file);
+                    ImportDriveState(file, Tools.ExtractTimestampFromJSONFileName(first));
                     break;
                 case "vehicle_state":
-                    ImportVehicleState(file);
+                    ImportVehicleState(file, Tools.ExtractTimestampFromJSONFileName(first));
                     break;
                 case "vehicles":
-                    ImportVehicles(file);
+                    ImportVehicles(file, Tools.ExtractTimestampFromJSONFileName(first));
                     break;
             }
         }
 
-        private static void ImportChargeState(FileInfo file)
+        private static void ImportChargeState(FileInfo _file, string _tsoffset)
         {
             /*
                  * {"response":
@@ -93,22 +93,39 @@ namespace MockServer
                  */
             try
             {
-                Dictionary<string, object> r2 = Tools.ExtractResponse(File.ReadAllText(file.FullName));
-                if (r2.ContainsKey("timestamp") && long.TryParse(r2["timestamp"].ToString(), out long timestamp))
+                Dictionary<string, object> r2 = Tools.ExtractResponse(File.ReadAllText(_file.FullName));
+                if (r2.ContainsKey("timestamp") && long.TryParse(r2["timestamp"].ToString(), out _))
                 {
-                    if (!DBTools.TableExists("ms_charge_state"))
+                    string tablename = "ms_charge_state";
+                    if (!DBTools.TableExistsAsync(tablename).Result)
                     {
-
+                        _ = DBTools.CreateTableWithID(tablename).Result;
+                    }
+                    foreach (string key in r2.Keys)
+                    {
+                        switch (key)
+                        {
+                            case "timestamp":
+                                // apply offset
+                                if (long.TryParse(r2[key].ToString(), out long timestamp) && long.TryParse(_tsoffset, out long tsoffset))
+                                {
+                                    if (!DBTools.ColumnExistsAsync(tablename, "timestamp").Result)
+                                    {
+                                        _ = DBTools.CreateColumn(tablename, "timestamp", "INT", false);
+                                    }
+                                }
+                                break;
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Program.Log("Exception", ex);
+                Tools.Log("Exception", ex);
             }
         }
 
-        private static void ImportClimateState(FileInfo file)
+        private static void ImportClimateState(FileInfo file, string v)
         {
             /*
                  * {"response":
@@ -146,7 +163,7 @@ namespace MockServer
                  */
         }
 
-        private static void ImportDriveState(FileInfo file)
+        private static void ImportDriveState(FileInfo file, string v)
         {
             /*
                  * {"response":
@@ -168,7 +185,7 @@ namespace MockServer
                  */
         }
 
-        private static void ImportVehicleState(FileInfo file)
+        private static void ImportVehicleState(FileInfo file, string v)
         {
             /*
                  * {"response":
@@ -229,7 +246,7 @@ namespace MockServer
                  */
         }
 
-        private static void ImportVehicles(FileInfo file)
+        private static void ImportVehicles(FileInfo file, string v)
         {
             /* {"response":
                  *      [

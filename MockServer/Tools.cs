@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
+using MySqlConnector;
 
 namespace MockServer
 {
@@ -74,5 +77,82 @@ namespace MockServer
             Dictionary<string, object> r2 = (Dictionary<string, object>)r1;
             return r2;
         }
+
+        internal static void Log(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
+        {
+            Console.WriteLine($"{text} ({Path.GetFileName(_cfp)}:{_cln})");
+            if (ex != null)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+        internal static void Log(MySqlCommand cmd, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0, [CallerMemberName] string _cmn = null)
+        {
+            try
+            {
+                string msg = "SQL" + cmd.CommandText;
+                foreach (MySqlParameter p in cmd.Parameters)
+                {
+                    string pValue = "";
+                    switch (p.DbType)
+                    {
+                        case DbType.AnsiString:
+                        case DbType.AnsiStringFixedLength:
+                        case DbType.Date:
+                        case DbType.DateTime:
+                        case DbType.DateTime2:
+                        case DbType.Guid:
+                        case DbType.String:
+                        case DbType.StringFixedLength:
+                        case DbType.Time:
+                            if (p.Value != null)
+                            {
+                                pValue = $"'{p.Value.ToString().Replace("'", "\\'")}'";
+                            }
+                            else
+                            {
+                                pValue = "'NULL'";
+                            }
+                            break;
+                        case DbType.Decimal:
+                        case DbType.Double:
+                        case DbType.Int16:
+                        case DbType.Int32:
+                        case DbType.Int64:
+                        case DbType.UInt16:
+                        case DbType.UInt32:
+                        case DbType.UInt64:
+                        case DbType.VarNumeric:
+                        case DbType.Object:
+                        case DbType.SByte:
+                        case DbType.Single:
+                        case DbType.Binary:
+                        case DbType.Boolean:
+                        case DbType.Byte:
+                        case DbType.Currency:
+                        case DbType.DateTimeOffset:
+                        case DbType.Xml:
+                        default:
+                            if (p.Value != null)
+                            {
+                                pValue = p.Value.ToString();
+                            }
+                            else
+                            {
+                                pValue = "NULL";
+                            }
+                            break;
+                    }
+                    msg = msg.Replace(p.ParameterName, pValue);
+                }
+                Log($"{_cmn}: " + msg, null, _cfp, _cln);
+            }
+            catch (Exception ex)
+            {
+                Log("Exception in SQL DEBUG", ex);
+            }
+        }
+
     }
 }
