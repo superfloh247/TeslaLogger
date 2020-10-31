@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace MockServer
 {
     public class Database
     {
+        // TODO read from mockserversettings.json
+        internal static string DBConnectionstring = "Server=teslalogger;Database=teslaloggermock;Uid=root;Password=teslalogger;CharSet=utf8mb4;";
+
         public Database()
         {
         }
@@ -12,6 +16,10 @@ namespace MockServer
         internal static void ImportJSONFile(FileInfo file)
         {
             Program.Log($"ImportJSONFile {file.Name}");
+
+            // TODO
+            // - get max id from database.sessions
+
             switch (Tools.ExtractEndpointFromJSONFileName(file))
             {
                 case "charge_state":
@@ -83,6 +91,21 @@ namespace MockServer
                  *     }
                  * }
                  */
+            try
+            {
+                Dictionary<string, object> r2 = Tools.ExtractResponse(File.ReadAllText(file.FullName));
+                if (r2.ContainsKey("timestamp") && long.TryParse(r2["timestamp"].ToString(), out long timestamp))
+                {
+                    if (!DBTools.TableExists("ms_charge_state"))
+                    {
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.Log("Exception", ex);
+            }
         }
 
         private static void ImportClimateState(FileInfo file)

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 
 namespace MockServer
 {
@@ -63,6 +65,14 @@ namespace MockServer
                 }
             }
             return DateTime.MinValue;
+        }
+
+        internal static Dictionary<string, object> ExtractResponse(string _JSON)
+        {
+            object jsonResult = new JavaScriptSerializer().DeserializeObject(_JSON);
+            object r1 = ((Dictionary<string, object>)jsonResult)["response"];
+            Dictionary<string, object> r2 = (Dictionary<string, object>)r1;
+            return r2;
         }
     }
 }
