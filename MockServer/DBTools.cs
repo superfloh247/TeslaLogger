@@ -10,7 +10,7 @@ namespace MockServer
         {
         }
 
-        internal static async Task<bool> TableExistsAsync(string tablename)
+        internal static async Task<bool> TableExists(string tablename)
         {
             try
             {
@@ -71,6 +71,15 @@ WHERE
             return false;
         }
 
+        internal static async Task<bool> CreateTableWithIDAndFields(string tablename)
+        {
+            if (CreateTableWithID(tablename).Result)
+            {
+                return await CreateColumn(tablename, "fields", "TEXT", false);
+            }
+            return false;
+        }
+
         internal static async Task<bool> CreateColumn(string tablename, string columnname, string columntype, bool nullable)
         {
             try
@@ -98,7 +107,7 @@ WHERE
             return false;
         }
 
-        internal static async Task<bool> ColumnExistsAsync(string table, string column)
+        internal static async Task<bool> ColumnExists(string table, string column)
         {
             try {
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
@@ -123,5 +132,59 @@ WHERE
             }
             return false;
         }
+
+        internal static string TypeToDBType(Type type)
+        {
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                    return "INT";
+                case TypeCode.Decimal:
+                    return "DOUBLE";
+                case TypeCode.Boolean:
+                    return "BOOLEAN";
+                case TypeCode.String:
+                    return "TEXT";
+                case TypeCode.Object:
+                    return "_OBJECT_";
+                default:
+                    Tools.Log($"TypeToDBType unhandled {Type.GetTypeCode(type)}");
+                    break;
+            }
+            return string.Empty;
+        }
+
+        internal static async Task<int?> GetMaxValue(string tablename, string columnname)
+        {
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                {
+                    await conn.OpenAsync();
+                    using (MySqlCommand cmd = new MySqlCommand($"SELECT MAX({columnname}) FROM {tablename}", conn))
+                    {
+                        Tools.Log(cmd);
+                        using (MySqlDataReader dr = await cmd.ExecuteReaderAsync())
+                        {
+                            if (dr.Read())
+                            {
+                                if (int.TryParse(dr[0].ToString(), out int value))
+                                {
+                                    return value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
+            }
+            return null;
+        }
+
+
     }
 }

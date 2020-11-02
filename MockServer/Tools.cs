@@ -91,7 +91,7 @@ namespace MockServer
         {
             try
             {
-                string msg = "SQL" + cmd.CommandText;
+                string msg = "SQL: " + cmd.CommandText;
                 foreach (MySqlParameter p in cmd.Parameters)
                 {
                     string pValue = "";

@@ -13,17 +13,7 @@ namespace MockServer
 
         public APIServer()
         {
-            try
-            {
-                listener = new HttpListener();
-                listener.Prefixes.Add("http://*:24780/");
-                listener.Start();
-                Tools.Log($"HttpListener bound to http://*:http://*:24780//");
-            }
-            catch (Exception ex)
-            {
-                Tools.Log("Exception", ex);
-            }
+            InitHTTPServer();
             while (listener != null)
             {
                 try
@@ -34,6 +24,21 @@ namespace MockServer
                 {
                     Tools.Log("Exception", ex);
                 }
+            }
+        }
+
+        private void InitHTTPServer()
+        {
+            try
+            {
+                listener = new HttpListener();
+                listener.Prefixes.Add("http://*:24780/");
+                listener.Start();
+                Tools.Log($"HttpListener bound to http://*:http://*:24780//");
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
             }
         }
 

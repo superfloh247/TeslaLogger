@@ -10,6 +10,10 @@ namespace MockServer
         public static void Main(string[] args)
         {
             Tools.Log("Starting");
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+
+            InitDBSchema();
+
             try
             {
                 Thread APIServerThread = new Thread(() =>
@@ -27,5 +31,17 @@ namespace MockServer
             }
         }
 
+        private static void InitDBSchema()
+        {
+            string tablename = "ms_sessions";
+            if (!DBTools.TableExists(tablename).Result)
+            {
+                _ = DBTools.CreateTableWithID(tablename).Result;
+            }
+            if (!DBTools.ColumnExists(tablename, "sessionid").Result)
+            {
+                _ = DBTools.CreateColumn(tablename, "sessionid", "INT", false);
+            }
+        }
     }
 }

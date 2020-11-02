@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using MySqlConnector;
 
 namespace MockServer
 {
@@ -13,12 +16,9 @@ namespace MockServer
         {
         }
 
-        internal static void ImportJSONFile(FileInfo file, FileInfo first)
+        internal static void ImportJSONFile(FileInfo file, FileInfo first, int sessionid)
         {
             Tools.Log($"ImportJSONFile {file.Name}");
-
-            // TODO
-            // - get max id from database.sessions
 
             switch (Tools.ExtractEndpointFromJSONFileName(file))
             {
@@ -38,6 +38,41 @@ namespace MockServer
                     ImportVehicles(file, Tools.ExtractTimestampFromJSONFileName(first));
                     break;
             }
+        }
+
+        internal static async Task<int> CreateSessionAsync()
+        {
+            int? newsessionid = DBTools.GetMaxValue("ms_sessions", "sessionid").Result;
+            if (newsessionid == null)
+            {
+                newsessionid = 1;
+            }
+            else
+            {
+                newsessionid += 1;
+            }
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                {
+                    await conn.OpenAsync();
+                    using (MySqlCommand cmd = new MySqlCommand($"INSERT ms_sessions (sessionid) VALUES (@sessionid)", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@sessionid", newsessionid);
+                        Tools.Log(cmd);
+                        int rows = cmd.ExecuteNonQueryAsync().Result;
+                        if (rows > 0)
+                        {
+                            return (int)newsessionid;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
+            }
+            return -1;
         }
 
         private static void ImportChargeState(FileInfo _file, string _tsoffset)
@@ -96,25 +131,27 @@ namespace MockServer
                 Dictionary<string, object> r2 = Tools.ExtractResponse(File.ReadAllText(_file.FullName));
                 if (r2.ContainsKey("timestamp") && long.TryParse(r2["timestamp"].ToString(), out _))
                 {
-                    string tablename = "ms_charge_state";
-                    if (!DBTools.TableExistsAsync(tablename).Result)
+                    foreach (string key in r2.Keys.Where(k => k != null))
                     {
-                        _ = DBTools.CreateTableWithID(tablename).Result;
-                    }
-                    foreach (string key in r2.Keys)
-                    {
-                        switch (key)
+                        if (r2[key] != null)
                         {
-                            case "timestamp":
-                                // apply offset
-                                if (long.TryParse(r2[key].ToString(), out long timestamp) && long.TryParse(_tsoffset, out long tsoffset))
-                                {
-                                    if (!DBTools.ColumnExistsAsync(tablename, "timestamp").Result)
+                            switch (key)
+                            {
+                                case "timestamp":
+                                    // apply offset
+                                    if (long.TryParse(r2[key].ToString(), out long timestamp) && long.TryParse(_tsoffset, out long tsoffset))
                                     {
-                                        _ = DBTools.CreateColumn(tablename, "timestamp", "INT", false);
+                                        long tsvalue = timestamp - tsoffset;
                                     }
-                                }
-                                break;
+                                    break;
+                                default:
+                                    Tools.Log($"key {key} value {r2[key]} typeof {DBTools.TypeToDBType(r2[key].GetType())}");
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            // TODO handle nulls
                         }
                     }
                 }
