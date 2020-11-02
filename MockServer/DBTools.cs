@@ -139,7 +139,7 @@ WHERE
             {
                 case TypeCode.Int32:
                 case TypeCode.Int64:
-                    return "INT";
+                    return "BIGINT";
                 case TypeCode.Decimal:
                     return "DOUBLE";
                 case TypeCode.Boolean:
