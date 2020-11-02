@@ -438,6 +438,7 @@ namespace TeslaLogger
 
         public void CloseChargingState()
         {
+            car.Log("CloseChargingState()");
             bool hasFreeSuc = car.HasFreeSuC();
             if (hasFreeSuc)
             {
