@@ -7,11 +7,44 @@ using System.Collections.Generic;
 
 namespace MockServer
 {
+    internal class MSSession
+    {
+        private static HashSet<MSSession> sessions = new HashSet<MSSession>();
+
+        private string token;
+        private DateTime start;
+        private int sessionid;
+
+        public string Token { get => token; set => token = value; }
+        public DateTime Start { get => start; set => start = value; }
+        public int Sessionid { get => sessionid; set => sessionid = value; }
+
+        public MSSession(string token, int sessionid)
+        {
+            Tools.Log("new mockserver session");
+            this.token = token;
+            this.start = DateTime.UtcNow;
+            this.sessionid = sessionid;
+            sessions.Add(this);
+        }
+
+        internal static MSSession GetSessionByToken(string token)
+        {
+            foreach (MSSession session in sessions)
+            {
+                if (session.Token.Equals(token))
+                {
+                    return session;
+                }
+            }
+            return null;
+        }
+    }
+
     internal class APIServer
     {
 
         private HttpListener listener = null;
-        private Dictionary<string, DateTime> sessions = new Dictionary<string, DateTime>();
 
         public APIServer()
         {
@@ -63,11 +96,11 @@ namespace MockServer
                         Importer.importFromDirectory(request.Url.LocalPath.Split('/').Last());
                         break;
                     // Tesla API
-                    case bool _ when request.Url.LocalPath.Equals("/mockserver/listJSONDumps"):
+                    case bool _ when request.Url.LocalPath.Equals("/api/1/vehicles"):
                         mock_vehicles(request, response);
                         break;
                     default:
-                        Tools.Log("Request: " + request.Url.LocalPath);
+                        Tools.Log("unhandled: " + request.Url.LocalPath);
                         break;
                 }
             }
@@ -79,20 +112,29 @@ namespace MockServer
 
         private string GetAuthorizationBearerToken(HttpListenerRequest request)
         {
+            if (request.Headers.AllKeys.Contains("Authorization"))
+            {
+                if (request.Headers["Authorization"] != null && request.Headers["Authorization"].StartsWith("Bearer "))
+                {
+                    return request.Headers["Authorization"].Replace("Bearer ", "");
+                }
+            }
             return string.Empty;
         }
 
         private void mock_vehicles(HttpListenerRequest request, HttpListenerResponse response)
         {
-            Tools.Log(request.Url.LocalPath);
+            Tools.Log($"mock: {request.Url.LocalPath}");
             // check if this a valid mockserver session
             string token = GetAuthorizationBearerToken(request);
             if (!string.IsNullOrEmpty(token))
             {
-                if (!sessions.ContainsKey(token))
+                Tools.Log($"token: {token}");
+                MSSession session = MSSession.GetSessionByToken(token);
+                if (session == null)
                 {
                     // create new session
-                    CreateSession(token);
+                    session = CreateSession(token);
                 }
                 
             }
@@ -102,10 +144,9 @@ namespace MockServer
             }
         }
 
-        private void CreateSession(string token)
+        private MSSession CreateSession(string token)
         {
-            Tools.Log("new mockserver session");
-            sessions.Add(token, DateTime.UtcNow);
+            return new MSSession(token, 1); // TODO make sessionid somehow configurable
         }
     }
 }
