@@ -159,5 +159,10 @@ namespace MockServer
             // TODO handle time zone problems
             return Convert.ToInt64(Tools.ConvertFromFileTimestamp(Tools.ExtractTimestampFromJSONFileName(first)).Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds);
         }
+
+        internal static long TimeStampNow()
+        {
+            return Convert.ToInt64(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds);
+        }
     }
 }

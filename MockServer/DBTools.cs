@@ -133,9 +133,13 @@ WHERE
             return false;
         }
 
-        internal static string TypeToDBType(Type type)
+        internal static string TypeToDBType(object obj)
         {
-            switch (Type.GetTypeCode(type))
+            if (obj == null)
+            {
+                return "_NULL_";
+            }
+            switch (Type.GetTypeCode(obj.GetType()))
             {
                 case TypeCode.Int32:
                 case TypeCode.Int64:
@@ -149,7 +153,7 @@ WHERE
                 case TypeCode.Object:
                     return "_OBJECT_";
                 default:
-                    Tools.Log($"TypeToDBType unhandled {Type.GetTypeCode(type)}");
+                    Tools.Log($"TypeToDBType unhandled {Type.GetTypeCode(obj.GetType())}");
                     break;
             }
             return string.Empty;

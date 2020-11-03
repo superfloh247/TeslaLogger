@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using MySqlConnector;
@@ -36,20 +37,128 @@ namespace MockServer
                     json = Tools.ExtractResponse(File.ReadAllText(file.FullName));
                     break;
             }
-            foreach (string key in json.Keys.Where(k => k != null))
+            // collect columns
+            SortedSet<string> columns = new SortedSet<string>();
+            if (json != null)
             {
-                switch (key)
+                foreach (string key in json.Keys.Where(k => k != null))
                 {
-                    case "timestamp":
-                        if (json[key] != null && long.TryParse(json[key].ToString(), out long timestamp))
+                    switch (DBTools.TypeToDBType(json[key]))
+                    {
+                        case "_OBJECT_":
+                            if (json[key] is Dictionary<string, object> dictionary && dictionary.Count > 0)
+                            {
+                                foreach (string subkey in dictionary.Keys)
+                                {
+                                    columns.Add($"{key}__{subkey}");
+                                }
+                            }
+                            else if (json[key] is Object[] array)
+                            {
+                                int index = 0;
+                                foreach (Object value in array)
+                                {
+                                    columns.Add($"{key}__{index}");
+                                    index++;
+                                }
+                            }
+                            break;
+                        case "_NULL":
+                            // TODO
+                            break;
+                        default:
+                            columns.Add(key);
+                            break;
+                    }
+
+                }
+                // build SQL statement
+                StringBuilder sqlcmd = new StringBuilder();
+                sqlcmd.Append("INSERT ");
+                sqlcmd.Append(DBSchema.tables[Tools.ExtractEndpointFromJSONFileName(file)]);
+                sqlcmd.Append(" (fields, ");
+                sqlcmd.Append(string.Join(", ", columns));
+                sqlcmd.Append(" ) VALUES (@fields");
+                foreach (string col in columns)
+                {
+                    sqlcmd.Append(string.Concat(", @", col));
+                }
+                sqlcmd.Append(" )");
+                // apply parameters
+                try
+                {
+                    using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                    {
+                        _ = conn.OpenAsync();
+                        using (MySqlCommand cmd = new MySqlCommand(sqlcmd.ToString(), conn))
                         {
-                            Tools.Log($"file {file.Name} ts: {timestamp} fts: {Tools.FileDateToTimestamp(file)} diff: {timestamp - tsoffset}");
+                            cmd.Parameters.AddWithValue("@fields", string.Join(",", columns));
+                            foreach (string key in json.Keys.Where(k => k != null))
+                            {
+                                switch (key)
+                                {
+                                    case "timestamp":
+                                        if (json[key] != null && long.TryParse(json[key].ToString(), out long timestamp))
+                                        {
+                                            if (timestamp - tsoffset > 0)
+                                            {
+                                                cmd.Parameters.AddWithValue("@timestamp", timestamp - tsoffset);
+                                            }
+                                            else
+                                            {
+                                                // TODO error handling
+                                            }
+                                        }
+                                        break;
+                                    default:
+                                        switch (DBTools.TypeToDBType(json[key]))
+                                        {
+                                            case "_OBJECT_":
+                                                if (json[key] is Dictionary<string, object> dictionary && dictionary.Count > 0)
+                                                {
+                                                    foreach (string subkey in dictionary.Keys)
+                                                    {
+                                                        cmd.Parameters.AddWithValue($"@{key}__{subkey}", json[key]);
+                                                    }
+                                                }
+                                                else if (json[key] is Object[] array)
+                                                {
+                                                    int index = 0;
+                                                    foreach (Object value in array)
+                                                    {
+                                                        cmd.Parameters.AddWithValue($"@{key}__{index}", json[key]);
+                                                        index++;
+                                                    }
+                                                }
+                                                break;
+                                            case "_NULL":
+                                                // TODO
+                                                break;
+                                            default:
+                                                cmd.Parameters.AddWithValue($"@{key}", json[key]);
+                                                break;
+                                        }
+                                        break;
+                                }
+                            }
+                            Tools.Log(cmd);
+                            //int rows = cmd.ExecuteNonQueryAsync().Result;
+                            //if (rows > 0)
+                            //{
+                            //}
                         }
-                        break;
-                    default:
-                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Tools.Log("Exception", ex);
                 }
             }
+            else
+            {
+                // TODO json == null handling
+            }
+            Tools.Log($"ImportJSONFile {file.Name} done");
         }
 
         internal static async Task<int> CreateSessionAsync()

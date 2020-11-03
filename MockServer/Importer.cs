@@ -144,44 +144,47 @@ namespace MockServer
                                 json = Tools.ExtractResponse(File.ReadAllText(file.FullName));
                             break;
                     }
-                    foreach (string key in json.Keys.Where(k => k != null))
+                    if (json != null)
                     {
-                        if (json[key] != null && !string.IsNullOrEmpty(DBTools.TypeToDBType(json[key].GetType())) && !fields[endpoint].ContainsKey(key))
+                        foreach (string key in json.Keys.Where(k => k != null))
                         {
-                            switch(DBTools.TypeToDBType(json[key].GetType()))
+                            if (json[key] != null && !string.IsNullOrEmpty(DBTools.TypeToDBType(json[key])) && !fields[endpoint].ContainsKey(key))
                             {
-                                case "_OBJECT_":
-                                    if (json[key] is Dictionary<string, object> dictionary && dictionary.Count > 0)
-                                    {
-                                        foreach (string subkey in dictionary.Keys)
+                                switch (DBTools.TypeToDBType(json[key]))
+                                {
+                                    case "_OBJECT_":
+                                        if (json[key] is Dictionary<string, object> dictionary && dictionary.Count > 0)
                                         {
-                                            if (!fields[endpoint].ContainsKey($"{key}__{subkey}"))
+                                            foreach (string subkey in dictionary.Keys)
                                             {
-                                                fields[endpoint].Add($"{key}__{subkey}", DBTools.TypeToDBType(dictionary[subkey].GetType()));
+                                                if (!fields[endpoint].ContainsKey($"{key}__{subkey}"))
+                                                {
+                                                    fields[endpoint].Add($"{key}__{subkey}", DBTools.TypeToDBType(dictionary[subkey]));
+                                                }
                                             }
                                         }
-                                    }
-                                    else if (json[key] is Object[] array)
-                                    {
-                                        int index = 0;
-                                        foreach (Object value in array)
+                                        else if (json[key] is Object[] array)
                                         {
-                                            if (!fields[endpoint].ContainsKey($"{key}__{index}"))
+                                            int index = 0;
+                                            foreach (Object value in array)
                                             {
-                                                fields[endpoint].Add($"{key}__{index}", DBTools.TypeToDBType(value.GetType()));
+                                                if (!fields[endpoint].ContainsKey($"{key}__{index}"))
+                                                {
+                                                    fields[endpoint].Add($"{key}__{index}", DBTools.TypeToDBType(value));
+                                                }
+                                                index++;
                                             }
-                                            index++;
                                         }
-                                    }
-                                    break;
-                                default:
-                                    fields[endpoint].Add(key, DBTools.TypeToDBType(json[key].GetType()));
-                                    break;
+                                        break;
+                                    default:
+                                        fields[endpoint].Add(key, DBTools.TypeToDBType(json[key]));
+                                        break;
+                                }
                             }
-                        }
-                        else
-                        {
-                            // TODO
+                            else
+                            {
+                                // TODO
+                            }
                         }
                     }
                 }

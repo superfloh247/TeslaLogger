@@ -29,6 +29,9 @@ namespace MockServer
             {
                 Tools.Log("Exception", ex);
             }
+
+            // DEBUG - start import w/o webrequest
+            Importer.importFromDirectory("drive-park");
         }
 
         private static void InitDBSchema()
