@@ -32,6 +32,7 @@ namespace MockServer
 
             // DEBUG - start import w/o webrequest
             Importer.importFromDirectory("drive-park");
+            //Database.ImportJSONFile(new FileInfo("/Users/lindner/VSCode/TeslaLogger/MockServer/bin/Debug/JSON/drive-park/20201103081858917_vehicles_1.json"), 1604391538917, 1);
         }
 
         private static void InitDBSchema()

@@ -117,17 +117,20 @@ namespace MockServer
             {
                 // TODO
             }
+            Tools.Log($"importFromDirectory: {dirname} done");
         }
 
         private static bool CheckDBSchema(SortedSet<FileInfo> files)
         {
             SortedDictionary<string, SortedDictionary<string, string>> fields = new SortedDictionary<string, SortedDictionary<string, string>>();
+            SortedDictionary<string, SortedDictionary<string, string>> nullfields = new SortedDictionary<string, SortedDictionary<string, string>>();
 
             // parse files
 
             foreach (string endpoint in DBSchema.tables.Keys)
             {
                 fields[endpoint] = new SortedDictionary<string, string>();
+                nullfields[endpoint] = new SortedDictionary<string, string>();
                 foreach (FileInfo file in files.Where(f => f.Name.Contains(endpoint)))
                 {
                     Dictionary<string, object> json = new Dictionary<string, object>();
@@ -138,6 +141,7 @@ namespace MockServer
                                 object r1 = ((Dictionary<string, object>)jsonResult)["response"];
                                 object[] r2 = (object[])r1;
                                 object r3 = r2[0]; // TODO restriction! this will always take the first car and ignore all others
+                                // solution: take car id from vehicles file name
                                 json = (Dictionary<string, object>)r3;
                             break;
                         default:
@@ -148,42 +152,61 @@ namespace MockServer
                     {
                         foreach (string key in json.Keys.Where(k => k != null))
                         {
-                            if (json[key] != null && !string.IsNullOrEmpty(DBTools.TypeToDBType(json[key])) && !fields[endpoint].ContainsKey(key))
+                            // check if static DBSchema already is aware of this field
+                            if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey(key))
                             {
-                                switch (DBTools.TypeToDBType(json[key]))
-                                {
-                                    case "_OBJECT_":
-                                        if (json[key] is Dictionary<string, object> dictionary && dictionary.Count > 0)
-                                        {
-                                            foreach (string subkey in dictionary.Keys)
-                                            {
-                                                if (!fields[endpoint].ContainsKey($"{key}__{subkey}"))
-                                                {
-                                                    fields[endpoint].Add($"{key}__{subkey}", DBTools.TypeToDBType(dictionary[subkey]));
-                                                }
-                                            }
-                                        }
-                                        else if (json[key] is Object[] array)
-                                        {
-                                            int index = 0;
-                                            foreach (Object value in array)
-                                            {
-                                                if (!fields[endpoint].ContainsKey($"{key}__{index}"))
-                                                {
-                                                    fields[endpoint].Add($"{key}__{index}", DBTools.TypeToDBType(value));
-                                                }
-                                                index++;
-                                            }
-                                        }
-                                        break;
-                                    default:
-                                        fields[endpoint].Add(key, DBTools.TypeToDBType(json[key]));
-                                        break;
-                                }
+                                fields[endpoint].Add($"{key}", DBSchema.EndpointFieldDBType[endpoint][key]);
                             }
-                            else
+                            else // try to determine type of unknown field
                             {
-                                // TODO
+                                if (json[key] != null && !string.IsNullOrEmpty(DBTools.TypeToDBType(json[key])) && !fields[endpoint].ContainsKey($"{key}"))
+                                {
+                                    if (nullfields[endpoint].ContainsKey(key))
+                                    {
+                                        nullfields[endpoint].Remove(key);
+                                    }
+                                    switch (DBTools.TypeToDBType(json[key]))
+                                    {
+                                        case "_OBJECT_":
+                                            if (json[key] is Dictionary<string, object> dictionary && dictionary.Count > 0)
+                                            {
+                                                foreach (string subkey in dictionary.Keys)
+                                                {
+                                                    if (!fields[endpoint].ContainsKey($"{key}__{subkey}"))
+                                                    {
+                                                        fields[endpoint].Add($"{key}__{subkey}", DBTools.TypeToDBType(dictionary[subkey]));
+                                                    }
+                                                }
+                                            }
+                                            else if (json[key] is Object[] array)
+                                            {
+                                                int index = 0;
+                                                foreach (Object value in array)
+                                                {
+                                                    if (!fields[endpoint].ContainsKey($"{key}__{index}"))
+                                                    {
+                                                        fields[endpoint].Add($"{key}__{index}", DBTools.TypeToDBType(value));
+                                                    }
+                                                    index++;
+                                                }
+                                            }
+                                            break;
+                                        case "_NULL_":
+                                            // add to null fields
+                                            break;
+                                        default:
+                                            fields[endpoint].Add($"{key}", DBTools.TypeToDBType(json[key]));
+                                            break;
+                                    }
+                                }
+                                else if (key != null && json[key] == null && !nullfields[endpoint].ContainsKey(key))
+                                {
+                                    nullfields[endpoint].Add(key, null);
+                                }
+                                else
+                                {
+                                    // TODO
+                                }
                             }
                         }
                     }
@@ -195,7 +218,7 @@ namespace MockServer
             {
                 if (!DBTools.TableExists(tablename).Result)
                 {
-                    _ = DBTools.CreateTableWithIDAndFields(tablename).Result;
+                    _ = DBTools.CreateTableWithIDAndFieldlist(tablename).Result;
                 }
             }
             // check columns
@@ -206,8 +229,17 @@ namespace MockServer
                 {
                     if (!DBTools.ColumnExists(DBSchema.tables[endpoint], field).Result)
                     {
-                        _ = DBTools.CreateColumn(DBSchema.tables[endpoint], field, fields[endpoint][field], true);
+                        _ = DBTools.CreateColumn(DBSchema.tables[endpoint], field, fields[endpoint][field], true).Result;
                     }
+                }
+            }
+
+            // handle fields with only null values where type could not be determined
+            foreach (string endpoint in DBSchema.tables.Keys)
+            {
+                foreach (string field in nullfields[endpoint].Keys)
+                {
+                    Tools.Log($"nullfield: {field}");
                 }
             }
 

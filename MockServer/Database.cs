@@ -74,11 +74,14 @@ namespace MockServer
                 }
                 // build SQL statement
                 StringBuilder sqlcmd = new StringBuilder();
-                sqlcmd.Append("INSERT ");
+                sqlcmd.Append("INSERT INTO ");
                 sqlcmd.Append(DBSchema.tables[Tools.ExtractEndpointFromJSONFileName(file)]);
-                sqlcmd.Append(" (fields, ");
-                sqlcmd.Append(string.Join(", ", columns));
-                sqlcmd.Append(" ) VALUES (@fields");
+                sqlcmd.Append(" (fieldlist");
+                foreach (string col in columns)
+                {
+                    sqlcmd.Append(string.Concat(", ms_", col));
+                }
+                sqlcmd.Append(" ) VALUES (@fieldlist");
                 foreach (string col in columns)
                 {
                     sqlcmd.Append(string.Concat(", @", col));
@@ -89,10 +92,10 @@ namespace MockServer
                 {
                     using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                     {
-                        _ = conn.OpenAsync();
+                        conn.Open();
                         using (MySqlCommand cmd = new MySqlCommand(sqlcmd.ToString(), conn))
                         {
-                            cmd.Parameters.AddWithValue("@fields", string.Join(",", columns));
+                            cmd.Parameters.AddWithValue("@fieldlist", string.Join(",", columns));
                             foreach (string key in json.Keys.Where(k => k != null))
                             {
                                 switch (key)
@@ -100,7 +103,7 @@ namespace MockServer
                                     case "timestamp":
                                         if (json[key] != null && long.TryParse(json[key].ToString(), out long timestamp))
                                         {
-                                            if (timestamp - tsoffset > 0)
+                                            if (timestamp - tsoffset >= 0)
                                             {
                                                 cmd.Parameters.AddWithValue("@timestamp", timestamp - tsoffset);
                                             }
@@ -118,7 +121,7 @@ namespace MockServer
                                                 {
                                                     foreach (string subkey in dictionary.Keys)
                                                     {
-                                                        cmd.Parameters.AddWithValue($"@{key}__{subkey}", json[key]);
+                                                        cmd.Parameters.AddWithValue($"@{key}__{subkey}", dictionary[subkey]);
                                                     }
                                                 }
                                                 else if (json[key] is Object[] array)
@@ -126,13 +129,13 @@ namespace MockServer
                                                     int index = 0;
                                                     foreach (Object value in array)
                                                     {
-                                                        cmd.Parameters.AddWithValue($"@{key}__{index}", json[key]);
+                                                        cmd.Parameters.AddWithValue($"@{key}__{index}", array[index]);
                                                         index++;
                                                     }
                                                 }
                                                 break;
                                             case "_NULL":
-                                                // TODO
+                                                cmd.Parameters.AddWithValue($"@{key}", DBNull.Value);
                                                 break;
                                             default:
                                                 cmd.Parameters.AddWithValue($"@{key}", json[key]);
@@ -142,10 +145,10 @@ namespace MockServer
                                 }
                             }
                             Tools.Log(cmd);
-                            //int rows = cmd.ExecuteNonQueryAsync().Result;
-                            //if (rows > 0)
-                            //{
-                            //}
+                            int rows = cmd.ExecuteNonQueryAsync().Result;
+                            if (rows > 0)
+                            {
+                            }
                         }
                     }
                 }

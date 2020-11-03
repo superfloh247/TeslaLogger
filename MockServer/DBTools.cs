@@ -54,12 +54,10 @@ WHERE
                     using (MySqlCommand cmd = new MySqlCommand($"CREATE TABLE {tablename} ( id int(11) NOT NULL AUTO_INCREMENT, PRIMARY KEY (id))", conn))
                     {
                         Tools.Log(cmd);
-                        using (MySqlDataReader reader = await cmd.ExecuteReaderAsync())
+                        int rows = cmd.ExecuteNonQueryAsync().Result;
+                        if (rows == 0)
                         {
-                            if (await reader.ReadAsync())
-                            {
-                                return true;
-                            }
+                            return true;
                         }
                     }
                 }
@@ -71,11 +69,11 @@ WHERE
             return false;
         }
 
-        internal static async Task<bool> CreateTableWithIDAndFields(string tablename)
+        internal static async Task<bool> CreateTableWithIDAndFieldlist(string tablename)
         {
             if (CreateTableWithID(tablename).Result)
             {
-                return await CreateColumn(tablename, "fields", "TEXT", false);
+                return await CreateColumn(tablename, "fieldlist", "TEXT", false);
             }
             return false;
         }
@@ -90,12 +88,10 @@ WHERE
                     using (MySqlCommand cmd = new MySqlCommand($"ALTER TABLE {tablename} ADD {columnname} {columntype} {(nullable ? "" : "NOT")} NULL", conn))
                     {
                         Tools.Log(cmd);
-                        using (MySqlDataReader reader = await cmd.ExecuteReaderAsync())
+                        int rows = cmd.ExecuteNonQueryAsync().Result;
+                        if (rows == 0)
                         {
-                            if (await reader.ReadAsync())
-                            {
-                                return true;
-                            }
+                            return true;
                         }
                     }
                 }
@@ -113,7 +109,7 @@ WHERE
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                 {
                     await conn.OpenAsync();
-                    using (MySqlCommand cmd = new MySqlCommand($"SHOW COLUMNS FROM {table} LIKE '{column}'", conn))
+                    using (MySqlCommand cmd = new MySqlCommand($"SHOW COLUMNS FROM {table} WHERE Field = '{column}'", conn))
                     {
                         Tools.Log(cmd);
                         using (MySqlDataReader dr = await cmd.ExecuteReaderAsync())
