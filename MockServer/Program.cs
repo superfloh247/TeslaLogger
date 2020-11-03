@@ -31,7 +31,7 @@ namespace MockServer
             }
 
             // DEBUG - start import w/o webrequest
-            Importer.importFromDirectory("drive-park");
+            //Importer.importFromDirectory("drive-park");
             //Database.ImportJSONFile(new FileInfo("/Users/lindner/VSCode/TeslaLogger/MockServer/bin/Debug/JSON/drive-park/20201103081858917_vehicles_1.json"), 1604391538917, 1);
         }
 
@@ -42,9 +42,9 @@ namespace MockServer
             {
                 _ = DBTools.CreateTableWithID(tablename).Result;
             }
-            if (!DBTools.ColumnExists(tablename, "sessionid").Result)
+            if (!DBTools.ColumnExists(tablename, "ms_sessionid").Result)
             {
-                _ = DBTools.CreateColumn(tablename, "sessionid", "INT", false);
+                _ = DBTools.CreateColumn(tablename, "ms_sessionid", "INT", false);
             }
         }
     }

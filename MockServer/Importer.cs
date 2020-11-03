@@ -153,13 +153,13 @@ namespace MockServer
                         foreach (string key in json.Keys.Where(k => k != null))
                         {
                             // check if static DBSchema already is aware of this field
-                            if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey(key))
+                            if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey(key) && !fields[endpoint].ContainsKey(key))
                             {
-                                fields[endpoint].Add($"{key}", DBSchema.EndpointFieldDBType[endpoint][key]);
+                                fields[endpoint].Add(key, DBSchema.EndpointFieldDBType[endpoint][key]);
                             }
                             else // try to determine type of unknown field
                             {
-                                if (json[key] != null && !string.IsNullOrEmpty(DBTools.TypeToDBType(json[key])) && !fields[endpoint].ContainsKey($"{key}"))
+                                if (json[key] != null && !string.IsNullOrEmpty(DBTools.TypeToDBType(json[key])) && !fields[endpoint].ContainsKey(key))
                                 {
                                     if (nullfields[endpoint].ContainsKey(key))
                                     {
@@ -195,7 +195,7 @@ namespace MockServer
                                             // add to null fields
                                             break;
                                         default:
-                                            fields[endpoint].Add($"{key}", DBTools.TypeToDBType(json[key]));
+                                            fields[endpoint].Add(key, DBTools.TypeToDBType(json[key]));
                                             break;
                                     }
                                 }
@@ -218,7 +218,7 @@ namespace MockServer
             {
                 if (!DBTools.TableExists(tablename).Result)
                 {
-                    _ = DBTools.CreateTableWithIDAndFieldlist(tablename).Result;
+                    _ = DBTools.CreateTableWithIDAndFieldlistAndSessions(tablename).Result;
                 }
             }
             // check columns

@@ -76,12 +76,12 @@ namespace MockServer
                 StringBuilder sqlcmd = new StringBuilder();
                 sqlcmd.Append("INSERT INTO ");
                 sqlcmd.Append(DBSchema.tables[Tools.ExtractEndpointFromJSONFileName(file)]);
-                sqlcmd.Append(" (fieldlist");
+                sqlcmd.Append(" (ms_fieldlist, ms_sessionid");
                 foreach (string col in columns)
                 {
-                    sqlcmd.Append(string.Concat(", ms_", col));
+                    sqlcmd.Append(string.Concat(", ", col));
                 }
-                sqlcmd.Append(" ) VALUES (@fieldlist");
+                sqlcmd.Append(" ) VALUES (@fieldlist, @sessionid");
                 foreach (string col in columns)
                 {
                     sqlcmd.Append(string.Concat(", @", col));
@@ -96,6 +96,7 @@ namespace MockServer
                         using (MySqlCommand cmd = new MySqlCommand(sqlcmd.ToString(), conn))
                         {
                             cmd.Parameters.AddWithValue("@fieldlist", string.Join(",", columns));
+                            cmd.Parameters.AddWithValue("@sessionid", sessionid);
                             foreach (string key in json.Keys.Where(k => k != null))
                             {
                                 switch (key)

@@ -51,7 +51,7 @@ WHERE
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                 {
                     await conn.OpenAsync();
-                    using (MySqlCommand cmd = new MySqlCommand($"CREATE TABLE {tablename} ( id int(11) NOT NULL AUTO_INCREMENT, PRIMARY KEY (id))", conn))
+                    using (MySqlCommand cmd = new MySqlCommand($"CREATE TABLE {tablename} ( ms_id int(11) NOT NULL AUTO_INCREMENT, PRIMARY KEY (ms_id))", conn))
                     {
                         Tools.Log(cmd);
                         int rows = cmd.ExecuteNonQueryAsync().Result;
@@ -69,11 +69,11 @@ WHERE
             return false;
         }
 
-        internal static async Task<bool> CreateTableWithIDAndFieldlist(string tablename)
+        internal static async Task<bool> CreateTableWithIDAndFieldlistAndSessions(string tablename)
         {
             if (CreateTableWithID(tablename).Result)
             {
-                return await CreateColumn(tablename, "fieldlist", "TEXT", false);
+                return (await CreateColumn(tablename, "ms_fieldlist", "TEXT", false) && await CreateColumn(tablename, "ms_sessionid", "INT", false));
             }
             return false;
         }
