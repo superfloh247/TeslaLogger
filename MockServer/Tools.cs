@@ -156,7 +156,6 @@ namespace MockServer
 
         internal static long FileDateToTimestamp(FileInfo first)
         {
-            // TODO handle time zone problems
             return Convert.ToInt64(Tools.ConvertFromFileTimestamp(Tools.ExtractTimestampFromJSONFileName(first)).Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds);
         }
 

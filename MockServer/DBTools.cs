@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MySqlConnector;
 
@@ -6,6 +7,8 @@ namespace MockServer
 {
     public class DBTools
     {
+        private static HashSet<string> ColumnCache = new HashSet<string>();
+
         public DBTools()
         {
         }
@@ -105,6 +108,10 @@ WHERE
 
         internal static async Task<bool> ColumnExists(string table, string column)
         {
+            if (ColumnCache.Contains($"{table}.{column}"))
+            {
+                return true;
+            }
             try {
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                 {
@@ -116,6 +123,7 @@ WHERE
                         {
                             if (dr.Read())
                             {
+                                ColumnCache.Add($"{table}.{column}");
                                 return true;
                             }
                         }

@@ -75,7 +75,8 @@ namespace MockServer
                 // build SQL statement
                 StringBuilder sqlcmd = new StringBuilder();
                 sqlcmd.Append("INSERT INTO ");
-                sqlcmd.Append(DBSchema.tables[Tools.ExtractEndpointFromJSONFileName(file)]);
+                string endpoint = Tools.ExtractEndpointFromJSONFileName(file);
+                sqlcmd.Append(DBSchema.tables[endpoint]);
                 sqlcmd.Append(" (ms_fieldlist, ms_sessionid");
                 foreach (string col in columns)
                 {
@@ -87,7 +88,23 @@ namespace MockServer
                     sqlcmd.Append(string.Concat(", @", col));
                 }
                 sqlcmd.Append(" )");
-                // apply parameters
+                // check DB schema
+                // apply parameters and INSERT
+                foreach (string field in columns)
+                {
+                    if (!DBTools.ColumnExists(DBSchema.tables[endpoint], field).Result)
+                    {
+                        if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey(field))
+                        {
+                            _ = DBTools.CreateColumn(DBSchema.tables[endpoint], field, DBSchema.EndpointFieldDBType[endpoint][field], true).Result;
+                        }
+                        else
+                        {
+                            // fallback to TEXT storage
+                            _ = DBTools.CreateColumn(DBSchema.tables[endpoint], field, "TEXT", true).Result;
+                        }
+                    }
+                }
                 try
                 {
                     using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
@@ -165,9 +182,63 @@ namespace MockServer
             Tools.Log($"ImportJSONFile {file.Name} done");
         }
 
-        internal static async Task<int> CreateSessionAsync()
+        internal static async Task<Dictionary<string, string>> GetDatapoint(string endpoint, long timestampDiff)
         {
-            int? newsessionid = DBTools.GetMaxValue("ms_sessions", "sessionid").Result;
+            Dictionary<string, string> dbjson = new Dictionary<string, string>();
+            try
+            {
+                int id = 0;
+                string fieldlist = string.Empty;
+                using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                {
+                    await conn.OpenAsync();
+                    using (MySqlCommand cmd = new MySqlCommand($"SELECT ms_id, ms_fieldlist FROM {DBSchema.tables[endpoint]} WHERE timestamp <= {timestampDiff} LIMIT 1", conn))
+                    {
+                        Tools.Log(cmd);
+                        using (MySqlDataReader dr = await cmd.ExecuteReaderAsync())
+                        {
+                            if (dr.Read())
+                            {
+                                if (int.TryParse(dr[0].ToString(), out id))
+                                {
+                                    fieldlist = dr[1].ToString();
+                                }
+                            }
+                        }
+                    }
+                }
+                if (id > 0 && !string.IsNullOrEmpty(fieldlist))
+                {
+                    using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                    {
+                        await conn.OpenAsync();
+                        using (MySqlCommand cmd = new MySqlCommand($"SELECT {fieldlist} FROM {DBSchema.tables[endpoint]} WHERE ms_id = {id}", conn))
+                        {
+                            Tools.Log(cmd);
+                            using (MySqlDataReader dr = await cmd.ExecuteReaderAsync())
+                            {
+                                if (dr.Read())
+                                {
+                                    foreach (string field in fieldlist.Split(','))
+                                    {
+                                        dbjson.Add(field, dr[field].ToString());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
+            }
+            return dbjson;
+        }
+
+        internal static async Task<int> CreateSession()
+        {
+            int? newsessionid = DBTools.GetMaxValue("ms_sessions", "ms_sessionid").Result;
             if (newsessionid == null)
             {
                 newsessionid = 1;
@@ -181,7 +252,7 @@ namespace MockServer
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                 {
                     await conn.OpenAsync();
-                    using (MySqlCommand cmd = new MySqlCommand($"INSERT ms_sessions (sessionid) VALUES (@sessionid)", conn))
+                    using (MySqlCommand cmd = new MySqlCommand($"INSERT ms_sessions (ms_sessionid) VALUES (@sessionid)", conn))
                     {
                         cmd.Parameters.AddWithValue("@sessionid", newsessionid);
                         Tools.Log(cmd);
