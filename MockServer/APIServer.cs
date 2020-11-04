@@ -103,7 +103,8 @@ namespace MockServer
                         break;
                     // Tesla API
                     case bool _ when request.Url.LocalPath.Equals("/api/1/vehicles"):
-                        mock_vehicles(request, response);
+                    case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/api/1/vehicles/[0-9]+/data_request/[a-z_]+"):
+                        mock_endpoint(request, response);
                         break;
                     default:
                         Tools.Log("unhandled: " + request.Url.LocalPath);
@@ -113,6 +114,185 @@ namespace MockServer
             catch (Exception ex)
             {
                 Tools.Log("Exception", ex);
+            }
+        }
+
+        private void mock_endpoint(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            Tools.Log($"mock: {request.Url.LocalPath}");
+            string endpoint = string.Empty;
+            Match m = Regex.Match(request.Url.LocalPath, @"/api/1/vehicles/([0-9]+)/data_request/([a-z_]+)");
+            if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1)
+            {
+                // todo handle tesla_id
+                endpoint = m.Groups[2].Captures[0].ToString();
+            }
+            else if (request.Url.LocalPath.Equals("/api/1/vehicles"))
+            {
+                endpoint = "vehicles";
+            }
+            string token = GetAuthorizationBearerToken(request);
+            if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(endpoint))
+            {
+                Tools.Log($"token: {token}");
+                MSSession session = MSSession.GetSessionByToken(token);
+                if (session == null)
+                {
+                    // create new session
+                    session = CreateSession(token);
+                }
+                Dictionary<string, string> dbjson = Database.GetDatapoint(endpoint, session.GetTimestampDiff()).Result;
+                StringBuilder JSON = new StringBuilder();
+                if (endpoint.Equals("vehicles"))
+                {
+                    JSON.Append(@"{
+    ""response"":
+    [
+        {
+");
+                }
+                else
+                {
+                    JSON.Append(@"{
+    ""response"":
+    {
+");
+                }
+                DBtoJSON(endpoint, dbjson, JSON);
+                if (endpoint.Equals("vehicles"))
+                {
+                    JSON.Append(@"}
+    ],
+    ""count"":1
+}
+");
+                }
+                else
+                {
+                    JSON.Append(@"    }
+}
+");
+                }
+                response.AddHeader("Content-Type", "application/json; charset=utf-8");
+                response.StatusCode = (int)HttpStatusCode.OK;
+                string sJSON = new Tools.JsonFormatter(JSON.ToString()).Format();
+                Tools.Log(sJSON);
+                WebServer.WriteString(response, sJSON);
+                return;
+            }
+            response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            WebServer.WriteString(response, "");
+        }
+
+        private void DBtoJSON(string endpoint, Dictionary<string, string> dbjson, StringBuilder JSON)
+        {
+            HashSet<string> arrays = new HashSet<string>();
+            HashSet<string> dictionaries = new HashSet<string>();
+            foreach (string field in dbjson.Keys)
+            {
+                // special case: timestamp
+                if (field.Equals("timestamp"))
+                {
+                    JSON.Append($"\"timestamp\":{Tools.TimeStampNow()}");
+                }
+                // arrays and dictionaries
+                else if (field.Contains("__"))
+                {
+                    // array type
+                    Match m = Regex.Match(field, @"(.+)__([0-9]+)");
+                    if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1)
+                    {
+                        string key = m.Groups[1].Captures[0].ToString();
+                        if (!arrays.Contains(key))
+                        {
+                            arrays.Add(key);
+                            JSON.Append($"\"{key}\":" + Environment.NewLine);
+                            JSON.Append("[" + Environment.NewLine);
+                            var arrayelements = dbjson.Keys.Where(k => k.StartsWith($"{key}__"));
+                            for (int index = 0; index < arrayelements.Count(); index++)
+                            {
+                                // not string
+                                if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey($"{key}__{index}") && !DBSchema.EndpointFieldDBType[endpoint][$"{key}__{index}"].Equals("TEXT"))
+                                {
+                                    JSON.Append(dbjson[$"{key}__{index}"]);
+                                }
+                                // treat everything else as string
+                                else
+                                {
+                                    JSON.Append($"\"{dbjson[$"{key}__{index}"]}\"");
+                                }
+                                if (index < arrayelements.Count() - 1)
+                                {
+                                    JSON.Append(",");
+                                }
+                                JSON.Append(Environment.NewLine);
+                            }
+                            JSON.Append("]");
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // dictionary type
+                        m = Regex.Match(field, @"(.+)__([a-z_]+)");
+                        if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1)
+                        {
+                            string key = m.Groups[1].Captures[0].ToString();
+                            if (!dictionaries.Contains(key))
+                            {
+                                dictionaries.Add(key);
+                                JSON.Append($"\"{key}\":" + Environment.NewLine);
+                                JSON.Append("{" + Environment.NewLine);
+                                var dictionaryelements = dbjson.Keys.Where(k => k.StartsWith($"{key}__"));
+                                foreach (string dictionarykey in dictionaryelements) 
+                                {
+                                    Match m2 = Regex.Match(dictionarykey, @"(.+)__([a-z_]+)");
+                                    if (m2.Success && m2.Groups.Count == 3 && m2.Groups[1].Captures.Count == 1 && m2.Groups[2].Captures.Count == 1)
+                                    {
+                                        // not string
+                                        if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey(dictionarykey) && !DBSchema.EndpointFieldDBType[endpoint][dictionarykey].Equals("TEXT"))
+                                        {
+                                            JSON.Append($"{m2.Groups[2].Captures[0].ToString()}:{dbjson[dictionarykey]}");
+                                        }
+                                        // treat everything else as string
+                                        else
+                                        {
+                                            JSON.Append($"{m2.Groups[2].Captures[0].ToString()}:\"{dbjson[dictionarykey]}\"");
+                                        }
+                                        if (!dictionarykey.Equals(dictionaryelements.Last()))
+                                        {
+                                            JSON.Append(",");
+                                        }
+                                        JSON.Append(Environment.NewLine);
+                                    }
+                                }
+                                JSON.Append("}");
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                }
+                // not string
+                else if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey(field) && !DBSchema.EndpointFieldDBType[endpoint][field].Equals("TEXT"))
+                {
+                    JSON.Append(JSONAppend(dbjson, field));
+                }
+                // treat everything else as string
+                else
+                {
+                    JSON.Append(JSONAppend(dbjson, field, true));
+                }
+                if (!field.Equals(dbjson.Keys.Last()))
+                {
+                    JSON.Append(",");
+                }
+                JSON.Append(Environment.NewLine);
             }
         }
 
@@ -126,97 +306,6 @@ namespace MockServer
                 }
             }
             return string.Empty;
-        }
-
-        private void mock_vehicles(HttpListenerRequest request, HttpListenerResponse response)
-        {
-            Tools.Log($"mock: {request.Url.LocalPath}");
-            // check if this a valid mockserver session
-            string token = GetAuthorizationBearerToken(request);
-            if (!string.IsNullOrEmpty(token))
-            {
-                Tools.Log($"token: {token}");
-                MSSession session = MSSession.GetSessionByToken(token);
-                if (session == null)
-                {
-                    // create new session
-                    session = CreateSession(token);
-                }
-                Dictionary<string, string> dbjson = Database.GetDatapoint("vehicles", session.GetTimestampDiff()).Result;
-
-                /*
-                 * {
-    "response":
-    [
-        {
-            "id":24342078186973552,
-            "vehicle_id":1154578208,
-            "vin":"5YJSA7H17FF088440",
-            "display_name":"Tessi",
-            "option_codes":"AD15,MDL3,PBSB,RENA,BT37,ID3W,RF3G,S3PB,DRLH,DV2W,W39B,APF0,COUS,BC3B,CH07,PC30,FC3P,FG31,GLFR,HL31,HM31,IL31,LTPB,MR31,FM3B,RS3H,SA3P,STCP,SC04,SU3C,T3CA,TW00,TM00,UT3P,WR00,AU3P,APH3,AF00,ZCST,MI00,CDM0",
-            "color":null,
-            "access_type":"OWNER",
-            "tokens":
-            [
-                "5ace2425f973259e",
-                "0307c122e535091d"
-            ],
-            "state":"online",
-            "in_service":false,
-            "id_s":"24342078186973552",
-            "calendar_enabled":true,
-            "api_version":10,
-            "backseat_token":null,
-            "backseat_token_updated_at":null,
-            "vehicle_config":null
-        }
-    ],
-    "count":1
-}
-                 */
-
-                StringBuilder JSON = new StringBuilder();
-                JSON.Append(@"{
-    ""response"":
-    [
-        {
-");
-                JSON.Append(JSONAppend(dbjson, "id") + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "vehicle_id") + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "vin", true) + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "display_name", true) + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "option_codes", true) + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "color", true) + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "access_type", true) + "," + Environment.NewLine);
-                if (dbjson.ContainsKey("tokens__0") && dbjson.ContainsKey("tokens__1"))
-                {
-                    JSON.Append("\"tokens\":" + Environment.NewLine);
-                    JSON.Append("[" + Environment.NewLine);
-                    JSON.Append($"\"{dbjson["tokens__0"]}\"," + Environment.NewLine);
-                    JSON.Append($"\"{dbjson["tokens__1"]}\"" + Environment.NewLine);
-                    JSON.Append("]," + Environment.NewLine);
-                }
-                JSON.Append(JSONAppend(dbjson, "state", true) + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "in_service") + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "id_s", true) + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "calendar_enabled") + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "api_version") + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "backseat_token") + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "backseat_token_updated_at") + "," + Environment.NewLine);
-                JSON.Append(JSONAppend(dbjson, "vehicle_config", true) + Environment.NewLine);
-                JSON.Append(@"}
-    ],
-    ""count"":1
-}
-");
-                response.AddHeader("Content-Type", "application/json; charset=utf-8");
-                Tools.Log(JSON.ToString());
-                WebServer.WriteString(response, JSON.ToString());
-            }
-            else
-            {
-                // TODO
-            }
         }
 
         private string JSONAppend(Dictionary<string, string> dbjson, string key, bool isstring = false)

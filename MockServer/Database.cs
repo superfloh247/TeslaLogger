@@ -192,7 +192,7 @@ namespace MockServer
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                 {
                     await conn.OpenAsync();
-                    using (MySqlCommand cmd = new MySqlCommand($"SELECT ms_id, ms_fieldlist FROM {DBSchema.tables[endpoint]} WHERE timestamp <= {timestampDiff} LIMIT 1", conn))
+                    using (MySqlCommand cmd = new MySqlCommand($"SELECT ms_id, ms_fieldlist, ABS(timestamp - {timestampDiff}) AS tsdiff FROM {DBSchema.tables[endpoint]} ORDER BY tsdiff ASC LIMIT 1", conn))
                     {
                         Tools.Log(cmd);
                         using (MySqlDataReader dr = await cmd.ExecuteReaderAsync())
@@ -207,6 +207,7 @@ namespace MockServer
                         }
                     }
                 }
+                // datapoint found
                 if (id > 0 && !string.IsNullOrEmpty(fieldlist))
                 {
                     using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
