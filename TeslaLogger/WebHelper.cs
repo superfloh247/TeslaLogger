@@ -18,7 +18,7 @@ namespace TeslaLogger
 {
     public class WebHelper
     {
-        public static readonly string apiaddress = "https://owner-api.teslamotors.com/";
+        public static readonly string apiaddress = Tools.GetTeslaAPIURL();
 
         public string Tesla_token = "";
         public string Tesla_id = "";

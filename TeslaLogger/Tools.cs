@@ -741,6 +741,31 @@ namespace TeslaLogger
 
         }
 
+        internal static string GetTeslaAPIURL()
+        {
+            string teslaAPI = "https://owner-api.teslamotors.com/";
+            try
+            {
+                string filePath = FileManager.GetFilePath(TLFilename.SettingsFilename);
+                if (!File.Exists(filePath))
+                {
+                    Logfile.Log("settings file not found at " + filePath);
+                    return teslaAPI;
+                }
+                string json = File.ReadAllText(filePath);
+                dynamic j = new JavaScriptSerializer().DeserializeObject(json);
+                if (IsPropertyExist(j, "TeslaAPIURL"))
+                {
+                   return j["TeslaAPIURL"].ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logfile.Log(ex.ToString());
+            }
+            return teslaAPI;
+        }
+
         internal static string GetOsVersion()
         {
             if (!_OSVersion.Equals(string.Empty))
