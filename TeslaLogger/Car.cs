@@ -209,7 +209,7 @@ namespace TeslaLogger
                     catch (Exception ex)
                     {
                         Logfile.ExceptionWriter(ex, "#" + CarInDB + ": main loop");
-                        System.Threading.Thread.Sleep(10000);
+                        Thread.Sleep(10000);
                     }
                 }
             }
@@ -393,9 +393,9 @@ namespace TeslaLogger
                     }
                 }
 
-                if (WebHelper.geofence.RacingMode)
+                if (Geofence.GetInstance().RacingMode)
                 {
-                    Address a = WebHelper.geofence.GetPOI(currentJSON.latitude, currentJSON.longitude);
+                    Address a = Geofence.GetInstance().GetPOI(currentJSON.latitude, currentJSON.longitude);
                     if (a != null)
                     {
                         if (lastRacingPoint == null)
@@ -418,7 +418,10 @@ namespace TeslaLogger
                 DriveFinished();
 
                 ShareData sd = new ShareData(this);
-                sd.SendAllChargingData();
+                _ = Task.Factory.StartNew(() =>
+                {
+                    sd.SendAllChargingData();
+                });
             }
 
             return lastRacingPoint;
@@ -557,7 +560,7 @@ namespace TeslaLogger
                             SetCurrentState(TeslaState.Start);
 
                             webhelper.IsDriving(true); // kurz bevor er schlafen geht, eine Positionsmeldung speichern und schauen ob standheizung / standklima / sentry läuft.
-                            Address addr = WebHelper.geofence.GetPOI(currentJSON.latitude, currentJSON.longitude, false);
+                            Address addr = Geofence.GetInstance().GetPOI(currentJSON.latitude, currentJSON.longitude, false);
                             if (!CanFallAsleep(out string reason))
                             {
                                 Log($"Reason:{reason} prevents car to get sleep");
@@ -645,7 +648,63 @@ namespace TeslaLogger
 
                     if (doSleep)
                     {
-                        Thread.Sleep(5000);
+                        int sleepduration = 5000;
+                        // if charging is starting just now, decrease sleepduration to 1 second
+                        try
+                        {
+                            // get charging_state, must not be older than 2 minutes = 120 seconds = 1200000 milliseconds
+                            if (GetTeslaAPIState().GetState("charging_state", out Dictionary<TeslaAPIState.Key, object> charging_state, 120000))
+                            {
+                                // charging_state == Starting?
+                                if (charging_state[TeslaAPIState.Key.Value] != null
+                                    && (charging_state[TeslaAPIState.Key.Value].ToString().Equals("Starting")
+                                        || charging_state[TeslaAPIState.Key.Value].ToString().Equals("NoPower"))
+                                    )
+                                {
+                                    Tools.DebugLog($"charging_state: {charging_state[TeslaAPIState.Key.Value]}");
+                                    // check if charging_state value is not older than 1 minute
+                                    long now = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
+                                    if (long.TryParse(charging_state[TeslaAPIState.Key.ValueLastUpdate].ToString(), out long valueLastUpdate))
+                                    {
+                                        Tools.DebugLog($"charging_state now {now} vlu {valueLastUpdate} diff {now - valueLastUpdate}");
+                                        if (now - valueLastUpdate < 60000)
+                                        {
+                                            // charging_state changed to Charging less than 1 minute ago
+                                            // reduce sleepduration to 0.5 second
+                                            sleepduration = 500;
+                                            Tools.DebugLog($"charging_state sleepduration: {sleepduration}");
+                                        }
+                                    }
+                                }
+                            }
+                            // get charge_port_door_open, must not be older than 2 minutes = 120 seconds = 1200000 milliseconds
+                            if (GetTeslaAPIState().GetState("charge_port_door_open", out Dictionary<TeslaAPIState.Key, object> charge_port_door_open, 120000))
+                            {
+                                // charge_port_door_open == true?
+                                if (GetTeslaAPIState().GetBool("charge_port_door_open", out bool bcharge_port_door_open) && bcharge_port_door_open)
+                                {
+                                    Tools.DebugLog($"charge_port_door_open: {charge_port_door_open[TeslaAPIState.Key.Value]}");
+                                    long now = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
+                                    // check if charge_port_door_open value True is not older than 1 minute
+                                    if (long.TryParse(charge_port_door_open[TeslaAPIState.Key.ValueLastUpdate].ToString(), out long valueLastUpdate))
+                                    {
+                                        Tools.DebugLog($"charge_port_door_open now {now} vlu {valueLastUpdate} diff {now - valueLastUpdate}");
+                                        if (now - valueLastUpdate < 60000)
+                                        {
+                                            // charge_port_door_open changed to Charging less than 1 minute ago
+                                            // reduce sleepduration to 0.5 second
+                                            sleepduration = 500;
+                                            Tools.DebugLog($"charge_port_door_open sleepduration: {sleepduration}");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Tools.DebugLog("Exception sleepduration", ex);
+                        }
+                        Thread.Sleep(sleepduration);
                     }
                     else
                     {
@@ -829,7 +888,10 @@ namespace TeslaLogger
 
                         // Every 10 Days send degradataion Data
                         ShareData sd = new ShareData(this);
-                        sd.SendDegradationData();
+                        _ = Task.Factory.StartNew(() =>
+                        {
+                            sd.SendDegradationData();
+                        });
                     }
                     else
                     {
@@ -843,7 +905,7 @@ namespace TeslaLogger
         {
             Log("ShiftStateChange: " + _oldState + " -> " + _newState);
             lastCarUsed = DateTime.Now;
-            Address addr = WebHelper.geofence.GetPOI(currentJSON.latitude, currentJSON.longitude, false);
+            Address addr = Geofence.GetInstance().GetPOI(currentJSON.latitude, currentJSON.longitude, false);
             // process special flags for POI
             if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
             {
@@ -1039,7 +1101,7 @@ namespace TeslaLogger
             {
                 _ = Task.Factory.StartNew(() =>
                 {
-                    Address addr = WebHelper.geofence.GetPOI(currentJSON.latitude, currentJSON.longitude, false);
+                    Address addr = Geofence.GetInstance().GetPOI(currentJSON.latitude, currentJSON.longitude, false);
                     if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
                     {
                         if (addr.specialFlags.ContainsKey(Address.SpecialFlags.CopyChargePrice))
@@ -1054,7 +1116,7 @@ namespace TeslaLogger
             // any -> charging
             if (_oldState != TeslaState.Charge && _newState == TeslaState.Charge)
             {
-                Address addr = WebHelper.geofence.GetPOI(currentJSON.latitude, currentJSON.longitude, false);
+                Address addr = Geofence.GetInstance().GetPOI(currentJSON.latitude, currentJSON.longitude, false);
                 if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
                 {
                     foreach (KeyValuePair<Address.SpecialFlags, string> flag in addr.specialFlags)
