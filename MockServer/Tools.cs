@@ -81,7 +81,7 @@ namespace MockServer
 
         internal static void Log(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
         {
-            Console.WriteLine($"{text} ({Path.GetFileName(_cfp)}:{_cln})");
+            Console.WriteLine($"{DateTime.Now} - {text} ({Path.GetFileName(_cfp)}:{_cln})");
             if (ex != null)
             {
                 Console.WriteLine(ex.ToString());
