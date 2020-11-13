@@ -351,6 +351,9 @@ namespace TeslaLogger
 
         internal static bool UseOpenTopoData()
         {
+            return true; // Use by default
+
+            /*
             try
             {
                 string filePath = FileManager.GetFilePath(TLFilename.SettingsFilename);
@@ -373,6 +376,7 @@ namespace TeslaLogger
                 Logfile.Log(ex.ToString());
             }
             return false;
+            */
         }
 
         internal static void StartSleeping(out int startSleepingHour, out int startSleepingMinutes)
@@ -977,13 +981,24 @@ namespace TeslaLogger
             /*
              * https://chartio.com/resources/tutorials/how-to-get-the-size-of-a-table-in-mysql/
              */
-            Logfile.Log("Housekeeping: database usage");
+            Logfile.Log($"Housekeeping: database usage ({DBHelper.Database})");
             using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
             {
                 con.Open();
-                using (MySqlCommand cmd = new MySqlCommand("SELECT TABLE_NAME, ROUND(DATA_LENGTH / 1024 / 1024), ROUND(INDEX_LENGTH / 1024 / 1024), TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = \"teslalogger\" AND TABLE_TYPE = \"BASE TABLE\"", con))
+                using (MySqlCommand cmd = new MySqlCommand(
+@"SELECT
+  TABLE_NAME,
+  ROUND(DATA_LENGTH / 1024 / 1024),
+  ROUND(INDEX_LENGTH / 1024 / 1024),
+  TABLE_ROWS
+FROM
+  information_schema.TABLES
+WHERE
+  TABLE_SCHEMA = @dbname
+  AND TABLE_TYPE = 'BASE TABLE'", con))
                 {
                     cmd.Parameters.AddWithValue("@tsdate", DateTime.Now.AddDays(-90));
+                    cmd.Parameters.AddWithValue("@dbname", DBHelper.Database);
                     try
                     {
                         MySqlDataReader dr = cmd.ExecuteReader();
