@@ -118,5 +118,38 @@ namespace MockServer
             WriteString(response, html1 + sb.ToString() + html2);
             return;
         }
+
+        internal static void DeleteImport(string sessionid)
+        {
+            if (int.TryParse(sessionid, out int sid))
+            {
+                try
+                {
+                    using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                    {
+                        conn.Open();
+                        foreach (string tablename in DBSchema.tables.Values)
+                        {
+                            using (MySqlCommand cmd = new MySqlCommand($"DELETE FROM {tablename} WHERE ms_sessionid = {sid}", conn))
+                            {
+                                Tools.Log(cmd);
+                                int rows = cmd.ExecuteNonQueryAsync().Result;
+                                Tools.Log($"DeleteImport {tablename} rows deleted: {rows}");
+                            }
+                        }
+                        using (MySqlCommand cmd = new MySqlCommand($"DELETE FROM ms_sessions WHERE ms_sessionid = {sid}", conn))
+                        {
+                            Tools.Log(cmd);
+                            int rows = cmd.ExecuteNonQueryAsync().Result;
+                            Tools.Log($"DeleteImport ms_sessions rows deleted: {rows}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Tools.Log("Exception", ex);
+                }
+            }
+        }
     }
 }

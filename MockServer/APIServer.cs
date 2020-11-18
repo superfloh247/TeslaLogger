@@ -114,6 +114,10 @@ namespace MockServer
                         WebServer.WriteString(response, "");
                         Importer.importFromDirectory(request.Url.LocalPath.Split('/').Last());
                         break;
+                    case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/deleteImport/.+"):
+                        WebServer.WriteString(response, "");
+                        WebServer.DeleteImport(request.Url.LocalPath.Split('/').Last());
+                        break;
                     // Tesla API
                     case bool _ when request.Url.LocalPath.Equals("/api/1/vehicles"):
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/api/1/vehicles/[0-9]+/data_request/[a-z_]+"):
