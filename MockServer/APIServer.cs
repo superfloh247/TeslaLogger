@@ -6,6 +6,8 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Web.Script.Serialization;
+using MySqlConnector;
 
 namespace MockServer
 {
@@ -23,7 +25,7 @@ namespace MockServer
 
         public MSSession(string token, int sessionid)
         {
-            Tools.Log("new mockserver session");
+            Tools.Log($"new mockserver session t:{token} sid:{sessionid}");
             this.token = token;
             this.start = DateTime.UtcNow;
             this.sessionid = sessionid;
@@ -124,12 +126,42 @@ namespace MockServer
         private void MockLogin(HttpListenerRequest request, HttpListenerResponse response)
         {
             Tools.Log($"MockLogin: {request.Url.LocalPath}");
-            using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
+            try
             {
-                string data = reader.ReadToEnd();
-                Tools.Log("DATA: " + data);
+                using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
+                {
+                    string data = reader.ReadToEnd();
+                    object jsonResult = new JavaScriptSerializer().DeserializeObject(data);
+                    Dictionary<string, object> json = ((Dictionary<string, object>)jsonResult);
+                    foreach (string key in json.Keys)
+                    {
+                        if (key.Equals("email"))
+                        {
+                            MSSession session = CreateSession(json[key].ToString());
+                            if (session != null)
+                            {
+                                response.StatusCode = (int)HttpStatusCode.OK;
+                                WebServer.WriteString(response, @"{
+  ""access_token"": """ + session.Token + @""",
+  ""token_type"": ""bearer"",
+  ""expires_in"": 3888000,
+  ""refresh_token"": ""cba321"",
+  ""created_at"": " + Tools.TimeStampNow() + @"
+}
+                            ");
+                                return;
+                            }
+                        }
+                    }
+                }
+                response.StatusCode = (int)HttpStatusCode.OK;
             }
-            response.StatusCode = (int)HttpStatusCode.OK;
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
+            }
+            response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            WebServer.WriteString(response, "");
         }
 
         private void MockEndpoint(HttpListenerRequest request, HttpListenerResponse response)
@@ -157,8 +189,6 @@ namespace MockServer
                     response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     WebServer.WriteString(response, "");
                     return;
-                    // create new session
-                    session = CreateSession(token);
                 }
                 Dictionary<string, string> dbjson = Database.GetDatapoint(endpoint, session.GetTimestampDiff()).Result;
                 StringBuilder JSON = new StringBuilder();
@@ -350,9 +380,83 @@ namespace MockServer
             }
         }
 
-        private MSSession CreateSession(string token)
+        private MSSession CreateSession(string email)
         {
-            return new MSSession(token, 1); // TODO make sessionid somehow configurable
+            // try too find email in ms_cars
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand($"SELECT ms_id, ms_sessionid FROM ms_cars where ms_email = @email", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@email", email);
+                        Tools.Log(cmd);
+                        using (MySqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            if (dr.Read())
+                            {
+                                if (int.TryParse(dr[0].ToString(), out int carid) && int.TryParse(dr[1].ToString(), out int sessionid))
+                                {
+                                    // car found, generate random token
+                                    return new MSSession(Tools.RandomString(32), sessionid);   
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
+            }
+            // car not found, so create it, assing session and return MSSession
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand($"INSERT INTO ms_cars (ms_email, ms_sessionid) VALUES (@ms_email, (SELECT MAX(ms_sessionid) FROM ms_sessions))", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ms_email", email);
+                        Tools.Log(cmd);
+                        int rows = cmd.ExecuteNonQueryAsync().Result;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
+            }
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand($"SELECT ms_id, ms_sessionid FROM ms_cars where ms_email = @email", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@email", email);
+                        Tools.Log(cmd);
+                        using (MySqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            if (dr.Read())
+                            {
+                                if (int.TryParse(dr[0].ToString(), out int carid) && int.TryParse(dr[1].ToString(), out int sessionid))
+                                {
+                                    // car found, generate random token
+                                    return new MSSession(Tools.RandomString(32), sessionid);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
+            }
+            // this should not happen
+            return null;
         }
     }
 }

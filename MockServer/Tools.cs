@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -160,9 +161,14 @@ namespace MockServer
             return Convert.ToInt64(Tools.ConvertFromFileTimestamp(Tools.ExtractTimestampFromJSONFileName(first)).Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds);
         }
 
-        internal static long TimeStampNow()
+        internal static long TimeStampNowMilliseconds()
         {
             return Convert.ToInt64(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds);
+        }
+
+        internal static long TimeStampNow()
+        {
+            return Convert.ToInt64(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
         }
 
         internal class JsonFormatter
@@ -328,6 +334,13 @@ namespace MockServer
                 CurrentChar = _s[Index];
                 return true;
             }
+        }
+
+        private static Random random = new Random();
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
         }
     }
 }

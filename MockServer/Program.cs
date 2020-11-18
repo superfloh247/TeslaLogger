@@ -46,6 +46,19 @@ namespace MockServer
             {
                 _ = DBTools.CreateColumn(tablename, "ms_sessionid", "INT", false);
             }
+            tablename = "ms_cars";
+            if (!DBTools.TableExists(tablename).Result)
+            {
+                _ = DBTools.CreateTableWithID(tablename).Result;
+            }
+            if (!DBTools.ColumnExists(tablename, "ms_email").Result)
+            {
+                _ = DBTools.CreateColumn(tablename, "ms_email", "TEXT", false);
+            }
+            if (!DBTools.ColumnExists(tablename, "ms_sessionid").Result)
+            {
+                _ = DBTools.CreateColumn(tablename, "ms_sessionid", "INT", false);
+            }
         }
     }
 }
