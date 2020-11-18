@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using MySqlConnector;
 
 namespace MockServer
 {
@@ -81,6 +82,38 @@ namespace MockServer
             foreach (MSSession session in MSSession.Sessions)
             {
                 sb.Append($"<tr><td>{session.Email}</td><td>{session.Token}</td><td>{session.Sessionid}</td></tr>");
+            }
+            WriteString(response, html1 + sb.ToString() + html2);
+            return;
+        }
+
+        internal static void ListImports(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            response.AddHeader("Content-Type", "text/html; charset=utf-8");
+            string html1 = "<html><head></head><body><table border=\"1\">";
+            string html2 = "</table></body></html>";
+            StringBuilder sb = new StringBuilder();
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand($"SELECT ms_sessionid, ms_sessionname FROM ms_sessions", conn))
+                    {
+                        Tools.Log(cmd);
+                        using (MySqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            if (dr.Read())
+                            {
+                                    sb.Append($"<tr><td>{dr[0]}</td><td>{dr[1]}</td></tr>");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Tools.Log("Exception", ex);
             }
             WriteString(response, html1 + sb.ToString() + html2);
             return;

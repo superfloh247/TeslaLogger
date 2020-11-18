@@ -237,7 +237,7 @@ namespace MockServer
             return dbjson;
         }
 
-        internal static async Task<int> CreateSession()
+        internal static async Task<int> CreateSession(string sessionname)
         {
             int? newsessionid = DBTools.GetMaxValue("ms_sessions", "ms_sessionid").Result;
             if (newsessionid == null)
@@ -253,9 +253,10 @@ namespace MockServer
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                 {
                     await conn.OpenAsync();
-                    using (MySqlCommand cmd = new MySqlCommand($"INSERT ms_sessions (ms_sessionid) VALUES (@sessionid)", conn))
+                    using (MySqlCommand cmd = new MySqlCommand($"INSERT ms_sessions (ms_sessionid, ms_sessionname) VALUES (@sessionid, @sessionname)", conn))
                     {
                         cmd.Parameters.AddWithValue("@sessionid", newsessionid);
+                        cmd.Parameters.AddWithValue("@sessionname", sessionname);
                         Tools.Log(cmd);
                         int rows = cmd.ExecuteNonQueryAsync().Result;
                         if (rows > 0)

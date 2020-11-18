@@ -82,7 +82,8 @@ namespace MockServer
                     {
                         Tools.Log("Check #3: OK: database schema up to date");
 
-                        int sessionid = Database.CreateSession().Result;
+                        // TODO make session name configurable
+                        int sessionid = Database.CreateSession(dirname).Result;
 
                         if (sessionid < 1)
                         {

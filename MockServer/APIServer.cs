@@ -107,6 +107,9 @@ namespace MockServer
                     case bool _ when request.Url.LocalPath.Equals("/mockserver/listSessions"):
                         WebServer.ListSessions(request, response);
                         break;
+                    case bool _ when request.Url.LocalPath.Equals("/mockserver/listImports"):
+                        WebServer.ListImports(request, response);
+                        break;
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/import/.+"):
                         WebServer.WriteString(response, "");
                         Importer.importFromDirectory(request.Url.LocalPath.Split('/').Last());
