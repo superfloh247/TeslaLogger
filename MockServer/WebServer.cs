@@ -71,5 +71,19 @@ namespace MockServer
             // You must close the output stream.
             output.Close();
         }
+
+        internal static void ListSessions(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            response.AddHeader("Content-Type", "text/html; charset=utf-8");
+            string html1 = "<html><head></head><body><table border=\"1\">";
+            string html2 = "</table></body></html>";
+            StringBuilder sb = new StringBuilder();
+            foreach (MSSession session in MSSession.Sessions)
+            {
+                sb.Append($"<tr><td>{session.Email}</td><td>{session.Token}</td><td>{session.Sessionid}</td></tr>");
+            }
+            WriteString(response, html1 + sb.ToString() + html2);
+            return;
+        }
     }
 }

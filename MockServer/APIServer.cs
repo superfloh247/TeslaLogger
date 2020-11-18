@@ -18,17 +18,21 @@ namespace MockServer
         private string token;
         private DateTime start;
         private int sessionid;
+        private string email;
 
         public string Token { get => token; set => token = value; }
         public DateTime Start { get => start; set => start = value; }
         public int Sessionid { get => sessionid; set => sessionid = value; }
+        internal static HashSet<MSSession> Sessions { get => sessions; }
+        public string Email { get => email; set => email = value; }
 
-        public MSSession(string token, int sessionid)
+        public MSSession(string token, int sessionid, string email)
         {
             Tools.Log($"new mockserver session t:{token} sid:{sessionid}");
             this.token = token;
             this.start = DateTime.UtcNow;
             this.sessionid = sessionid;
+            this.email = email;
             sessions.Add(this);
         }
 
@@ -99,6 +103,9 @@ namespace MockServer
                     // mockserver internals
                     case bool _ when request.Url.LocalPath.Equals("/mockserver/listJSONDumps"):
                         WebServer.ListJSONDumps(request, response);
+                        break;
+                    case bool _ when request.Url.LocalPath.Equals("/mockserver/listSessions"):
+                        WebServer.ListSessions(request, response);
                         break;
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/import/.+"):
                         WebServer.WriteString(response, "");
@@ -399,7 +406,7 @@ namespace MockServer
                                 if (int.TryParse(dr[0].ToString(), out int carid) && int.TryParse(dr[1].ToString(), out int sessionid))
                                 {
                                     // car found, generate random token
-                                    return new MSSession(Tools.RandomString(32), sessionid);   
+                                    return new MSSession(Tools.RandomString(32), sessionid, email);   
                                 }
                             }
                         }
@@ -444,7 +451,7 @@ namespace MockServer
                                 if (int.TryParse(dr[0].ToString(), out int carid) && int.TryParse(dr[1].ToString(), out int sessionid))
                                 {
                                     // car found, generate random token
-                                    return new MSSession(Tools.RandomString(32), sessionid);
+                                    return new MSSession(Tools.RandomString(32), sessionid, email);
                                 }
                             }
                         }
