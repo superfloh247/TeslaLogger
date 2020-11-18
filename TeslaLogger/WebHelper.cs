@@ -442,27 +442,20 @@ namespace TeslaLogger
                         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + Tesla_token);
 
                         string adresse = apiaddress + "api/1/vehicles";
-                        DateTime start = DateTime.UtcNow;
-                        Task<HttpResponseMessage> resultTask = client.GetAsync(adresse);
-
-                        HttpResponseMessage result = resultTask.Result;
-                        resultContent = result.Content.ReadAsStringAsync().Result;
-                        _ = car.GetTeslaAPIState().ParseAPI(resultContent, "vehicles", car.CarInAccount);
-                        DBHelper.AddMothershipDataToDB("GetVehicles()", start, (int)result.StatusCode);
-
-                        if (TeslaAPI_Commands.ContainsKey("vehicles"))
-                        {
-                            TeslaAPI_Commands.TryGetValue("vehicles", out string drive_state);
-                            TeslaAPI_Commands.TryUpdate("vehicles", resultContent, drive_state);
-                        }
-                        else
-                        {
-                            TeslaAPI_Commands.TryAdd("vehicles", resultContent);
-                        }
+                        Task<HttpResponseMessage> resultTask;
+                        HttpResponseMessage result;
+                        DoGetVehiclesRequest(out resultContent, client, adresse, out resultTask, out result);
 
                         if (result.StatusCode == HttpStatusCode.Unauthorized)
                         {
                             Log("HttpStatusCode = Unauthorized. Password changed or still valid?");
+                        }
+
+                        if (car.LoginRetryCounter < 1)
+                        {
+                            car.LoginRetryCounter++;
+                            _ = GetTokenAsync().Result;
+                            DoGetVehiclesRequest(out resultContent, client, adresse, out resultTask, out result);
                         }
 
                         object jsonResult = new JavaScriptSerializer().DeserializeObject(resultContent);
@@ -588,6 +581,26 @@ namespace TeslaLogger
 
                     Thread.Sleep(30000);
                 }
+            }
+        }
+
+        private void DoGetVehiclesRequest(out string resultContent, HttpClient client, string adresse, out Task<HttpResponseMessage> resultTask, out HttpResponseMessage result)
+        {
+            DateTime start = DateTime.UtcNow;
+            resultTask = client.GetAsync(adresse);
+            result = resultTask.Result;
+            resultContent = result.Content.ReadAsStringAsync().Result;
+            _ = car.GetTeslaAPIState().ParseAPI(resultContent, "vehicles", car.CarInAccount);
+            DBHelper.AddMothershipDataToDB("GetVehicles()", start, (int)result.StatusCode);
+
+            if (TeslaAPI_Commands.ContainsKey("vehicles"))
+            {
+                TeslaAPI_Commands.TryGetValue("vehicles", out string drive_state);
+                TeslaAPI_Commands.TryUpdate("vehicles", resultContent, drive_state);
+            }
+            else
+            {
+                TeslaAPI_Commands.TryAdd("vehicles", resultContent);
             }
         }
 

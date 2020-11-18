@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 
 namespace MockServer
 {
@@ -104,7 +105,10 @@ namespace MockServer
                     // Tesla API
                     case bool _ when request.Url.LocalPath.Equals("/api/1/vehicles"):
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/api/1/vehicles/[0-9]+/data_request/[a-z_]+"):
-                        mock_endpoint(request, response);
+                        MockEndpoint(request, response);
+                        break;
+                    case bool _ when request.Url.LocalPath.Equals("/oauth/token"):
+                        MockLogin(request, response);
                         break;
                     default:
                         Tools.Log("unhandled: " + request.Url.LocalPath);
@@ -117,9 +121,20 @@ namespace MockServer
             }
         }
 
-        private void mock_endpoint(HttpListenerRequest request, HttpListenerResponse response)
+        private void MockLogin(HttpListenerRequest request, HttpListenerResponse response)
         {
-            Tools.Log($"mock: {request.Url.LocalPath}");
+            Tools.Log($"MockLogin: {request.Url.LocalPath}");
+            using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
+            {
+                string data = reader.ReadToEnd();
+                Tools.Log("DATA: " + data);
+            }
+            response.StatusCode = (int)HttpStatusCode.OK;
+        }
+
+        private void MockEndpoint(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            Tools.Log($"MockEndpoint: {request.Url.LocalPath}");
             string endpoint = string.Empty;
             Match m = Regex.Match(request.Url.LocalPath, @"/api/1/vehicles/([0-9]+)/data_request/([a-z_]+)");
             if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1)
@@ -138,6 +153,10 @@ namespace MockServer
                 MSSession session = MSSession.GetSessionByToken(token);
                 if (session == null)
                 {
+                    // force login
+                    response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    WebServer.WriteString(response, "");
+                    return;
                     // create new session
                     session = CreateSession(token);
                 }
