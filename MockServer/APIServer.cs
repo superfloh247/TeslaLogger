@@ -57,87 +57,11 @@ namespace MockServer
     internal class APIServer
     {
 
-        private HttpListener listener = null;
-
         public APIServer()
         {
-            InitHTTPServer();
-            while (listener != null)
-            {
-                try
-                {
-                    ThreadPool.QueueUserWorkItem(OnContext, listener.GetContext());
-                }
-                catch (Exception ex)
-                {
-                    Tools.Log("Exception", ex);
-                }
-            }
         }
 
-        private void InitHTTPServer()
-        {
-            try
-            {
-                listener = new HttpListener();
-                listener.Prefixes.Add("http://*:24780/");
-                listener.Start();
-                Tools.Log($"HttpListener bound to http://*:http://*:24780//");
-            }
-            catch (Exception ex)
-            {
-                Tools.Log("Exception", ex);
-            }
-        }
-
-        private void OnContext(object o)
-        {
-            try
-            {
-                HttpListenerContext context = o as HttpListenerContext;
-
-                HttpListenerRequest request = context.Request;
-                HttpListenerResponse response = context.Response;
-                switch (true)
-                {
-                    // mockserver internals
-                    case bool _ when request.Url.LocalPath.Equals("/mockserver/listJSONDumps"):
-                        WebServer.ListJSONDumps(request, response);
-                        break;
-                    case bool _ when request.Url.LocalPath.Equals("/mockserver/listSessions"):
-                        WebServer.ListSessions(request, response);
-                        break;
-                    case bool _ when request.Url.LocalPath.Equals("/mockserver/listImports"):
-                        WebServer.ListImports(request, response);
-                        break;
-                    case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/import/.+"):
-                        WebServer.WriteString(response, "");
-                        Importer.importFromDirectory(request.Url.LocalPath.Split('/').Last());
-                        break;
-                    case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/deleteImport/.+"):
-                        WebServer.WriteString(response, "");
-                        WebServer.DeleteImport(request.Url.LocalPath.Split('/').Last());
-                        break;
-                    // Tesla API
-                    case bool _ when request.Url.LocalPath.Equals("/api/1/vehicles"):
-                    case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/api/1/vehicles/[0-9]+/data_request/[a-z_]+"):
-                        MockEndpoint(request, response);
-                        break;
-                    case bool _ when request.Url.LocalPath.Equals("/oauth/token"):
-                        MockLogin(request, response);
-                        break;
-                    default:
-                        Tools.Log("unhandled: " + request.Url.LocalPath);
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                Tools.Log("Exception", ex);
-            }
-        }
-
-        private void MockLogin(HttpListenerRequest request, HttpListenerResponse response)
+        internal static void MockLogin(HttpListenerRequest request, HttpListenerResponse response)
         {
             Tools.Log($"MockLogin: {request.Url.LocalPath}");
             try
@@ -178,7 +102,7 @@ namespace MockServer
             WebServer.WriteString(response, "");
         }
 
-        private void MockEndpoint(HttpListenerRequest request, HttpListenerResponse response)
+        internal static void MockEndpoint(HttpListenerRequest request, HttpListenerResponse response)
         {
             Tools.Log($"MockEndpoint: {request.Url.LocalPath}");
             string endpoint = string.Empty;
@@ -247,7 +171,7 @@ namespace MockServer
             WebServer.WriteString(response, "");
         }
 
-        private void DBtoJSON(string endpoint, Dictionary<string, string> dbjson, StringBuilder JSON)
+        private static void DBtoJSON(string endpoint, Dictionary<string, string> dbjson, StringBuilder JSON)
         {
             HashSet<string> arrays = new HashSet<string>();
             HashSet<string> dictionaries = new HashSet<string>();
@@ -359,7 +283,7 @@ namespace MockServer
             }
         }
 
-        private string GetAuthorizationBearerToken(HttpListenerRequest request)
+        private static string GetAuthorizationBearerToken(HttpListenerRequest request)
         {
             if (request.Headers.AllKeys.Contains("Authorization"))
             {
@@ -371,7 +295,7 @@ namespace MockServer
             return string.Empty;
         }
 
-        private string JSONAppend(Dictionary<string, string> dbjson, string key, bool isstring = false)
+        private static string JSONAppend(Dictionary<string, string> dbjson, string key, bool isstring = false)
         {
             if (dbjson.ContainsKey(key)) {
                 string value = dbjson[key];
@@ -394,7 +318,7 @@ namespace MockServer
             }
         }
 
-        private MSSession CreateSession(string email)
+        private static MSSession CreateSession(string email)
         {
             // try too find email in ms_cars
             try

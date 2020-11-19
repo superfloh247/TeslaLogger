@@ -16,14 +16,14 @@ namespace MockServer
 
             try
             {
-                Thread APIServerThread = new Thread(() =>
+                Thread HTTPServerThread = new Thread(() =>
                 {
-                    APIServer apiServer = new APIServer();
+                    HTTPServer apiServer = new HTTPServer();
                 })
                 {
-                    Name = "APIServerThread"
+                    Name = "HTTPServerThread"
                 };
-                APIServerThread.Start();
+                HTTPServerThread.Start();
             }
             catch (Exception ex)
             {

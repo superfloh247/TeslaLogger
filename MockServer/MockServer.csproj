@@ -61,6 +61,7 @@
     <Compile Include="Database.cs" />
     <Compile Include="DBTools.cs" />
     <Compile Include="DBSchema.cs" />
+    <Compile Include="HTTPServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
