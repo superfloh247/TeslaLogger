@@ -52,6 +52,9 @@ namespace MockServer
                 switch (true)
                 {
                     // mockserver internals
+                    case bool _ when request.Url.LocalPath.Equals("/"):
+                        WebServer.Index(request, response);
+                        break;
                     case bool _ when request.Url.LocalPath.Equals("/mockserver/listJSONDumps"):
                         WebServer.ListJSONDumps(request, response);
                         break;
@@ -62,11 +65,11 @@ namespace MockServer
                         WebServer.ListImports(request, response);
                         break;
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/import/.+"):
-                        WebServer.WriteString(response, "");
-                        Importer.importFromDirectory(request.Url.LocalPath.Split('/').Last());
+                        WebServer.WriteString(response, "ImportFromDirectory");
+                        Importer.ImportFromDirectory(request.Url.LocalPath.Split('/').Last());
                         break;
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/mockserver/deleteImport/.+"):
-                        WebServer.WriteString(response, "");
+                        WebServer.WriteString(response, "DeleteImport");
                         WebServer.DeleteImport(request.Url.LocalPath.Split('/').Last());
                         break;
                     // Tesla API
@@ -79,6 +82,7 @@ namespace MockServer
                         break;
                     default:
                         Tools.Log("unhandled: " + request.Url.LocalPath);
+                        WebServer.WriteString(response, "");
                         break;
                 }
             }

@@ -28,11 +28,13 @@ namespace MockServer
             if (Directory.Exists("JSON"))
             {
                 response.AddHeader("Content-Type", "text/html; charset=utf-8");
-                string html1 = "<html><head></head><body><table border=\"1\">";
+                string html1 = "<html><head></head><body>" + PageHeader() + "<table border=\"1\">";
                 string html2 = "</table></body></html>";
                 StringBuilder sb = new StringBuilder();
                 foreach (DirectoryInfo dir in new DirectoryInfo("JSON").EnumerateDirectories())
                 {
+                    // TODO already imported?
+                    // TODO delete button to delete directory
                     Tools.Log($"dir: {dir.Name} files: {dir.GetFiles().Length}");
                     sb.Append(string.Format("<tr><td>Name: {0}</td><td>Count: {1}</td><td>{2}</td><td>{3}</td></tr>",
                         dir.Name,
@@ -44,6 +46,20 @@ namespace MockServer
                 return;
             }
             WriteString(response, "");
+        }
+
+        internal static void Index(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            response.AddHeader("Content-Type", "text/html; charset=utf-8");
+            string html1 = "<html><head></head><body>" + PageHeader() + "<table border=\"1\">";
+            string html2 = "</table></body></html>";
+            StringBuilder sb = new StringBuilder();
+            WriteString(response, html1 + sb.ToString() + html2);
+        }
+
+        private static string PageHeader()
+        {
+            return @"<a href=""/"">Index</a>&nbsp;|&nbsp;<a href=""/mockserver/listJSONDumps"">List JSON Dumps</a>&nbsp;|&nbsp;<a href=""/mockserver/listImports"">List imported Sessions</a>&nbsp;|&nbsp;<a href=""/mockserver/listSessions"">List running TL Sessions</a><br />";
         }
 
         private static string GetDirectorySummary(DirectoryInfo dir)
@@ -76,7 +92,7 @@ namespace MockServer
         internal static void ListSessions(HttpListenerRequest request, HttpListenerResponse response)
         {
             response.AddHeader("Content-Type", "text/html; charset=utf-8");
-            string html1 = "<html><head></head><body><table border=\"1\">";
+            string html1 = "<html><head></head><body>" + PageHeader() + "<table border=\"1\">";
             string html2 = "</table></body></html>";
             StringBuilder sb = new StringBuilder();
             foreach (MSSession session in MSSession.Sessions)
@@ -90,7 +106,7 @@ namespace MockServer
         internal static void ListImports(HttpListenerRequest request, HttpListenerResponse response)
         {
             response.AddHeader("Content-Type", "text/html; charset=utf-8");
-            string html1 = "<html><head></head><body><table border=\"1\">";
+            string html1 = "<html><head></head><body>" + PageHeader() + "<table border=\"1\">";
             string html2 = "</table></body></html>";
             StringBuilder sb = new StringBuilder();
             try
@@ -105,7 +121,8 @@ namespace MockServer
                         {
                             if (dr.Read())
                             {
-                                    sb.Append($"<tr><td>{dr[0]}</td><td>{dr[1]}</td></tr>");
+                                // TODO delete button to delete imported session
+                                sb.Append($"<tr><td>{dr[0]}</td><td>{dr[1]}</td></tr>");
                             }
                         }
                     }

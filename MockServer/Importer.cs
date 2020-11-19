@@ -13,7 +13,7 @@ namespace MockServer
         {
         }
 
-        internal static void importFromDirectory(string dirname)
+        internal static void ImportFromDirectory(string dirname)
         {
             Tools.Log($"importFromDirectory: {dirname}");
             if (Directory.Exists($"JSON/{dirname}"))
