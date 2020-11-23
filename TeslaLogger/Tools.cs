@@ -55,7 +55,21 @@ namespace TeslaLogger
         {
             try
             {
-                string msg = "SQL" + Environment.NewLine + cmd.CommandText;
+                string msg = "SQL" + Environment.NewLine + ExpandSQLCommand(cmd);
+                DebugLog($"{_cmn}: " + msg, null, _cfp, _cln);
+            }
+            catch (Exception ex)
+            {
+                DebugLog("Exception in SQL DEBUG", ex);
+            }
+        }
+
+        internal static string ExpandSQLCommand(MySqlCommand cmd)
+        {
+            string msg = string.Empty;
+            if (cmd != null && cmd.Parameters != null)
+            {
+                msg = cmd.CommandText;
                 foreach (MySqlParameter p in cmd.Parameters)
                 {
                     string pValue = "";
@@ -110,12 +124,8 @@ namespace TeslaLogger
                     }
                     msg = msg.Replace(p.ParameterName, pValue);
                 }
-                DebugLog($"{_cmn}: " + msg, null, _cfp, _cln);
             }
-            catch (Exception ex)
-            {
-                DebugLog("Exception in SQL DEBUG", ex);
-            }
+            return msg;
         }
 
         public static void DebugLog(string text, Exception ex = null, [CallerFilePath] string _cfp = null, [CallerLineNumber] int _cln = 0)
@@ -745,6 +755,31 @@ namespace TeslaLogger
 
         }
 
+        internal static string GetTeslaAPIURL()
+        {
+            string teslaAPI = "https://owner-api.teslamotors.com/";
+            try
+            {
+                string filePath = FileManager.GetFilePath(TLFilename.SettingsFilename);
+                if (!File.Exists(filePath))
+                {
+                    Logfile.Log("settings file not found at " + filePath);
+                    return teslaAPI;
+                }
+                string json = File.ReadAllText(filePath);
+                dynamic j = new JavaScriptSerializer().DeserializeObject(json);
+                if (IsPropertyExist(j, "TeslaAPIURL"))
+                {
+                   return j["TeslaAPIURL"].ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logfile.Log(ex.ToString());
+            }
+            return teslaAPI;
+        }
+
         internal static string GetOsVersion()
         {
             if (!_OSVersion.Equals(string.Empty))
@@ -1246,7 +1281,7 @@ WHERE
                     }
                     catch (Exception ex2)
                     {
-                        DebugLog("DownloadToFile exception:", ex);
+                        DebugLog("DownloadToFile exception:", ex2);
                     }
                 }
             }
