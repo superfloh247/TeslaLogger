@@ -979,6 +979,8 @@ WHERE
             #pragma warning disable CA2008 // Keine Tasks ohne Übergabe eines TaskSchedulers erstellen
             _ = Task.Factory.StartNew(() =>
             {
+                // give TL some time to enter charge state
+                Thread.Sleep(30000);
                 // try to update chargingstate.pos
                 // are we still charging?
                 if (car.GetCurrentState() == Car.TeslaState.Charge)
@@ -1010,7 +1012,19 @@ WHERE
                                 }
                             }
                         }
+                        else
+                        {
+                            Tools.DebugLog($"StartChargingState Task chglat: {chglat} chglng: {chglng}");
+                        }
                     }
+                    else
+                    {
+                        Tools.DebugLog($"StartChargingState Task poslat: {poslat} poslng: {poslng}");
+                    }
+                }
+                else
+                {
+                    Tools.DebugLog($"StartChargingState Task GetCurrentState(): {car.GetCurrentState()}");
                 }
             });
             #pragma warning restore CA2008 // Keine Tasks ohne Übergabe eines TaskSchedulers erstellen
