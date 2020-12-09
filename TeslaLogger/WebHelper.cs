@@ -18,7 +18,7 @@ namespace TeslaLogger
 {
     public class WebHelper
     {
-        public static readonly string apiaddress = "https://owner-api.teslamotors.com/";
+        public static readonly string apiaddress = Tools.GetTeslaAPIURL();
 
         public string Tesla_token = "";
         public string Tesla_id = "";
@@ -451,7 +451,7 @@ namespace TeslaLogger
                         HttpResponseMessage result;
                         DoGetVehiclesRequest(out resultContent, client, adresse, out resultTask, out result);
 
-                        if (result.StatusCode == HttpStatusCode.Unauthorized)
+                        if (car.LoginRetryCounter < 1)
                         {
                             if (LoginRetry(result))
                             {

@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logfile", "Logfile\Logfile.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestsTeslalogger", "UnitTestsTeslalogger\UnitTestsTeslalogger.csproj", "{AE80A9DA-E9B1-4BFD-8D2D-A2EA81B8EADC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MockServer", "MockServer\MockServer.csproj", "{A490B9A4-15AE-4870-BDC8-29887638D0D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,10 @@ Global
 		{AE80A9DA-E9B1-4BFD-8D2D-A2EA81B8EADC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE80A9DA-E9B1-4BFD-8D2D-A2EA81B8EADC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE80A9DA-E9B1-4BFD-8D2D-A2EA81B8EADC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A490B9A4-15AE-4870-BDC8-29887638D0D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A490B9A4-15AE-4870-BDC8-29887638D0D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A490B9A4-15AE-4870-BDC8-29887638D0D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A490B9A4-15AE-4870-BDC8-29887638D0D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
