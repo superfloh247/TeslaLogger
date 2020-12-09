@@ -979,6 +979,8 @@ WHERE
             #pragma warning disable CA2008 // Keine Tasks ohne Übergabe eines TaskSchedulers erstellen
             _ = Task.Factory.StartNew(() =>
             {
+                // give TL some time to enter charge state
+                Thread.Sleep(30000);
                 // try to update chargingstate.pos
                 // are we still charging?
                 if (car.GetCurrentState() == Car.TeslaState.Charge)
@@ -1010,7 +1012,19 @@ WHERE
                                 }
                             }
                         }
+                        else
+                        {
+                            Tools.DebugLog($"StartChargingState Task chglat: {chglat} chglng: {chglng}");
+                        }
                     }
+                    else
+                    {
+                        Tools.DebugLog($"StartChargingState Task poslat: {poslat} poslng: {poslng}");
+                    }
+                }
+                else
+                {
+                    Tools.DebugLog($"StartChargingState Task GetCurrentState(): {car.GetCurrentState()}");
                 }
             });
             #pragma warning restore CA2008 // Keine Tasks ohne Übergabe eines TaskSchedulers erstellen
@@ -1914,7 +1928,7 @@ WHERE
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
-                using (MySqlCommand cmd = new MySqlCommand("Select max(id), lat, lng from pos where CarID=@CarID", con))
+                using (MySqlCommand cmd = new MySqlCommand("select lat,lng from pos where id in (Select max(id) from pos where CarID=@CarID)", con))
                 {
                     cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
                     MySqlDataReader dr = cmd.ExecuteReader();
@@ -1960,7 +1974,7 @@ WHERE
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
                 con.Open();
-                using (MySqlCommand cmd = new MySqlCommand("SELECT MAX(chargingstate.id), pos.lat, pos.lng FROM chargingstate, pos where chargingstate.CarID=@CarID AND chargingstate.pos = pos.id", con))
+                using (MySqlCommand cmd = new MySqlCommand("select chargingstate.id, lat, lng from chargingstate join pos on chargingstate.pos = pos.id where chargingstate.id in (select max(id) from chargingstate where carid=@CarID)", con))
                 {
                     cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
                     MySqlDataReader dr = cmd.ExecuteReader();
