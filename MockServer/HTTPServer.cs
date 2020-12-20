@@ -80,6 +80,10 @@ namespace MockServer
                     case bool _ when request.Url.LocalPath.Equals("/oauth/token"):
                         APIServer.MockLogin(request, response);
                         break;
+                    case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/api/1/vehicles/[0-9]+/nearby_charging_sites"):
+                        Tools.Log("TODO: " + request.Url.LocalPath);
+                        WebServer.WriteString(response, "Retry later");
+                        break;
                     default:
                         Tools.Log("unhandled: " + request.Url.LocalPath);
                         WebServer.WriteString(response, "");
