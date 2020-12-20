@@ -242,12 +242,19 @@ namespace MockServer
                                         // not string
                                         if (DBSchema.EndpointFieldDBType[endpoint].ContainsKey(dictionarykey) && !DBSchema.EndpointFieldDBType[endpoint][dictionarykey].Equals("TEXT"))
                                         {
-                                            JSON.Append($"{m2.Groups[2].Captures[0].ToString()}:{dbjson[dictionarykey]}");
+                                            if (dbjson[dictionarykey].ToString().Equals("True") || dbjson[dictionarykey].ToString().Equals("False"))
+                                            {
+                                                JSON.Append($"\"{m2.Groups[2].Captures[0].ToString()}\":{dbjson[dictionarykey].ToString().ToLower()}");
+                                            }
+                                            else
+                                            {
+                                                JSON.Append($"\"{m2.Groups[2].Captures[0].ToString()}\":{dbjson[dictionarykey]}");
+                                            }
                                         }
                                         // treat everything else as string
                                         else
                                         {
-                                            JSON.Append($"{m2.Groups[2].Captures[0].ToString()}:\"{dbjson[dictionarykey]}\"");
+                                            JSON.Append($"\"{m2.Groups[2].Captures[0].ToString()}\":\"{dbjson[dictionarykey]}\"");
                                         }
                                         if (!dictionarykey.Equals(dictionaryelements.Last()))
                                         {
