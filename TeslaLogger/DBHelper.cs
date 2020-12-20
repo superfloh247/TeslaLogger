@@ -33,7 +33,7 @@ namespace TeslaLogger
                 return _DBConnectionstring;
             }
             string DBConnectionstring = string.IsNullOrEmpty(ApplicationSettings.Default.DBConnectionstring)
-? "Server=127.0.0.1;Database=teslaloggermock;Uid=root;Password=teslalogger;CharSet=utf8mb4;"
+? "Server=teslalogger;Database=teslaloggermock;Uid=root;Password=teslalogger;CharSet=utf8mb4;"
 : ApplicationSettings.Default.DBConnectionstring;
             if (DBConnectionstring.ToLower().Contains("charset="))
             {

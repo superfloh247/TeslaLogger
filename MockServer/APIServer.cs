@@ -180,7 +180,7 @@ namespace MockServer
                 // special case: timestamp
                 if (field.Equals("timestamp"))
                 {
-                    JSON.Append($"\"timestamp\":{Tools.TimeStampNow()}");
+                    JSON.Append($"\"timestamp\":{Tools.TimeStampNowMilliseconds()}");
                 }
                 // arrays and dictionaries
                 else if (field.Contains("__"))
