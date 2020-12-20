@@ -9,7 +9,7 @@ namespace TeslaLogger
 {
     internal class Program
     {
-        public static bool VERBOSE = false;
+        public static bool VERBOSE = true;
 
         public enum TLMemCacheKey
         {
