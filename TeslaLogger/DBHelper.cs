@@ -9,6 +9,7 @@ using System.Net;
 using System.Runtime.Caching;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -32,7 +33,7 @@ namespace TeslaLogger
                 return _DBConnectionstring;
             }
             string DBConnectionstring = string.IsNullOrEmpty(ApplicationSettings.Default.DBConnectionstring)
-? "Server=127.0.0.1;Database=teslalogger;Uid=root;Password=teslalogger;CharSet=utf8mb4;"
+? "Server=127.0.0.1;Database=teslaloggermock;Uid=root;Password=teslalogger;CharSet=utf8mb4;"
 : ApplicationSettings.Default.DBConnectionstring;
             if (DBConnectionstring.ToLower().Contains("charset="))
             {
