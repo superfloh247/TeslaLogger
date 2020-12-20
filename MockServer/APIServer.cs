@@ -320,7 +320,7 @@ namespace MockServer
 
         private static MSSession CreateSession(string email)
         {
-            // try too find email in ms_cars
+            // try to find email in ms_cars
             try
             {
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
@@ -354,7 +354,7 @@ namespace MockServer
                 using (MySqlConnection conn = new MySqlConnection(Database.DBConnectionstring))
                 {
                     conn.Open();
-                    using (MySqlCommand cmd = new MySqlCommand($"INSERT INTO ms_cars (ms_email, ms_sessionid) VALUES (@ms_email, (SELECT MAX(ms_sessionid) FROM ms_sessions))", conn))
+                    using (MySqlCommand cmd = new MySqlCommand($"INSERT INTO ms_cars (ms_email, ms_sessionid) VALUES (@ms_email, (SELECT COALESCE(MAX(ms_sessionid), 1) FROM ms_sessions))", conn))
                     {
                         cmd.Parameters.AddWithValue("@ms_email", email);
                         Tools.Log(cmd);
