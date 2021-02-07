@@ -2055,6 +2055,7 @@ namespace TeslaLogger
                                         break;
                                     case "data:update":
                                         string value = j["value"];
+                                        Tools.DebugLog("Stream: " + resultContent);
                                         StreamDataUpdate(value);
                                         break;
                                     default:
