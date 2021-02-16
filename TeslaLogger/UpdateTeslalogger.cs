@@ -482,6 +482,13 @@ CREATE TABLE superchargerstate(
                 Chmod("settings.json", 666);
                 Chmod("cmd_updated.txt", 666);
                 Chmod("MQTTClient.exe.config", 666);
+                if (!Tools.Exec_mono("lzma", "-V", false).Contains("LZMA"))
+                {
+                    Tools.Exec_mono("apt-get", "-y install lzma");
+                    Tools.Exec_mono("lzma", "-V");
+                }
+
+                Tools.Exec_mono("rm", "-rf /etc/teslalogger/git/*");
 
                 if (!Tools.Exec_mono("git", "--version", false).Contains("git version"))
                 {
