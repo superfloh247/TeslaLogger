@@ -339,9 +339,8 @@ namespace TeslaLogger
                 WebHelper.UpdateAllPOIAddresses();
                 foreach (Car c in Car.allcars)
                 {
-                    c.dbHelper.CombineChangingStates();
+                    c.dbHelper.CheckForInterruptedCharging(true);
                     c.webhelper.UpdateAllEmptyAddresses();
-                    c.dbHelper.UpdateEmptyChargeEnergy();
                 }
                 DBHelper.UpdateIncompleteTrips();
                 DBHelper.UpdateAllChargingMaxPower();

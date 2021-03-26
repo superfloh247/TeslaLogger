@@ -18,9 +18,7 @@ namespace TeslaLogger
             SetChargeLimit,
             SetChargeLimitOnArrival,
             ClimateOff,
-            CopyChargePrice,
-            CombineChargingStates,
-            DoNotCombineChargingStates
+            CopyChargePrice
         }
 
         public string name;
@@ -332,25 +330,7 @@ namespace TeslaLogger
                 {
                     SpecialFlag_CCP(_addr);
                 }
-                else if (flag.Equals("ccs"))
-                {
-                    SpecialFlag_CCS(_addr);
-                }
-                else if (flag.Equals("dnc"))
-                {
-                    SpecialFlag_DNC(_addr);
-                }
             }
-        }
-
-        private static void SpecialFlag_DNC(Address addr)
-        {
-            addr.specialFlags.Add(Address.SpecialFlags.DoNotCombineChargingStates, "");
-        }
-
-        private static void SpecialFlag_CCS(Address addr)
-        {
-            addr.specialFlags.Add(Address.SpecialFlags.CombineChargingStates, "");
         }
 
         private static void SpecialFlag_ESM(Address _addr, string _flag)
