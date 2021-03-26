@@ -1228,7 +1228,6 @@ WHERE
                             }
                         }
                     }
-                    dt.Clear();
                 }
             }
             catch (Exception ex)
@@ -3852,7 +3851,7 @@ WHERE
             try
             {
                 car.Log($"CloseChargingState id:{openChargingState}");
-                MapQuest.CreateChargingMapOnChargingCompleted(car.CarInDB);
+                StaticMapService.GetSingleton().CreateChargingMapOnChargingCompleted(car.CarInDB);
                 int chargeID = GetMaxChargeid(out DateTime chargeEnd);
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
