@@ -3924,24 +3924,7 @@ namespace TeslaLogger
                 {
                     con.Open();
 
-                    using (MySqlCommand cmdBucket = new MySqlCommand(@"
-SELECT DISTINCT
-    Pos
-FROM
-    chargingstate
-UNION DISTINCT
-SELECT
-    StartPos
-FROM
-    drivestate
-UNION DISTINCT
-SELECT
-    EndPos
-FROM
-    drivestate
-ORDER BY
-    Pos
-DESC", con))
+                    using (MySqlCommand cmdBucket = new MySqlCommand(@"SELECT distinct Pos FROM chargingstate union distinct SELECT StartPos FROM drivestate union distinct SELECT EndPos FROM drivestate order by Pos desc", con))
                     {
                         var bucketdr = SQLTracer.TraceDR(cmdBucket);
                         var loop = true;

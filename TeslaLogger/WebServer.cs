@@ -1583,32 +1583,14 @@ namespace TeslaLogger
                         {
                             con.Open();
 
-                            using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    MAX(a) + 1
-FROM
-    (
-    SELECT
-        MAX(id) AS a
-    FROM
-        cars
-    UNION ALL
-	SELECT
-    	MAX(carid) AS a
-	FROM
-  	  pos
-) AS t", con)) // 
+                            using (MySqlCommand cmd = new MySqlCommand(@"select max(a)+1 from
+                                (
+                                    select max(id) as a from cars
+                                    union
+                                    select max(carid) as a from pos
+                                ) as t", con)) // 
                             {
-                                //decimal newid = SQLTracer.TraceSc(cmd) as decimal? ?? 1;
-                                int newid = 1;
-                                object queryresult = SQLTracer.TraceSc(cmd);
-                                if (queryresult != null && !int.TryParse(queryresult.ToString(), out newid))
-                                {
-                                    // assign default id 1 if parsing the queryresult fails
-                                    newid = 1;
-                                }
-
-                                Logfile.Log($"New CarID: {newid} SQL Query result: <{queryresult}>");
+                                decimal newid = SQLTracer.TraceSc(cmd) as decimal? ?? 1;
 
                                 using (var cmd2 = new MySqlCommand("insert cars (id, tesla_name, tesla_password, vin, display_name, freesuc, tesla_token, refresh_token) values (@id, @tesla_name, @tesla_password, @vin, @display_name, @freesuc,  @tesla_token, @refresh_token)", con))
                                 {

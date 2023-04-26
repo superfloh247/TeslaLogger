@@ -392,9 +392,7 @@ namespace TeslaLogger
             }
 
             UpdateTeslalogger.Start();
-            _ = Task.Factory.StartNew(() => {
-                UpdateTeslalogger.UpdateGrafana();
-            }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            _ = Task.Run(() => { UpdateTeslalogger.UpdateGrafana(); });
         }
 
         private static void InitCheckDocker()

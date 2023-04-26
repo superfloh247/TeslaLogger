@@ -170,10 +170,6 @@ namespace TeslaLogger
                                                     {
                                                         car.CreateExceptionlessClient(ex).AddObject(result, "ResultContent").Submit();
                                                         Logfile.Log(ex.ToString());
-                                                        if (ex is InvalidOperationException)
-                                                        {
-                                                            Tools.DebugLog("NearbySuCService.Work: Exception parsing " + result);
-                                                        }
                                                     }
                                                 }
                                             }

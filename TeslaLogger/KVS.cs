@@ -7,9 +7,8 @@ namespace TeslaLogger
     internal static class KVS
     {
 
-        internal const int SUCCESS = 0;
-        internal const int NOT_FOUND = 1;
-        internal const int FAILED = 2;
+        internal const int SUCCESS = 1;
+        internal const int FAILURE = 0;
 
         internal static void CheckSchema()
         {
@@ -65,7 +64,6 @@ ON DUPLICATE KEY UPDATE
                     {
                         cmd.Parameters.AddWithValue("@key", key);
                         cmd.Parameters.AddWithValue("@value", value);
-                        Tools.DebugLog(cmd);
                         int rowsAffected = SQLTracer.TraceNQ(cmd);
                         if (rowsAffected == 1 // INSERT
                             || rowsAffected == 2 // DELETE and INSERT
@@ -81,7 +79,7 @@ ON DUPLICATE KEY UPDATE
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Tools.DebugLog("KVS: Exception", ex);
             }
-            return FAILED;
+            return FAILURE;
         }
 
         internal static int InsertOrUpdate(string key, double value)
@@ -101,7 +99,6 @@ ON DUPLICATE KEY UPDATE
                     {
                         cmd.Parameters.AddWithValue("@key", key);
                         cmd.Parameters.AddWithValue("@value", value);
-                        Tools.DebugLog(cmd);
                         int rowsAffected = SQLTracer.TraceNQ(cmd);
                         if (rowsAffected == 1 // INSERT
                             || rowsAffected == 2 // DELETE and INSERT
@@ -117,7 +114,7 @@ ON DUPLICATE KEY UPDATE
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Tools.DebugLog("KVS: Exception", ex);
             }
-            return FAILED;
+            return FAILURE;
         }
 
         internal static int InsertOrUpdate(string key, bool value)
@@ -137,7 +134,6 @@ ON DUPLICATE KEY UPDATE
                     {
                         cmd.Parameters.AddWithValue("@key", key);
                         cmd.Parameters.AddWithValue("@value", value);
-                        Tools.DebugLog(cmd);
                         int rowsAffected = SQLTracer.TraceNQ(cmd);
                         if (rowsAffected == 1 // INSERT
                             || rowsAffected == 2 // DELETE and INSERT
@@ -153,7 +149,7 @@ ON DUPLICATE KEY UPDATE
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Tools.DebugLog("KVS: Exception", ex);
             }
-            return FAILED;
+            return FAILURE;
         }
 
         internal static int InsertOrUpdate(string key, DateTime value)
@@ -173,7 +169,6 @@ ON DUPLICATE KEY UPDATE
                     {
                         cmd.Parameters.AddWithValue("@key", key);
                         cmd.Parameters.AddWithValue("@value", value);
-                        Tools.DebugLog(cmd);
                         int rowsAffected = SQLTracer.TraceNQ(cmd);
                         if (rowsAffected == 1 // INSERT
                             || rowsAffected == 2 // DELETE and INSERT
@@ -189,7 +184,7 @@ ON DUPLICATE KEY UPDATE
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Tools.DebugLog("KVS: Exception", ex);
             }
-            return FAILED;
+            return FAILURE;
         }
 
         internal static int InsertOrUpdate(string key, string value)
@@ -209,7 +204,6 @@ ON DUPLICATE KEY UPDATE
                     {
                         cmd.Parameters.AddWithValue("@key", key);
                         cmd.Parameters.AddWithValue("@value", value);
-                        Tools.DebugLog(cmd);
                         int rowsAffected = SQLTracer.TraceNQ(cmd);
                         if (rowsAffected == 1 // INSERT
                             || rowsAffected == 2 // DELETE and INSERT
@@ -225,7 +219,7 @@ ON DUPLICATE KEY UPDATE
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Tools.DebugLog("KVS: Exception", ex);
             }
-            return FAILED;
+            return FAILURE;
         }
 
         // defaults to false, check return code for SUCCESS
@@ -259,7 +253,7 @@ WHERE
                 Tools.DebugLog("KVS: Exception", ex);
             }
             value = false;
-            return NOT_FOUND;
+            return FAILURE;
         }
 
         // defaults to DateTime.MinValue, check return code for SUCCESS
@@ -293,7 +287,7 @@ WHERE
                 Tools.DebugLog("KVS: Exception", ex);
             }
             value = DateTime.MinValue;
-            return NOT_FOUND;
+            return FAILURE;
         }
 
         // defaults to double.NaN, check return code for SUCCESS
@@ -327,7 +321,7 @@ WHERE
                 Tools.DebugLog("KVS: Exception", ex);
             }
             value = double.NaN;
-            return NOT_FOUND;
+            return FAILURE;
         }
 
         // defaults to int.MinValue, check return code for SUCCESS
@@ -361,7 +355,7 @@ WHERE
                 Tools.DebugLog("KVS: Exception", ex);
             }
             value = int.MinValue;
-            return NOT_FOUND;
+            return FAILURE;
         }
 
         // defaults to {} (empty JSON), check return code for SUCCESS
@@ -396,7 +390,7 @@ WHERE
                 Tools.DebugLog("KVS: Exception", ex);
             }
             value = "{}";
-            return NOT_FOUND;
+            return FAILURE;
         }
 
         internal static int Remove(string key)
@@ -426,7 +420,7 @@ WHERE
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Tools.DebugLog("KVS: Exception", ex);
             }
-            return FAILED;
+            return FAILURE;
         }
     }
 }

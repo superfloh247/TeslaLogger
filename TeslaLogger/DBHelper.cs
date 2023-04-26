@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 using Exceptionless;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using Microsoft.VisualBasic.Logging;
+using Org.BouncyCastle.Utilities.Net;
 
 namespace TeslaLogger
 {
@@ -46,7 +48,7 @@ namespace TeslaLogger
                 else
                     DBConnectionstring = "Server=127.0.0.1;Database=teslalogger;Uid=root;Password=teslalogger;CharSet=utf8mb4;";
             }
-            else
+            else 
             {
                 DBConnectionstring = ApplicationSettings.Default.DBConnectionstring;
             }
@@ -550,18 +552,6 @@ DESC";
         internal void AnalyzeChargingStates()
         {
             List<int> recalculate = new List<int>();
-            if (KVS.Get($"AnalyzeChargingStatesMaxGapID_{car.CarInDB}", out int analyzeChargingStatesMaxGapID) == KVS.NOT_FOUND)
-            {
-                analyzeChargingStatesMaxGapID = 0;
-            }
-            if (KVS.Get($"AnalyzeChargingStatesMaxDropID_{car.CarInDB}", out int analyzeChargingStatesMaxDropID) == KVS.NOT_FOUND)
-            {
-                analyzeChargingStatesMaxDropID = 0;
-            }
-            int maxGapID = analyzeChargingStatesMaxGapID;
-            int maxDropID = analyzeChargingStatesMaxDropID;
-            Tools.DebugLog($"AnalyzeChargingStatesMaxGapID_{car.CarInDB}: {analyzeChargingStatesMaxGapID}");
-            Tools.DebugLog($"AnalyzeChargingStatesMaxDropID_{car.CarInDB}: {analyzeChargingStatesMaxDropID}");
             // find gaps in chargingstate.id
             try
             {
@@ -574,18 +564,14 @@ SELECT
 FROM
     chargingstate
 WHERE
-    CarID = @CarID
-    AND id > @AnalyzeChargingStatesMaxGapID
-ORDER BY id", con))
+    CarID = @CarID", con))
                     {
                         cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        cmd.Parameters.AddWithValue("@AnalyzeChargingStatesMaxGapID", analyzeChargingStatesMaxGapID);
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         int lastID = 0;
                         if (dr.Read())
                         {
                             lastID = (int)dr[0];
-                            maxGapID = Math.Max(lastID, maxGapID);
                         }
                         while (dr.Read())
                         {
@@ -594,11 +580,10 @@ ORDER BY id", con))
                                 if (!recalculate.Contains((int)dr[0]))
                                 {
                                     recalculate.Add((int)dr[0]);
-                                    Tools.DebugLog($"AnalyzeChargingStates_{car.CarInDB}: ID gap found:{dr[0]}");
+                                    Tools.DebugLog($"AnalyzeChargingStates: ID gap found:{dr[0]}");
                                 }
                             }
                             lastID = (int)dr[0];
-                            maxGapID = Math.Max(lastID, maxGapID);
                         }
                     }
                 }
@@ -628,13 +613,11 @@ WHERE
     AND chargingstate.CarID = @CarID
     AND charging.CarID = @CarID
     AND chargingstate.id NOT IN(@NotIdInParameter)
-    AND chargingstate.id > @AnalyzeChargingStatesMaxDropID
 ORDER BY
     chargingstate.id", con))
                     {
                         cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        cmd.Parameters.AddWithValue("@NotIdInParameter", recalculate.Count > 0 ? String.Join(",", recalculate): "0");
-                        cmd.Parameters.AddWithValue("@AnalyzeChargingStatesMaxDropID", analyzeChargingStatesMaxDropID);
+                        cmd.Parameters.AddWithValue("@NotIdInParameter", String.Join(",", recalculate));
                         cmd.CommandTimeout = 600;
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         int lastID = 0;
@@ -642,7 +625,6 @@ ORDER BY
                         if (dr.Read())
                         {
                             lastID = (int)dr[0];
-                            maxDropID = Math.Max(lastID, maxDropID);
                             lastCEA = (double)dr[1];
                         }
                         while (dr.Read())
@@ -652,12 +634,11 @@ ORDER BY
                                 if (!recalculate.Contains((int)dr[0]))
                                 {
                                     recalculate.Add((int)dr[0]);
-                                    Tools.DebugLog($"AnalyzeChargingStates_{car.CarInDB}: drop during charging found:{dr[0]}");
+                                    Tools.DebugLog($"AnalyzeChargingStates: drop during charging found:{dr[0]}");
                                 }
                             }
                             lastID = (int)dr[0];
                             lastCEA = (double)dr[1];
-                            maxDropID = Math.Max(lastID, maxDropID);
                         }
                     }
                 }
@@ -671,8 +652,6 @@ ORDER BY
             {
                 _ = RecalculateChargeEnergyAdded(ChargingStateID);
             }
-            KVS.InsertOrUpdate($"AnalyzeChargingStatesMaxGapID_{car.CarInDB}", maxGapID);
-            KVS.InsertOrUpdate($"AnalyzeChargingStatesMaxDropID_{car.CarInDB}", maxDropID);
         }
 
         internal static void DeleteDuplicateTrips()
@@ -956,7 +935,7 @@ AND id <=(
                 }
                 Tools.DebugLog($"RecalculateChargeEnergyAdded ChargingStateID:{ChargingStateID} sum:{sum}");
                 UpdateChargeEnergyAdded(ChargingStateID, sum);
-                UpdateChargePrice(ChargingStateID, true);
+                UpdateChargePrice(ChargingStateID);
                 updatedChargePrice = true;
             }
             return updatedChargePrice;
@@ -1288,7 +1267,7 @@ WHERE
                     // but only if it's not updated by RecalculateChargeEnergyAdded
                     if (!updatedChargePrice)
                     {
-                        UpdateChargePrice(maxID, true);
+                        UpdateChargePrice(maxID);
                     }
 
                     // update chargingsession stats
@@ -1350,7 +1329,7 @@ WHERE
                 object cacheValue = MemoryCache.Default.Get(cacheKey);
                 if (cacheValue != null)
                     return;
-
+                
                 MemoryCache.Default.Add(cacheKey, true, DateTime.Now.AddMinutes(2));
 
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -1641,7 +1620,6 @@ HAVING
             {
                 // close charging state with enddate, endID from max charging
                 CloseChargingState(openChargingState);
-                UpdateChargePrice(openChargingState);
 
                 // if charging was interrupted, maybe combine it with the previous session
                 if (CombineChangingStatesAt(openChargingState))
@@ -1675,8 +1653,14 @@ HAVING
                     }
                 }
                 // calculate chargingstate.charge_energy_added from endchargingid - startchargingid
-                // this will also recalculate charge price
-                _ = RecalculateChargeEnergyAdded(openChargingState);
+                bool updatedChargePrice = RecalculateChargeEnergyAdded(openChargingState);
+
+                // calculate charging price if per_kwh and/or per_minute and/or per_session is available
+                // but only if it's not updated by RecalculateChargeEnergyAdded
+                if (!updatedChargePrice)
+                {
+                    UpdateChargePrice(openChargingState);
+                }
 
                 // get tesla invoice for supercharger
                 if (ChargingStateLocationIsSuC(openChargingState))
@@ -1693,6 +1677,7 @@ HAVING
                             _ = GetChargingHistoryV2Service.SyncAll(car);
                         }
                     }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
                 }
             }
 
@@ -1792,7 +1777,7 @@ WHERE
             return false;
         }
 
-        private void UpdateChargePrice(int ChargingStateID, bool fromID = false)
+        private void UpdateChargePrice(int ChargingStateID)
         {
             string ref_cost_currency = string.Empty;
             double ref_cost_per_kwh = double.NaN;
@@ -1801,14 +1786,7 @@ WHERE
             bool ref_cost_per_minute_found = false;
             double ref_cost_per_session = double.NaN;
             bool ref_cost_per_session_found = false;
-            if (fromID)
-            {
-                GetChargeCostDataFromID(ChargingStateID, out ref_cost_currency, out ref_cost_per_kwh, out ref_cost_per_kwh_found, out ref_cost_per_minute, out ref_cost_per_minute_found, out ref_cost_per_session, out ref_cost_per_session_found);
-            }
-            else
-            {
-                GetChargeCostDataFromReference(ChargingStateID, ref ref_cost_currency, ref ref_cost_per_kwh, ref ref_cost_per_kwh_found, ref ref_cost_per_minute, ref ref_cost_per_minute_found, ref ref_cost_per_session, ref ref_cost_per_session_found);
-            }
+            GetChargeCostDataFromReference(ChargingStateID, ref ref_cost_currency, ref ref_cost_per_kwh, ref ref_cost_per_kwh_found, ref ref_cost_per_minute, ref ref_cost_per_minute_found, ref ref_cost_per_session, ref ref_cost_per_session_found);
             UpdateChargePrice(ChargingStateID, ref_cost_currency, ref_cost_per_kwh, ref_cost_per_kwh_found, ref_cost_per_minute, ref_cost_per_minute_found, ref_cost_per_session, ref_cost_per_session_found);
         }
 
@@ -2305,7 +2283,7 @@ LIMIT 1", con))
                             {
                                 ref_cost_per_minute_found = true;
                             }
-                            Tools.DebugLog($"FindReferenceChargingState({ChargingStateID}, {name}) id:{dr[0]} currency:{dr[1]} cost_per_kwh:{dr[2]} cost_per_session:{dr[3]} cost_per_minute:{dr[4]}");
+                            Tools.DebugLog($"FindReferenceChargingState id:{dr[0]} currency:{dr[1]} cost_per_kwh:{dr[2]} cost_per_session:{dr[3]} cost_per_minute:{dr[4]}");
                         }
                         else
                         {
@@ -2321,79 +2299,6 @@ LIMIT 1", con))
 
                 Tools.DebugLog($"Exception during FindReferenceChargingState(): {ex}");
                 Logfile.ExceptionWriter(ex, "Exception during FindReferenceChargingState()");
-            }
-            return referenceID;
-        }
-
-        private int GetChargeCostDataFromID(int ChargingStateID, out string ref_cost_currency, out double ref_cost_per_kwh, out bool ref_cost_per_kwh_found, out double ref_cost_per_session, out bool ref_cost_per_session_found, out double ref_cost_per_minute, out bool ref_cost_per_minute_found)
-        {
-            int referenceID = int.MinValue;
-            ref_cost_currency = string.Empty;
-            ref_cost_per_kwh = double.NaN;
-            ref_cost_per_kwh_found = false;
-            ref_cost_per_minute = double.NaN;
-            ref_cost_per_minute_found = false;
-            ref_cost_per_session = double.NaN;
-            ref_cost_per_session_found = false;
-            try
-            {
-                using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    chargingstate.id, 
-    chargingstate.cost_currency,
-    chargingstate.cost_per_kwh,
-    chargingstate.cost_per_session,
-    chargingstate.cost_per_minute
-FROM
-    chargingstate
-WHERE
-    chargingstate.CarID = @CarID
-    AND chargingstate.ID = @ChargingStateID
-ORDER BY
-    id DESC
-LIMIT 1", con))
-                    {
-                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        cmd.Parameters.AddWithValue("@ChargingStateID", ChargingStateID);
-                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        if (dr.Read())
-                        {
-                            _ = int.TryParse(dr[0].ToString(), out referenceID);
-                            if (dr[1] != DBNull.Value)
-                            {
-                                ref_cost_currency = dr.GetString(1);
-                            }
-                            if (double.TryParse(dr[2].ToString(), out ref_cost_per_kwh))
-                            {
-                                ref_cost_per_kwh_found = true;
-                            }
-                            if (double.TryParse(dr[3].ToString(), out ref_cost_per_session))
-                            {
-                                ref_cost_per_session_found = true;
-                            }
-                            if (double.TryParse(dr[4].ToString(), out ref_cost_per_minute))
-                            {
-                                ref_cost_per_minute_found = true;
-                            }
-                            Tools.DebugLog($"GetChargeCostDataFromID({ChargingStateID}, id:{dr[0]} currency:{dr[1]} cost_per_kwh:{dr[2]} cost_per_session:{dr[3]} cost_per_minute:{dr[4]}");
-                        }
-                        else
-                        {
-                            Tools.DebugLog("GetChargeCostDataFromID dr.read failed");
-                        }
-                        con.Close();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                car.CreateExceptionlessClient(ex).Submit();
-
-                Tools.DebugLog($"Exception during GetChargeCostDataFromID(): {ex}");
-                Logfile.ExceptionWriter(ex, "Exception during GetChargeCostDataFromID()");
             }
             return referenceID;
         }
@@ -3697,7 +3602,7 @@ WHERE
                                             string address = task.Result;
                                             if (address.Length > 250)
                                                 address = address.Substring(0, 250);
-
+                                            
                                             cmd2.Parameters.AddWithValue("@adress", address);
                                             if (task.Result.Length > 250)
                                             {
@@ -5802,7 +5707,7 @@ WHERE
             }
             else
             {
-                Tools.DebugLog($"CloseChargingState() charging_state:{chargingState}");
+                Tools.DebugLog($"GetTeslaAPIState() charging_state:{chargingState}");
             }
 
         }
@@ -5867,20 +5772,12 @@ WHERE
                 con.Open();
 
                 using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    MAX(a) +1
-FROM
-    (
-    SELECT
-        MAX(id) AS a
-    FROM
-        cars
-    UNION ALL
-    SELECT
-        MAX(carid) AS a
-    FROM
-        pos
-) AS t", con))
+                    select max(a)+1 from
+                    (
+                        select max(id) as a from cars
+                        union
+                        select max(carid) as a from pos
+                    ) as t", con))
                 {
                     int newid = 1;
 

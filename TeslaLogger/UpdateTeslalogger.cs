@@ -258,13 +258,10 @@ namespace TeslaLogger
 
                 Chmod("/var/www/html/admin/wallpapers", 777);
 
-                _ = Task.Factory.StartNew(() =>
-                {
-                    UpdatePHPini();
-                    UpdateApacheConfig();
-                    CreateEmptyWeatherIniFile();
-                    CheckBackupCrontab();
-                }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                UpdatePHPini();
+                UpdateApacheConfig();
+                CreateEmptyWeatherIniFile();
+                CheckBackupCrontab();
 
             }
             catch (Exception ex)
