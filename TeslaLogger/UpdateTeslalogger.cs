@@ -1211,6 +1211,13 @@ PRIMARY KEY(id)
                 AssertAlterDB();
                 DBHelper.ExecuteSQLQuery(@"ALTER TABLE `cars` ADD `virtualkey` TINYINT UNSIGNED  NULL DEFAULT '0'", 600);
             }
+
+            if (!DBHelper.ColumnExists("cars", "tl_display_name"))
+            {
+                Logfile.Log("ALTER TABLE cars ADD Column tl_display_name");
+                AssertAlterDB();
+                DBHelper.ExecuteSQLQuery(@"ALTER TABLE `cars` ADD `tl_display_name` varchar(64) NULL DEFAULT NULL", 600);
+            }
         }
 
         private static void CheckDBSchema_can()
