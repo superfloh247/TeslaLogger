@@ -468,10 +468,11 @@ namespace TeslaLogger
                         vin[7] == '6' || // Triple Motor Models S und Model X 2021 Plaid
                         vin[7] == 'B' || // Dual motor - standard Model 3
                         vin[7] == 'C' || // Dual motor - performance Model 3
-                        vin[7] == 'E' ||  // Dual motor - Model Y
-                        vin[7] == 'F' ||  // Dual motor Performance - Model Y
-                        vin[7] == 'K' ||  // Dual motor Standard "Hairpin Windings"
-                        vin[7] == 'L'   // Dual motor Performance "Hairpin Windings"
+                        vin[7] == 'E' || // Dual motor - Model Y
+                        vin[7] == 'F' || // Dual motor Performance - Model Y
+                        vin[7] == 'K' || // Dual motor Standard "Hairpin Windings"
+                        vin[7] == 'L' || // Dual motor Performance "Hairpin Windings"
+                        vin[7] == 'T'    // Dual motor Performance "Highland"
                     )
                 {
                     AWD = true;
@@ -554,6 +555,9 @@ namespace TeslaLogger
                     case 'J':
                     case 'S':
                         motor = "3/Y single";
+                        break;
+                    case 'T':
+                        motor = "3 dual performance highland";
                         break;
                 }
 
@@ -1204,6 +1208,29 @@ namespace TeslaLogger
                 Logfile.ExceptionWriter(ex, "IsDocker");
             }
 
+            return false;
+        }
+
+        public static bool IsUnitTest()
+        {
+            try
+            {
+                foreach(var ass in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if(ass.FullName.StartsWith("NUnit.framework", StringComparison.CurrentCultureIgnoreCase) ||
+                       ass.FullName.StartsWith("Microsoft.VisualStudio.QualityTools.UnitTestFramework", StringComparison.InvariantCultureIgnoreCase) ||
+                       ass.FullName.StartsWith("Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter", StringComparison.InvariantCultureIgnoreCase)||
+                       ass.FullName.StartsWith("Microsoft.TestPlatform", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.ExceptionWriter(ex, "IsUnitTest");
+            }
             return false;
         }
 
