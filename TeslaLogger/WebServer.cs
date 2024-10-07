@@ -198,8 +198,16 @@ namespace TeslaLogger
                 }
 
                 var url = request.Url;
-
-                if (url.Segments.Length == 3)
+                if (url.Segments.Length == 2)
+                {
+                    switch (url.Segments[1])
+                    {
+                        case "backup":
+                            Backup(response);
+                            return;
+                    }
+                }
+                else if (url.Segments.Length == 3)
                 {
                     switch (url.Segments[1])
                     {
@@ -222,6 +230,11 @@ namespace TeslaLogger
                         case "updatedrivestatistics/":
                             UpdateDriveStatistics(response, url);
                             return;
+
+                        case "taillogfile/":
+                            Taillogfile(response, url);
+                            return;
+
                     }
                 }
 
@@ -417,6 +430,60 @@ namespace TeslaLogger
             }
         }
 
+        private void Backup(HttpListenerResponse response)
+        {
+            Logfile.Log("Start Backup");
+            string ret = Tools.ExecMono("/bin/bash", "/etc/teslalogger/backup.sh");
+            WriteString(response, ret);
+        }
+
+        private void Taillogfile(HttpListenerResponse response, Uri url)
+        {
+            var lines = Convert.ToInt32(url.Segments[2].ToString());
+
+            var path = Logfile.Logfilepath;
+
+            string log = ReadEndTokens(path, lines, System.Text.Encoding.UTF8, "\n");
+            WriteString(response, log);
+        }
+
+        public static string ReadEndTokens(string path, Int64 numberOfTokens, Encoding encoding, string tokenSeparator)
+        {
+
+            int sizeOfChar = encoding.GetByteCount("\n");
+            byte[] buffer = encoding.GetBytes(tokenSeparator);
+
+
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                Int64 tokenCount = 0;
+                Int64 endPosition = fs.Length / sizeOfChar;
+
+                for (Int64 position = sizeOfChar; position < endPosition; position += sizeOfChar)
+                {
+                    fs.Seek(-position, SeekOrigin.End);
+                    fs.Read(buffer, 0, buffer.Length);
+
+                    if (encoding.GetString(buffer) == tokenSeparator)
+                    {
+                        tokenCount++;
+                        if (tokenCount == numberOfTokens)
+                        {
+                            byte[] returnBuffer = new byte[fs.Length - fs.Position];
+                            fs.Read(returnBuffer, 0, returnBuffer.Length);
+                            return encoding.GetString(returnBuffer);
+                        }
+                    }
+                }
+
+                // handle case where number of tokens in file is less than numberOfTokens
+                fs.Seek(0, SeekOrigin.Begin);
+                buffer = new byte[fs.Length];
+                fs.Read(buffer, 0, buffer.Length);
+                return encoding.GetString(buffer);
+            }
+        }
+
         private void UpdateDriveStatistics(HttpListenerResponse response, Uri url)
         {
             Logfile.Log("WebServer UpdateDriveStatistics. " + url.Segments[2].ToString());
@@ -482,14 +549,25 @@ namespace TeslaLogger
 
             if (filename == "settings.json")
                 p = FileManager.GetFilePath(TLFilename.SettingsFilename);
+            else if (filename == "geofence-private.csv")
+            {
+                p = FileManager.GetFilePath(TLFilename.GeofencePrivateFilename);
+                p = p.Replace("Debug/net8.0/", "");
+            }
 
             System.Diagnostics.Debug.WriteLine("Webserver writefile: " + p);
+            Logfile.Log("Webserver writefile: " + p);
 
             if (File.Exists(p))
                 File.Delete(p);
 
             string data = GetDataFromRequestInputStream(request);
-                
+
+            var pd = Path.GetDirectoryName(p);
+            if (!Directory.Exists(pd))
+                Directory.CreateDirectory(pd);
+
+
             File.WriteAllText(p, data);
             WriteString(response, "ok");
             return;
@@ -537,6 +615,15 @@ namespace TeslaLogger
                 p = p.Replace(@"Debug\", "");
                 p = p.Replace(@"net8.0\", "");
             }
+
+            if (!File.Exists(p))
+            {
+                p = p.Replace(@"Debug/", "");
+                p = p.Replace(@"net8.0/", "");
+            }
+
+            if (filename == "settings.json")
+                p = FileManager.GetFilePath(TLFilename.SettingsFilename);
 
             System.Diagnostics.Debug.WriteLine("Webserver getfile: " + p);
 

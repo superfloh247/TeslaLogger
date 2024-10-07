@@ -90,5 +90,9 @@ TeslaLogger/GrafanaDB/*
 TeslaLogger/NOBACKUPONUPDATE
 TeslaLogger/copytodebian.cmd
 TeslaLogger/bin/LASTTASKERWAKEUPFILE_*
+MQTTClient/.vs
+TeslaLogger/copyto.net8docker.cmd
 /TeslaLogger/bin/logs
+/TeslaLogger/bin/data
+/TeslaLogger/data
 TeslaLogger/bin/encryption.txt

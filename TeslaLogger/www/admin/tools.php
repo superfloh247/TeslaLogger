@@ -11,6 +11,12 @@ function isDocker()
     return file_exists($dockerfile);
 }
 
+function isDockerNET8()
+{
+    $dockerfile = "/var/tmp/dockernet8";
+    return file_exists($dockerfile);
+}
+
 function GetFileFromTeslaloggerAndWriteToTMP($filename)
 {
     $url = GetTeslaloggerURL("getfile/$filename");
@@ -19,13 +25,20 @@ function GetFileFromTeslaloggerAndWriteToTMP($filename)
         file_put_contents("/tmp/$filename", $contenturl);
 }
 
+function GetFromTeslalogger($path)
+{
+    $url = GetTeslaloggerURL($path);
+    $contenturl = @file_get_contents($url);
+    return $contenturl;
+}
+
 function GetTeslaloggerHTTPPort()
 {
     $port = 5000;
 
-    if (file_exists("/etc/teslalogger/settings.json"))
+    if (file_exists("/tmp/settings.json"))
 	{
-		$content = file_get_contents("/etc/teslalogger/settings.json");
+		$content = file_get_contents("/tmp/settings.json");
 		$j = json_decode($content);
 		if (!empty($j->{"HTTPPort"})) 
             $port = $j->{"HTTPPort"};	
@@ -110,35 +123,36 @@ function startsWith( $haystack, $needle ) {
 
 function files_are_equal($a, $b)
 {
-  // Check if filesize is different
-  if(filesize($a) !== filesize($b))
-      return false;
+    // Check if filesize is different
+    if (filesize($a) !== filesize($b))
+        return false;
 
-  // Check if content is different
-  $ah = fopen($a, 'rb');
-  $bh = fopen($b, 'rb');
+    // Check if content is different
+    $ah = fopen($a, 'rb');
+    $bh = fopen($b, 'rb');
 
-  $result = true;
-  while(!feof($ah))
-  {
-    if(fread($ah, 8192) != fread($bh, 8192))
-    {
-      $result = false;
-      break;
+    if ($ah && $bh) {
+        $result = true;
+        while (feof($ah) !== false) {
+            if (fread($ah, 8192) != fread($bh, 8192)) {
+                $result = false;
+                break;
+            }
+        }
+
+        fclose($ah);
+        fclose($bh);
+
+        return $result;
     }
-  }
-
-  fclose($ah);
-  fclose($bh);
-
-  return $result;
+    return false;
 }
 
 function GetDefaultCarId()
 {
-    if (file_exists("/etc/teslalogger/settings.json"))
+    if (file_exists("/tmp/settings.json"))
     {
-        $json = file_get_contents("/etc/teslalogger/settings.json");
+        $json = file_get_contents("/tmp/settings.json");
         $json_data = json_decode($json,true);
 
         if (!empty($carid = $json_data["defaultcarid"]))

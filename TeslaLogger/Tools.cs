@@ -836,7 +836,7 @@ namespace TeslaLogger
 
             try
             {
-                if (!Tools.IsMono())
+                if (!Tools.IsMono() && !Tools.IsDocker())
                 {
                     return "";
                 }
@@ -1231,6 +1231,27 @@ namespace TeslaLogger
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Logfile.ExceptionWriter(ex, "IsUnitTest");
             }
+            return false;
+        }
+
+        public static bool IsDockerNET8()
+        {
+            try
+            {
+                string filename = "/tmp/teslalogger-dockernet8";
+
+                if (File.Exists(filename))
+                {
+                    return true;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.ExceptionWriter(ex, "IsDockerNET8");
+            }
+
             return false;
         }
 
@@ -2249,7 +2270,7 @@ WHERE
         {
             try
             {
-                var path = "encryption.txt";
+                var path = FileManager.GetFilePath(TLFilename.EncryptionFilename);
 
                 if (!File.Exists(path))
                 {

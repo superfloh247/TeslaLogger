@@ -27,7 +27,8 @@ function menu($title, $prefix = "")
     if (!isset($current_carid))
         $current_carid = GetDefaultCarId();
 
-    $alldashboards = file_get_contents("/etc/teslalogger/dashboardlinks.txt");
+	GetFileFromTeslaloggerAndWriteToTMP("dashboardlinks.txt");
+    $alldashboards = file_get_contents("/tmp/dashboardlinks.txt");
 
     $allcars = file_get_contents(GetTeslaloggerURL("getallcars"),0, stream_context_create(["http"=>["timeout"=>2]]));
 
@@ -82,9 +83,12 @@ function menu($title, $prefix = "")
 					<li id="menu-item-2" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2">
 						<a href="javascript:BackgroudRun('restartlogger.php', '<?php t("Reboot!"); ?>')"><?php t("Restart"); ?></a>
 					</li>
+<?php if (!isDockerNET8())
+{?>
 					<li id="menu-item-3" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3">
 						<a href="javascript:BackgroudRun('update.php', '<?php t("Reboot!"); ?>')"><?php t("Update"); ?></a>
 					</li>
+<?php } ?>
 					<li id="menu-item-7" class="page_item_has_children">
 						<a href="#"><?php t("Dashboards"); ?></a>
 						<ul class='children menu-columns'>

@@ -27,9 +27,7 @@ namespace TeslaLogger
         private static Object lastTeslaLoggerVersionCheckObj = new object();
         internal static DateTime GetLastVersionCheck() { return lastTeslaLoggerVersionCheck; }
 
-        private static bool _done; // defaults to false;
-
-        public static bool Done { get => _done; }
+        internal static CancellationTokenSource done = new CancellationTokenSource();
 
         private static Thread ComfortingMessages; // defaults to null;
         public static bool DownloadUpdateAndInstallStarted; // defaults to false;
@@ -57,9 +55,12 @@ namespace TeslaLogger
             ComfortingMessages = new Thread(() =>
             {
                 Random rnd = new Random();
-                while (!Done)
+                while (!done.IsCancellationRequested)
                 {
                     Thread.Sleep(15000 + rnd.Next(15000));
+                    if (done.IsCancellationRequested)
+                        break;
+
                     switch (rnd.Next(3))
                     {
                         case 0:
@@ -291,8 +292,7 @@ namespace TeslaLogger
             {
                 try
                 {
-                    _done = true;
-                    ComfortingMessages.Abort();
+                    done.Cancel();
                 }
                 catch (Exception) { }
             }
@@ -1853,6 +1853,7 @@ PRIMARY KEY(id)
         {
             string filename = Path.Combine(FileManager.GetExecutingPath(), "language-" + language + ".txt");
             filename = filename.Replace("\\bin\\Debug", "\\bin");
+            filename = filename.Replace("/Debug/net8.0", "");
             return filename;
         }
 
@@ -1860,7 +1861,7 @@ PRIMARY KEY(id)
         {
             try
             {
-                if (Tools.IsMono())
+                if (Tools.IsMono() || Tools.IsDocker())
                 {
                     Tools.GrafanaSettings(out string power, out string temperature, out string length, out string language, out string URL_Admin, out string Range, out string URL_Grafana, out string defaultcar, out string defaultcarid);
 
@@ -1882,6 +1883,12 @@ PRIMARY KEY(id)
 
                     Tools.ExecMono("mkdir", "/etc/teslalogger/tmp");
                     Tools.ExecMono("mkdir", "/etc/teslalogger/tmp/Grafana");
+
+                    if (!Directory.Exists("/etc/teslalogger/tmp"))
+                        Directory.CreateDirectory("/etc/teslalogger/tmp/Grafana");
+
+                    if (!Directory.Exists("/etc/teslalogger/tmp"))
+                        Directory.CreateDirectory("/etc/teslalogger/tmp/Grafana");
 
                     bool useNewTrackmapPanel = Directory.Exists("/var/lib/grafana/plugins/pR0Ps-grafana-trackmap-panel");
 
@@ -2450,16 +2457,17 @@ PRIMARY KEY(id)
             return "";
         }
 
-        private static void CopyLanguageFileToTimelinePanel(string language)
+        public const string TimeLinePanelLanguagePath = "/var/lib/grafana/plugins/teslalogger-timeline-panel/dist/language.txt";
+        public static void CopyLanguageFileToTimelinePanel(string language)
         {
             try
             {
                 string languageFilepath = GetLanguageFilepath(language);
                 if (File.Exists(languageFilepath))
                 {
-                    string dst = "/var/lib/grafana/plugins/teslalogger-timeline-panel/dist/language.txt";
-                    Logfile.Log("Copy " + languageFilepath + " to " + dst);
-                    File.Copy(languageFilepath, dst, true);
+                    
+                    Logfile.Log("Copy " + languageFilepath + " to " + TimeLinePanelLanguagePath);
+                    File.Copy(languageFilepath, TimeLinePanelLanguagePath, true);
                 }
             }
             catch (Exception ex)
@@ -2469,17 +2477,23 @@ PRIMARY KEY(id)
             }
         }
 
-        private static void CopySettingsToTimelinePanel()
+        public const string TimeLinePanelSettingsPath = "/var/lib/grafana/plugins/teslalogger-timeline-panel/dist/settings.json";
+        public static void CopySettingsToTimelinePanel()
         {
             try
             {
                 string settingsFilepath = "/etc/teslalogger/settings.json";
+                if (Tools.IsDockerNET8())
+                    settingsFilepath = "/etc/teslalogger/data/settings.json";
+
                 if (File.Exists(settingsFilepath))
                 {
-                    string dst = "/var/lib/grafana/plugins/teslalogger-timeline-panel/dist/settings.json";
-                    Logfile.Log("Copy " + settingsFilepath + " to " + dst);
-                    File.Copy(settingsFilepath, dst, true);
+                    Logfile.Log("Copy " + settingsFilepath + " to " + TimeLinePanelSettingsPath);
+                    File.Copy(settingsFilepath, TimeLinePanelSettingsPath, true);
                 }
+                else
+                    Logfile.Log("Copy: " + settingsFilepath + " NOT FOUND!!!");
+
             }
             catch (Exception ex)
             {

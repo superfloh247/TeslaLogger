@@ -1,16 +1,6 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-
-// Allgemeine Informationen über eine Assembly werden über die folgenden
-// Attribute gesteuert. Ändern Sie diese Attributwerte, um die Informationen zu ändern,
-// die einer Assembly zugeordnet sind.
-[assembly: AssemblyTitle("TeslaLogger")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TeslaLogger")]
-[assembly: AssemblyCopyright("Copyright © 2018 by Christian Pogea")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

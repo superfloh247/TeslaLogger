@@ -455,7 +455,7 @@ function ShowInfo()
 	else if(isDocker() && GrafanaVersion() != "10.0.1")
 	{?>
 		<?php
-		$t1=get_text("Please update to latest docker-compose.yml file. Check: {LINK}");
+		$t1=get_text("Please update to latest docker-compose.yml file. Check: {LINK}<br>Grafana 10.0.1 not installed!");
 		$t1=str_replace("{", "<a href='https://github.com/bassmaster187/TeslaLogger/blob/master/docker_setup.md#docker-update--upgrade'>", $t1);
 		$t1=str_replace("}", '</a>', $t1);
 		?>
@@ -464,7 +464,7 @@ function ShowInfo()
 		$("#PositiveButton").click(function(){window.location.href='https://github.com/bassmaster187/TeslaLogger/blob/master/docker_setup.md#docker-update--upgrade';});
 		$("#NegativeButton").hide();
 	<?php
-	} else if (isDocker() && !DatasourceUpdated())
+	} else if (isDocker() && !DatasourceUpdated() && !isDockerNET8())
 	{?>
 		$("#InfoText").html("<h1>Please update datasource.yaml file. Check: <a href='https://github.com/bassmaster187/TeslaLogger/blob/master/docker_setup.md#docker-update--upgrade'>LINK</a></h1>");
 		$(".HeaderT").show();
@@ -472,7 +472,7 @@ function ShowInfo()
 		$("#NegativeButton").hide();
 	<?php
 	}
-	else if (!files_are_equal("/etc/teslalogger/changelog.md","/tmp/changelog.md"))
+	else if (!files_are_equal("/tmp/changelog_last.md","/tmp/changelog.md"))
 	{?>
 		$.get("changelog_plain.php").success(function(data){
 			$("#InfoText").html(data);
@@ -556,6 +556,9 @@ function ShowInfo()
 	else
 		$installed = getTeslaloggerVersion("/etc/teslalogger/git/TeslaLogger/Properties/AssemblyInfo.cs");
 
+	if (empty($installed))
+		$installed = GetFromTeslalogger("getversion");
+
 	$branch = file_get_contents("/etc/teslalogger/BRANCH");
 
 	if (!empty($branch))
@@ -584,9 +587,9 @@ function getTeslaloggerVersion($path)
 }
 function getZoomLevel()
 {
-	if (file_exists("/etc/teslalogger/settings.json"))
+	if (file_exists("/tmp/settings.json"))
 	{
-		$content = file_get_contents("/etc/teslalogger/settings.json");
+		$content = file_get_contents("/tmp/settings.json");
 		$j = json_decode($content);
 		if (!empty($j->{"ZoomLevel"}))
 			return $j->{"ZoomLevel"};

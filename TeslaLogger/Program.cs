@@ -350,6 +350,15 @@ namespace TeslaLogger
             Logfile.Log("Update Settings: " + Tools.GetOnlineUpdateSettings().ToString());
             ExceptionlessClient.Default.Configuration.DefaultData.Add("UpdateSettings", Tools.GetOnlineUpdateSettings().ToString());
 
+            try
+            {
+                if (Environment.Version?.ToString()?.StartsWith("8.0") == true)
+                {
+                    ExceptionlessClient.Default.Configuration.DefaultData.Add("dotnet", Environment.Version?.ToString());
+                    ExceptionlessClient.Default.CreateFeatureUsage("USE_DOTNET8").FirstCarUserID().AddObject(Environment.Version.ToString(), "DOTNET8").Submit();
+                }
+            } catch (Exception) { }
+
             Logfile.Log("DBConnectionstring: " + DBHelper.GetDBConnectionstring(true));
 
             Logfile.Log("KeepOnlineMinAfterUsage: " + KeepOnlineMinAfterUsage);
@@ -383,10 +392,6 @@ namespace TeslaLogger
             UpdateTeslalogger.Chmod("nohup.out", 666, false);
             UpdateTeslalogger.Chmod("backup.sh", 777, false);
             UpdateTeslalogger.Chmod("TeslaLogger.exe", 755, false);
-
-#pragma warning disable CA5364 // Verwenden Sie keine veralteten Sicherheitsprotokolle.
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-#pragma warning restore CA5364 // Verwenden Sie keine veralteten Sicherheitsprotokolle.
 
             Logfile.Log("Runtime: " + Environment.Version.ToString());
             Logfile.Log("TeslaLogger Version: " + Assembly.GetExecutingAssembly().GetName().Version);
@@ -424,6 +429,9 @@ namespace TeslaLogger
         {
             try
             {
+                var path = FileManager.GetFilePath(TLFilename.EncryptionFilename);
+                Logfile.Log($"Path of encryption.txt: {path}");
+
                 var body = "jfsdoifjhoiwejgfüp9034eu7trfß90834ugf0ß9834uejpf90guj43pü09tgfuj45p90t8ugjedlkfgjd";
                 var pass = StringCipher.GetPassPhrase();
                 var encrypted = StringCipher.Encrypt(body);
@@ -477,18 +485,34 @@ namespace TeslaLogger
         {
             try
             {
+                string newFilePath = FileManager.GetFilePath(TLFilename.SettingsFilename);
+
+                if (!File.Exists(newFilePath))
+                {
+                    var p = Path.GetDirectoryName(newFilePath);
+                    if (!Directory.Exists(p))
+                        Directory.CreateDirectory(p);
+
+                    string oldFilePath = "/etc/teslalogger/settings.json";
+
+                    if (File.Exists(oldFilePath))
+                    {
+                        File.Move(oldFilePath, newFilePath);
+                        Logfile.Log("settings.json moved to :" + newFilePath);
+                    }
+                    else
+                    {
+                        Logfile.Log("Creating empty settings.json " + newFilePath);
+                        File.AppendAllText(newFilePath, GetDefaultConfigFileContent());
+                        UpdateTeslalogger.Chmod(newFilePath, 666);
+                    }
+                }
+
                 if (Tools.IsDocker())
                 {
                     Logfile.Log("Docker: YES!");
 
                     ExceptionlessClient.Default.Configuration.DefaultData.Add("Docker", true);
-
-                    if (!File.Exists("/etc/teslalogger/settings.json"))
-                    {
-                        Logfile.Log("Creating empty settings.json");
-                        File.AppendAllText("/etc/teslalogger/settings.json", GetDefaultConfigFileContent());
-                        UpdateTeslalogger.Chmod("/etc/teslalogger/settings.json", 666);
-                    }
 
                     if (!Directory.Exists("/etc/teslalogger/backup"))
                     {
@@ -505,6 +529,19 @@ namespace TeslaLogger
                 else
                 {
                     Logfile.Log("Docker: NO!");
+                }
+
+                if (Tools.IsDockerNET8())
+                {
+                    Logfile.Log("Docker NET8: YES!");
+                    
+                    Tools.CopyFilesRecursively(new DirectoryInfo("/etc/teslalogger/git/TeslaLogger/GrafanaPlugins"), new DirectoryInfo("/var/lib/grafana/plugins"));
+                    
+                    if (!File.Exists(UpdateTeslalogger.TimeLinePanelLanguagePath))
+                        UpdateTeslalogger.CopyLanguageFileToTimelinePanel("en");
+
+                    if (!File.Exists(UpdateTeslalogger.TimeLinePanelSettingsPath))
+                        UpdateTeslalogger.CopySettingsToTimelinePanel();
                 }
             }
             catch (Exception ex)
@@ -524,7 +561,7 @@ namespace TeslaLogger
             Thread Housekeeper = new Thread(() =>
             {
                 // wait for DB updates
-                while (!UpdateTeslalogger.Done)
+                while (!UpdateTeslalogger.done.IsCancellationRequested)
                     Thread.Sleep(5000);
 
                 DateTime start = DateTime.Now;
@@ -587,7 +624,7 @@ namespace TeslaLogger
                 try
                 {
                     // wait for DB updates
-                    while (!UpdateTeslalogger.Done)
+                    while (!UpdateTeslalogger.done.IsCancellationRequested)
                         Thread.Sleep(5000);
 
                     Thread.Sleep(30000);

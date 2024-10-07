@@ -8,6 +8,7 @@ using MySql.Data.MySqlClient;
 using Exceptionless;
 using Newtonsoft.Json;
 using System.Runtime.Caching;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
 using System.Net;

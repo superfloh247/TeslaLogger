@@ -53,8 +53,7 @@ namespace TeslaLogger
             httpclient_teslalogger_de.DefaultRequestHeaders.ConnectionClose = true;
 
             ProductInfoHeaderValue userAgent = new ProductInfoHeaderValue("Teslalogger", Assembly.GetExecutingAssembly().GetName().Version.ToString());
-            httpclient_teslalogger_de.DefaultRequestHeaders.UserAgent.Add(userAgent);
-            httpclient_teslalogger_de.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(" + car.TaskerHash + "; " + Thread.CurrentThread.ManagedThreadId + ")"));
+            httpclient_teslalogger_de.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent.ToString());
 
             car.Log("Start ScanMyTesla Thread!");
 
