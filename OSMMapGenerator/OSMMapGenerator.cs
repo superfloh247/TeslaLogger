@@ -1,12 +1,10 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 
@@ -34,7 +32,8 @@ namespace TeslaLogger
         private static int tileSize = 256;
         private static string MapCachePath = string.Empty;
         private static Random random = new Random();
-        private static Font drawFont8 = new Font(FontFamily.GenericSansSerif, 8);
+        private static SKFont drawFont8 = new SKFont(SKTypeface.FromFamilyName("SanSerif"), 10);
+        /* ccc
         private static SolidBrush fillBrush = new SolidBrush(Color.FromArgb(51, 51, 51));
         private static SolidBrush grayBrush = new SolidBrush(Color.FromArgb(226,226,226));
         private static Pen bluePen = new Pen(Color.FromArgb(88,130,249), 3);
@@ -44,18 +43,40 @@ namespace TeslaLogger
         private static SolidBrush blueBrush = new SolidBrush(Color.FromArgb(62, 114, 177));
         private static SolidBrush redBrush = new SolidBrush(Color.FromArgb(226,77,66));
         private static SolidBrush whiteBrush = new SolidBrush(Color.White);
-        private static Font drawFont12b = new Font(FontFamily.GenericSansSerif, 12, FontStyle.Bold);
-        private static Pen thinWhitePen = new Pen(Color.White, 1);
+        */
+        static SKPaint bluePen = new SKPaint {Color = new SKColor(80,130,249), Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeWidth = 3};
+        static SKPaint orangeBrush = new SKPaint { Color = SKColors.Orange, Style = SKPaintStyle.Fill, IsAntialias = true, StrokeWidth = 1 };
+        static SKPaint greenBrush = new SKPaint { Color = new SKColor(126, 178, 109), Style = SKPaintStyle.Fill, IsAntialias = true, StrokeWidth = 1};
+        static SKPaint blueBrush = new SKPaint { Color = new SKColor(62, 114, 177), Style = SKPaintStyle.Fill, IsAntialias = true, StrokeWidth = 1 };
+        static SKPaint redBrush = new SKPaint { Color = new SKColor(226, 77, 66), Style = SKPaintStyle.Fill, IsAntialias = true, StrokeWidth = 1 };
+        static SKPaint thinWhitePen = new SKPaint { Color = SKColors.White, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeWidth = 1 };
+        static SKFont SanSerifBold12 = new SKFont
+        {
+            Typeface = SKTypeface.FromFamilyName("SanSerif", SKFontStyle.Bold),
+            Size = 16,
+            Edging = SKFontEdging.Antialias
+        };
+        static SKPaint drawFont12b = new SKPaint(SanSerifBold12){ 
+            StrokeWidth = 1, 
+            Color = SKColors.White
+        };
+        //private static SKFont drawFont12b = new SKFont(SKTypeface.FromFamilyName("SanSerif"), 12); // ccc FontStyle.Bold
+        // ccc private static Pen thinWhitePen = new Pen(Color.White, 1);
 
         public static void Main(string[] args)
         {
+            // args = new string[] { "-jobfile", @"c:\temp\tiles\05f1e9ff-5b20-4548-9e75-a1b6458b7d5f", "-debug" };
+
             if (ParseCmdLineArgs(args))
             {
                 if (debug) { Console.WriteLine("OSMMapGenerator - Job: " + jobfile); }
                 try
                 {
                     string json = File.ReadAllText(jobfile);
-                    File.Delete(jobfile);
+                    
+                    if (!System.Diagnostics.Debugger.IsAttached)
+                        File.Delete(jobfile);
+
                     dynamic jsonResult = JsonConvert.DeserializeObject(json);
                     Dictionary<string, object> job = jsonResult.ToObject<Dictionary<string, object>>();
                     if (job != null)
@@ -66,10 +87,16 @@ namespace TeslaLogger
                         tileSize = Convert.ToInt32(job["tileSize"]);
                         double x_center = Convert.ToDouble(job["x_center"]);
                         double y_center = Convert.ToDouble(job["y_center"]);
+
+                        if (debug) { Console.WriteLine($"width: {width} - height: {height} - zoom: {zoom} - tileSize: {tileSize}"); }
+
                         MapMode mapmode = (MapMode)Enum.ToObject(typeof(MapMode), job["mapmode"]);
                         MapCachePath = job["MapCachePath"].ToString();
+                        if (System.Diagnostics.Debugger.IsAttached)
+                            MapCachePath = "map-data";
+
                         if (debug) { Console.WriteLine($"OSMMapGenerator - DrawMap(width:{width}, height:{height}, zoom:{zoom}, x_center:{x_center}, y_center:{y_center}, mapmode:{mapmode})"); }
-                        Bitmap map = DrawMap(width, height, zoom, x_center, y_center, mapmode);
+                        SKBitmap map = DrawMap(width, height, zoom, x_center, y_center, mapmode);
                         if (job.ContainsKey("latlng"))
                         {
                             DataTable coords = new DataTable();
@@ -130,11 +157,26 @@ namespace TeslaLogger
             }
         }
 
-        public static void SaveImage(Bitmap image, string filename)
+        public static void SaveImage(SKBitmap image, string filename)
         {
             try
             {
-                image.Save(filename);
+                // ccc image.Save(filename);
+
+                if (System.Diagnostics.Debugger.IsAttached)
+                {
+                    int pos = filename.IndexOf("maps");
+                    if ( pos > 0)
+                        filename = filename.Substring(pos);
+                }
+
+                SKImage i = SKImage.FromBitmap(image);
+                using (SKData d = i.Encode(SKEncodedImageFormat.Png, 90))
+                using (Stream sw = File.OpenWrite(filename))
+                { 
+                    d.SaveTo(sw);
+                }
+                
                 if (debug) { Console.WriteLine("OSMMapGenerator - SaveImage: " + filename); }
                 if (File.Exists("/usr/bin/optipng"))
                 {
@@ -181,9 +223,9 @@ namespace TeslaLogger
             return jobfilefound;
         }
 
-        private static Bitmap DrawMap(int width, int height, int zoom, double x_center, double y_center, MapMode mode)
+        private static SKBitmap DrawMap(int width, int height, int zoom, double x_center, double y_center, MapMode mode)
         {
-            Bitmap image = new Bitmap(width, height);
+            SKBitmap image = new SKBitmap(width, height);
             {
                 DrawMapLayer(image, width, height, x_center, y_center, zoom);
                 if (mode == MapMode.Dark)
@@ -195,7 +237,7 @@ namespace TeslaLogger
             return image;
         }
 
-        private static void DrawMapLayer(Bitmap image, int width, int height, double x_center, double y_center, int zoom)
+        private static void DrawMapLayer(SKBitmap image, int width, int height, double x_center, double y_center, int zoom)
         {
             int x_min = (int)(Math.Floor(x_center - (0.5 * width / tileSize)));
             int y_min = (int)(Math.Floor(y_center - (0.5 * height / tileSize)));
@@ -216,52 +258,105 @@ namespace TeslaLogger
             }
             foreach (Tuple<int, int, int, int, int> tile in tiles)
             {
-                using (Bitmap tileImage = DownloadTile(tile.Item3, tile.Item4, tile.Item5))
+                using (SKBitmap tileImage = DownloadTile(tile.Item3, tile.Item4, tile.Item5))
                 {
                     if (tileImage != null)
                     {
-                        Rectangle box = new Rectangle(XtoPx(tile.Item1, x_center, width), YtoPx(tile.Item2, y_center, height), tileSize, tileSize);
-                        CopyRegionIntoImage(tileImage, new Rectangle(0, 0, tileSize, tileSize), image, box);
+
+                        SKRectI box = new SKRectI(XtoPx(tile.Item1, x_center, width), YtoPx(tile.Item2, y_center, height), tileSize, tileSize);
+                        CopyRegionIntoImage(tileImage, new SKRectI(0, 0, tileSize, tileSize), image, box);
                     }
                 }
             }
         }
 
-        private static void CopyRegionIntoImage(Bitmap srcBitmap, Rectangle srcRegion, Bitmap destBitmap, Rectangle destRegion)
+        static int debugCounter = 1;
+        private static void CopyRegionIntoImage(SKBitmap srcBitmap, SKRectI srcRegion, SKBitmap destBitmap, SKRectI destRegion)
         {
-            int srcX = destRegion.X < 0 ? Math.Abs(destRegion.X) : 0;
-            int srcY = destRegion.Y < 0 ? Math.Abs(destRegion.Y) : 0;
-            int srcW = srcRegion.Width - Math.Abs(destRegion.X);
-            int srcH = srcRegion.Height - Math.Abs(destRegion.Y);
-            int destX = destRegion.X < 0 ? 0 : destRegion.X;
-            int destY = destRegion.Y < 0 ? 0 : destRegion.Y;
+            // https://github.com/mono/SkiaSharp/issues/1934
+
+            if (debug) Console.WriteLine("Step1 - src: " + srcRegion.ToString() + " - dest: " + destRegion.ToString());
+
+            int srcX = destRegion.Left < 0 ? Math.Abs(destRegion.Left) : 0;
+            int srcY = destRegion.Top < 0 ? Math.Abs(destRegion.Top) : 0;
+            int srcW = srcRegion.Width - Math.Abs(destRegion.Left);
+            int srcH = srcRegion.Height - Math.Abs(destRegion.Top);
+            int destX = destRegion.Left < 0 ? 0 : destRegion.Left;
+            int destY = destRegion.Top < 0 ? 0 : destRegion.Top;
             int destW = srcW;
             int destH = srcH;
-            Rectangle src = new Rectangle(srcX, srcY, srcW, srcH);
-            Rectangle dest = new Rectangle(destX, destY, destW, destH);
+            SKRectI src = new SKRectI(srcX, srcY, srcX + srcW, srcY + srcH);
+            SKRectI dest = new SKRectI(destX, destY, destW, destH);
+
+            if (debug) Console.WriteLine("Step2 - src: " + src.ToString() + " - dest: " + dest.ToString());
+            
+            //cut
+            SKBitmap cutSrcBitmap = new SKBitmap(src.Width, src.Height);
+            srcBitmap.ExtractSubset(cutSrcBitmap, src);
+
+            // if (debug) SaveImage(cutSrcBitmap, $"maps/debug-cut-{debugCounter}.png");
+
+            using var canvas = new SKCanvas(destBitmap);
+            canvas.DrawBitmap(cutSrcBitmap, (float)destX, (float)destY);
+            canvas.Flush();
+
+            // if (debug) SaveImage(destBitmap, $"maps/debug-{debugCounter}.png");
+            debugCounter++;
+            /*
             using (Graphics grD = Graphics.FromImage(destBitmap))
             {
                 grD.DrawImage(srcBitmap, dest, src, GraphicsUnit.Pixel);
                 grD.Dispose();
+            }*/
+        }
+        
+
+
+
+        private static void ApplyDarkMode(SKBitmap image)
+        {
+            bool savePic = false;
+            if (savePic) SaveImage(image, "maps/1 - Original.png");
+            FilterForest(image);
+            if (savePic) SaveImage(image, "maps/1.1 - FilterForest.png");
+            AdjustBrightness(image, 0.6f); //0.6
+            if (savePic) SaveImage(image, "maps/2 - AdjustBrightness 0.6f.png");
+            InvertImage(image);
+            if (savePic) SaveImage(image, "maps/3 - InvertImage.png");
+            AdjustContrast(image, 1.3f);
+            if (savePic) SaveImage(image, "maps/4 - AdjustContrast.png");
+            HueRotate(image, 200);
+            if (savePic) SaveImage(image, "maps/5 - HueRotate.png");
+            AdjustSaturation(image, 0.3f);
+            if (savePic) SaveImage(image, "maps/6 - AdjustSaturation.png");
+            AdjustBrightness(image, 0.7f);
+            if (savePic) SaveImage(image, "maps/7 - AdjustBrightness.png");
+            AdjustContrast(image, 1.3f);
+            if (savePic) SaveImage(image, "maps/8 - AdjustContrast.png");
+        }
+
+        public static void AdjustBrightness(SKBitmap image, float amount)
+        {
+            SKCanvas canvas = new SKCanvas(image);
+            using (SKPaint paint = new SKPaint())
+            {
+                var cf = SKColorFilter.CreateColorMatrix(new float[]
+                {
+                    amount, 0, 0, 0, 0,
+                    0, amount, 0, 0, 0,
+                    0, 0, amount, 0, 0,
+                    0, 0, 0, 1, 0
+                });
+                paint.ColorFilter = cf;
+                canvas.DrawBitmap(image, 0, 0, paint);
             }
         }
 
 
 
-        private static void ApplyDarkMode(Bitmap image)
-        {
-            FilterForest(image);
-            AdjustBrightness(image, 0.6f);
-            InvertImage(image);
-            AdjustContrast(image, 1.3f);
-            HueRotate(image, 200);
-            AdjustSaturation(image, 0.3f);
-            AdjustBrightness(image, 0.7f);
-            AdjustContrast(image, 1.3f);
-        }
-
+        /*
         // https://github.com/JimBobSquarePants/ImageProcessor/blob/release/3.0.0/src/ImageProcessor/Processing/KnownColorMatrices.cs
-        private static void AdjustBrightness(Image image, float amount)
+        private static void AdjustBrightness(SKBitmap image, float amount)
         {
             ColorMatrix cm = new ColorMatrix
             {
@@ -280,120 +375,216 @@ namespace TeslaLogger
                     g.Dispose();
                 }
             }
-        }
+        } */
 
-        static Color cNeutral = Color.FromArgb(224, 223, 223);
 
-        private static void FilterForest(Bitmap image)
+        static SKColor cNeutral = new SKColor(224, 223, 223);
+
+        
+        private static void FilterForest(SKBitmap image)
         {
             for (int y = 0; (y <= (image.Height - 1)); y++)
             {
                 for (int x = 0; (x <= (image.Width - 1)); x++)
                 {
-                    Color inv = image.GetPixel(x, y);
+                    SKColor inv = image.GetPixel(x, y);
 
                     if (
-                        (inv.R == 233 && inv.G == 238 && inv.B == 214) ||
-                        (inv.R == 235 && inv.G == 219 && inv.B == 232) ||
-                        (inv.R == 236 && inv.G == 236 && inv.B == 228) ||
-                        (inv.R == 237 && inv.G == 242 && inv.B == 219) ||
-                        (inv.R == 238 && inv.G == 240 && inv.B == 213) ||
-                        (inv.R == 239 && inv.G == 226 && inv.B == 237) ||
-                        (inv.R == 241 && inv.G == 243 && inv.B == 221) ||
-                        (inv.R == 242 && inv.G == 238 && inv.B == 233) ||
-                        (inv.R == 242 && inv.G == 239 && inv.B == 233)
+                        (inv.Red == 233 && inv.Green == 238 && inv.Blue == 214) ||
+                        (inv.Red == 235 && inv.Green == 219 && inv.Blue == 232) ||
+                        (inv.Red == 236 && inv.Green == 236 && inv.Blue == 228) ||
+                        (inv.Red == 237 && inv.Green == 242 && inv.Blue == 219) ||
+                        (inv.Red == 238 && inv.Green == 240 && inv.Blue == 213) ||
+                        (inv.Red == 239 && inv.Green == 226 && inv.Blue == 237) ||
+                        (inv.Red == 241 && inv.Green == 243 && inv.Blue == 221) ||
+                        (inv.Red == 242 && inv.Green == 238 && inv.Blue == 233) ||
+                        (inv.Red == 242 && inv.Green == 239 && inv.Blue == 233)
                         )
                         image.SetPixel(x, y, cNeutral);
                     else if ( // Dreiecke
-                            (inv.R == 208 && inv.G == 144 && inv.B == 86)
+                            (inv.Red == 208 && inv.Green == 144 && inv.Blue == 86)
                         )
                         image.SetPixel(x, y, cNeutral);
                     else if (
-                        (inv.R == 150 && inv.G == 184 && inv.B == 136) ||
-                        (inv.R == 150 && inv.G == 185 && inv.B == 136) ||
-                        (inv.R == 154 && inv.G == 198 && inv.B == 142) ||
-                        (inv.R == 156 && inv.G == 192 && inv.B == 142) ||
-                        (inv.R == 167 && inv.G == 201 && inv.B == 153) ||
-                        (inv.R == 167 && inv.G == 202 && inv.B == 153) ||
-                        (inv.R == 167 && inv.G == 210 && inv.B == 159) ||
-                        (inv.R == 173 && inv.G == 209 && inv.B == 158) ||
-                        (inv.R == 174 && inv.G == 206 && inv.B == 161) ||
-                        (inv.R == 174 && inv.G == 210 && inv.B == 161) ||
-                        (inv.R == 174 && inv.G == 223 && inv.B == 163) ||
-                        (inv.R == 174 && inv.G == 221 && inv.B == 161) ||
-                        (inv.R == 174 && inv.G == 222 && inv.B == 163) ||
-                        (inv.R == 176 && inv.G == 210 && inv.B == 159) ||
-                        (inv.R == 177 && inv.G == 221 && inv.B == 165) ||
-                        (inv.R == 178 && inv.G == 211 && inv.B == 164) ||
-                        (inv.R == 179 && inv.G == 188 && inv.B == 148) ||
-                        (inv.R == 183 && inv.G == 198 && inv.B == 154) ||
-                        (inv.R == 183 && inv.G == 214 && inv.B == 165) ||
-                        (inv.R == 185 && inv.G == 198 && inv.B == 142) ||
-                        (inv.R == 186 && inv.G == 212 && inv.B == 165) ||
-                        (inv.R == 186 && inv.G == 213 && inv.B == 173) ||
-                        (inv.R == 188 && inv.G == 213 && inv.B == 181) ||
-                        (inv.R == 189 && inv.G == 218 && inv.B == 177) ||
-                        (inv.R == 190 && inv.G == 229 && inv.B == 181) ||
-                        (inv.R == 200 && inv.G == 215 && inv.B == 171) ||
-                        (inv.R == 200 && inv.G == 228 && inv.B == 173) ||
-                        (inv.R == 200 && inv.G == 250 && inv.B == 204) ||
-                        (inv.R == 201 && inv.G == 225 && inv.B == 191) ||
-                        (inv.R == 201 && inv.G == 249 && inv.B == 204) ||
-                        (inv.R == 202 && inv.G == 225 && inv.B == 190) ||
-                        (inv.R == 204 && inv.G == 213 && inv.B == 200) ||
-                        (inv.R == 205 && inv.G == 235 && inv.B == 176) ||
-                        (inv.R == 210 && inv.G == 234 && inv.B == 186) ||
-                        (inv.R == 214 && inv.G == 237 && inv.B == 193) ||
-                        (inv.R == 215 && inv.G == 238 && inv.B == 192) ||
-                        (inv.R == 217 && inv.G == 238 && inv.B == 196) ||
-                        (inv.R == 220 && inv.G == 244 && inv.B == 196) ||
-                        (inv.R == 222 && inv.G == 237 && inv.B == 205) ||
-                        (inv.R == 223 && inv.G == 250 && inv.B == 226) ||
-                        (inv.R == 223 && inv.G == 251 && inv.B == 226) ||
-                        (inv.R == 223 && inv.G == 252 && inv.B == 226) ||
-                        (inv.R == 238 && inv.G == 240 && inv.B == 213) 
+                        (inv.Red == 149 && inv.Green == 179 && inv.Blue == 139) ||
+                        (inv.Red == 150 && inv.Green == 184 && inv.Blue == 136) ||
+                        (inv.Red == 150 && inv.Green == 185 && inv.Blue == 136) ||
+                        (inv.Red == 153 && inv.Green == 197 && inv.Blue == 141) ||
+                        (inv.Red == 154 && inv.Green == 198 && inv.Blue == 142) ||
+                        (inv.Red == 156 && inv.Green == 192 && inv.Blue == 142) ||
+                        (inv.Red == 167 && inv.Green == 169 && inv.Blue == 123) ||
+                        (inv.Red == 167 && inv.Green == 171 && inv.Blue == 103) ||
+                        (inv.Red == 167 && inv.Green == 197 && inv.Blue == 139) ||
+                        (inv.Red == 167 && inv.Green == 201 && inv.Blue == 153) ||
+                        (inv.Red == 167 && inv.Green == 202 && inv.Blue == 152) ||
+                        (inv.Red == 167 && inv.Green == 202 && inv.Blue == 153) ||
+                        (inv.Red == 167 && inv.Green == 210 && inv.Blue == 159) ||
+                        (inv.Red == 173 && inv.Green == 153 && inv.Blue == 68) ||
+                        (inv.Red == 173 && inv.Green == 209 && inv.Blue == 158) ||
+                        (inv.Red == 174 && inv.Green == 205 && inv.Blue == 162) ||
+                        (inv.Red == 174 && inv.Green == 206 && inv.Blue == 161) ||
+                        (inv.Red == 174 && inv.Green == 210 && inv.Blue == 161) ||
+                        (inv.Red == 174 && inv.Green == 216 && inv.Blue == 162) ||
+                        (inv.Red == 174 && inv.Green == 223 && inv.Blue == 163) ||
+                        (inv.Red == 174 && inv.Green == 221 && inv.Blue == 161) ||
+                        (inv.Red == 174 && inv.Green == 222 && inv.Blue == 163) ||
+                        (inv.Red == 176 && inv.Green == 190 && inv.Blue == 147) ||
+                        (inv.Red == 176 && inv.Green == 210 && inv.Blue == 159) ||
+                        (inv.Red == 177 && inv.Green == 221 && inv.Blue == 165) ||
+                        (inv.Red == 178 && inv.Green == 211 && inv.Blue == 164) ||
+                        (inv.Red == 179 && inv.Green == 188 && inv.Blue == 148) ||
+                        (inv.Red == 179 && inv.Green == 189 && inv.Blue == 148) ||
+                        (inv.Red == 179 && inv.Green == 193 && inv.Blue == 151) ||
+                        (inv.Red == 180 && inv.Green == 209 && inv.Blue == 157) ||
+                        (inv.Red == 180 && inv.Green == 222 && inv.Blue == 170) ||
+                        (inv.Red == 181 && inv.Green == 170 && inv.Blue == 103) ||
+                        (inv.Red == 181 && inv.Green == 170 && inv.Blue == 108) ||
+                        (inv.Red == 181 && inv.Green == 174 && inv.Blue == 117) ||
+                        (inv.Red == 181 && inv.Green == 185 && inv.Blue == 106) ||
+                        (inv.Red == 181 && inv.Green == 225 && inv.Blue == 169) ||
+                        (inv.Red == 182 && inv.Green == 185 && inv.Blue == 118) ||
+                        (inv.Red == 182 && inv.Green == 186 && inv.Blue == 148) ||
+                        (inv.Red == 182 && inv.Green == 212 && inv.Blue == 169) ||
+                        (inv.Red == 183 && inv.Green == 185 && inv.Blue == 135) ||
+                        (inv.Red == 183 && inv.Green == 198 && inv.Blue == 154) ||
+                        (inv.Red == 183 && inv.Green == 214 && inv.Blue == 165) ||
+                        (inv.Red == 185 && inv.Green == 197 && inv.Blue == 136) ||
+                        (inv.Red == 185 && inv.Green == 198 && inv.Blue == 142) ||
+                        (inv.Red == 186 && inv.Green == 196 && inv.Blue == 116) ||
+                        (inv.Red == 186 && inv.Green == 201 && inv.Blue == 157) ||
+                        (inv.Red == 186 && inv.Green == 212 && inv.Blue == 165) ||
+                        (inv.Red == 186 && inv.Green == 213 && inv.Blue == 173) ||
+                        (inv.Red == 187 && inv.Green == 212 && inv.Blue == 165) ||
+                        (inv.Red == 187 && inv.Green == 214 && inv.Blue == 182) ||
+                        (inv.Red == 188 && inv.Green == 213 && inv.Blue == 181) ||
+                        (inv.Red == 189 && inv.Green == 218 && inv.Blue == 177) ||
+                        (inv.Red == 190 && inv.Green == 229 && inv.Blue == 181) ||
+                        (inv.Red == 195 && inv.Green == 199 && inv.Blue == 137) ||
+                        (inv.Red == 195 && inv.Green == 213 && inv.Blue == 181) ||
+                        (inv.Red == 195 && inv.Green == 218 && inv.Blue == 180) ||
+                        (inv.Red == 196 && inv.Green == 201 && inv.Blue == 153) ||
+                        (inv.Red == 198 && inv.Green == 207 && inv.Blue == 173) ||
+                        (inv.Red == 198 && inv.Green == 216 && inv.Blue == 153) ||
+                        (inv.Red == 200 && inv.Green == 215 && inv.Blue == 171) ||
+                        (inv.Red == 200 && inv.Green == 228 && inv.Blue == 173) ||
+                        (inv.Red == 200 && inv.Green == 230 && inv.Blue == 172) ||
+                        (inv.Red == 200 && inv.Green == 250 && inv.Blue == 204) ||
+                        (inv.Red == 201 && inv.Green == 217 && inv.Blue == 184) ||
+                        (inv.Red == 201 && inv.Green == 225 && inv.Blue == 191) ||
+                        (inv.Red == 201 && inv.Green == 249 && inv.Blue == 204) ||
+                        (inv.Red == 202 && inv.Green == 225 && inv.Blue == 190) ||
+                        (inv.Red == 202 && inv.Green == 225 && inv.Blue == 193) ||
+                        (inv.Red == 203 && inv.Green == 228 && inv.Blue == 178) ||
+                        (inv.Red == 204 && inv.Green == 213 && inv.Blue == 200) ||
+                        (inv.Red == 204 && inv.Green == 215 && inv.Blue == 178) ||
+                        (inv.Red == 204 && inv.Green == 218 && inv.Blue == 179) ||
+                        (inv.Red == 205 && inv.Green == 214 && inv.Blue == 179) ||
+                        (inv.Red == 205 && inv.Green == 216 && inv.Blue == 179) ||
+                        (inv.Red == 205 && inv.Green == 235 && inv.Blue == 176) ||
+                        (inv.Red == 207 && inv.Green == 216 && inv.Blue == 184) ||
+                        (inv.Red == 207 && inv.Green == 233 && inv.Blue == 184) ||
+                        (inv.Red == 207 && inv.Green == 233 && inv.Blue == 185) ||
+                        (inv.Red == 209 && inv.Green == 216 && inv.Blue == 187) ||
+                        (inv.Red == 210 && inv.Green == 217 && inv.Blue == 186) ||
+                        (inv.Red == 210 && inv.Green == 234 && inv.Blue == 186) ||
+                        (inv.Red == 211 && inv.Green == 219 && inv.Blue == 196) ||
+                        (inv.Red == 211 && inv.Green == 220 && inv.Blue == 203) ||
+                        (inv.Red == 214 && inv.Green == 237 && inv.Blue == 193) ||
+                        (inv.Red == 215 && inv.Green == 230 && inv.Blue == 200) ||
+                        (inv.Red == 215 && inv.Green == 238 && inv.Blue == 192) ||
+                        (inv.Red == 217 && inv.Green == 238 && inv.Blue == 196) ||
+                        (inv.Red == 220 && inv.Green == 244 && inv.Blue == 196) ||
+                        (inv.Red == 222 && inv.Green == 237 && inv.Blue == 205) ||
+                        (inv.Red == 223 && inv.Green == 250 && inv.Blue == 226) ||
+                        (inv.Red == 223 && inv.Green == 251 && inv.Blue == 226) ||
+                        (inv.Red == 223 && inv.Green == 252 && inv.Blue == 226) ||
+                        (inv.Red == 238 && inv.Green == 240 && inv.Blue == 213) 
                         )
                         image.SetPixel(x, y, cNeutral);
-
                 }
             }
         }
+        
+
+        private static void InvertImage(SKBitmap image)
+        {
+            SKCanvas canvas = new SKCanvas(image);
+            using (SKPaint paint = new SKPaint())
+            {
+                var cf = SKColorFilter.CreateColorMatrix(new float[]
+                {
+                    -1f,  0f,  0f, 0f, 1f,
+                    0f, -1f,  0f, 0f, 1f,
+                    0f,  0f, -1f, 0f, 1f,
+                    0f,  0f,  0f, 1f, 0f
+                });
+                paint.ColorFilter = cf;
+                canvas.DrawBitmap(image, 0, 0, paint);
+            }
+        }
+
 
         // https://mariusbancila.ro/blog/2009/11/13/using-colormatrix-for-creating-negative-image/
-        private static void InvertImage(Bitmap image)
+        /*
+        private static void InvertImage(SKBitmap image)
         {
+            /* ccc
             for (int y = 0; (y <= (image.Height - 1)); y++)
             {
                 for (int x = 0; (x <= (image.Width - 1)); x++)
                 {
-                    Color inv = image.GetPixel(x, y);
-                    inv = Color.FromArgb(255, (255 - inv.R), (255 - inv.G), (255 - inv.B));
+                    SKColor inv = image.GetPixel(x, y);
+                    inv = SKColor.FromArgb(255, (255 - inv.Red), (255 - inv.Green), (255 - inv.Blue));
                     image.SetPixel(x, y, inv);
                 }
             }
-            
-            /*
-
-            using (Graphics g = Graphics.FromImage(image))
-            {
-                // create the negative color matrix
-                ColorMatrix colorMatrix = new ColorMatrix();
-                colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = -1f;
-                colorMatrix.Matrix33 = colorMatrix.Matrix44 = 1f;
-                // create some image attributes
-                using (ImageAttributes attributes = new ImageAttributes())
-                {
-                    attributes.SetColorMatrix(colorMatrix);
-                    g.DrawImage(image, new Rectangle(0, 0, image.Width, image.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
-                    attributes.Dispose();
-                    g.Dispose();
-                }
-            }
             */
+
+        /*
+
+        using (Graphics g = Graphics.FromImage(image))
+        {
+            // create the negative color matrix
+            ColorMatrix colorMatrix = new ColorMatrix();
+            colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = -1f;
+            colorMatrix.Matrix33 = colorMatrix.Matrix44 = 1f;
+            // create some image attributes
+            using (ImageAttributes attributes = new ImageAttributes())
+            {
+                attributes.SetColorMatrix(colorMatrix);
+                g.DrawImage(image, new Rectangle(0, 0, image.Width, image.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+                attributes.Dispose();
+                g.Dispose();
+            }
+        }
+
+    }*/
+
+        public static void AdjustContrast(SKBitmap image, float amount)
+        {
+            float contrast = (-.5F * amount) + .5F;
+
+            SKCanvas canvas = new SKCanvas(image);
+            using (SKPaint paint = new SKPaint())
+            {
+
+                float averageLuminance = 0.5f * (1 - amount);
+
+                var cf = SKColorFilter.CreateColorMatrix(new float[]
+                {
+                amount, 0, 0, 0, contrast,
+                0, amount, 0, 0, contrast,
+                0, 0, amount, 0, contrast,
+                0, 0, 0, 1, 0
+                });
+                paint.ColorFilter = cf;
+                canvas.DrawBitmap(image, 0, 0, paint);
+            }
         }
 
         // https://github.com/JimBobSquarePants/ImageProcessor/blob/release/3.0.0/src/ImageProcessor/Processing/KnownColorMatrices.cs
-        private static void AdjustContrast(Bitmap image, float amount)
+        /*
+        private static void AdjustContrast(SKBitmap image, float amount)
         {
             using (ImageAttributes ia = new ImageAttributes())
             {
@@ -417,37 +608,80 @@ namespace TeslaLogger
                     g.Dispose();
                 }
             }
-        }
+        } */
 
         // https://github.com/JimBobSquarePants/ImageProcessor/blob/release/3.0.0/src/ImageProcessor/Processing/KnownColorMatrices.cs
-        private static void AdjustSaturation(Bitmap image, float amount)
+        private static void AdjustSaturation(SKBitmap image, float amount)
         {
-            ColorMatrix m = new ColorMatrix();
-            m.Matrix00 = .213F + (.787F * amount);
-            m.Matrix10 = .715F - (.715F * amount);
-            m.Matrix20 = 1F - (m.Matrix00 + m.Matrix10);
-
-            m.Matrix01 = .213F - (.213F * amount);
-            m.Matrix11 = .715F + (.285F * amount);
-            m.Matrix21 = 1F - (m.Matrix01 + m.Matrix11);
-
-            m.Matrix02 = .213F - (.213F * amount);
-            m.Matrix12 = .715F - (.715F * amount);
-            m.Matrix22 = 1F - (m.Matrix02 + m.Matrix12);
-            m.Matrix33 = 1F;
-            using (ImageAttributes ia = new ImageAttributes())
+            using (var canvas = new SKCanvas(image))
             {
-                ia.SetColorMatrix(m, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
-                using (Graphics g = Graphics.FromImage(image))
+                var paint = new SKPaint();
+
+                // Farbmatrix zur Anpassung der Sättigung
+                float saturation = amount;
+                float invSat = 1 - saturation;
+                float R = 0.213f * invSat;
+                float G = 0.715f * invSat;
+                float B = 0.072f * invSat;
+
+                float[] colorMatrix = new float[]
                 {
-                    g.DrawImage(image, new Rectangle(0, 0, image.Width, image.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, ia);
-                    ia.Dispose();
-                    g.Dispose();
+                    R + saturation, G, B, 0, 0,
+                    R, G + saturation, B, 0, 0,
+                    R, G, B + saturation, 0, 0,
+                    0, 0, 0, 1, 0
+                };
+
+                var colorFilter = SKColorFilter.CreateColorMatrix(colorMatrix);
+                paint.ColorFilter = colorFilter;
+
+                canvas.DrawBitmap(image, 0, 0, paint);
+            }
+        }
+
+        private static void HueRotate(SKBitmap image, float degrees)
+        {
+            using (var canvas = new SKCanvas(image))
+            {
+                // Convert degrees to radians
+                float radians = degrees * (float)Math.PI / 180f;
+
+                // Create a color matrix for hue rotation
+                float cosHue = (float)Math.Cos(radians);
+                float sinHue = (float)Math.Sin(radians);
+                float[] hueRotateMatrix = {
+                        (float)(0.213 + cosHue * 0.787 - sinHue * 0.213),
+                        (float)(0.715 - cosHue * 0.715 - sinHue * 0.715),
+                        (float)(0.072 - cosHue * 0.072 + sinHue * 0.928), 0, 0,
+                        (float)(0.213 - cosHue * 0.213 + sinHue * 0.143),
+                        (float)(0.715 + cosHue * 0.285 + sinHue * 0.140),
+                        (float)(0.072 - cosHue * 0.072 - sinHue * 0.283), 0, 0,
+                        (float)(0.213 - cosHue * 0.213 - sinHue * 0.787),
+                        (float)(0.715 - cosHue * 0.715 + sinHue * 0.715),
+                        (float)(0.072 + cosHue * 0.928 + sinHue * 0.072), 0, 0,
+                        0, 0, 0, 1, 0
+                    };
+
+                // Create a color filter with the hue rotation matrix
+                using (var colorFilter = SKColorFilter.CreateColorMatrix(hueRotateMatrix))
+                {
+                    // Create a paint object with the color filter
+                    using (var paint = new SKPaint())
+                    {
+                        paint.ColorFilter = colorFilter;
+
+                        // Draw the image with the hue rotation applied
+                        canvas.DrawBitmap(image, 0, 0, paint);
+                    }
                 }
             }
         }
 
+
+
+
         // https://github.com/JimBobSquarePants/ImageProcessor/blob/release/3.0.0/src/ImageProcessor/Processing/KnownColorMatrices.cs
+        /*
         public static float DegreeToRadian(float degree) => degree * (float)(Math.PI / 180F);
         private static void HueRotate(Bitmap image, float degrees)
         {
@@ -485,10 +719,13 @@ namespace TeslaLogger
                 }
             }
         }
+        */
 
-        private static Bitmap DownloadTile(int zoom, int tile_x, int tile_y)
+        private static SKBitmap DownloadTile(int zoom, int tile_x, int tile_y)
         {
             string localMapCacheFilePath = Path.Combine(MapCachePath, $"{zoom}_{tile_x}_{tile_y}.png");
+            if (debug) Console.WriteLine("localMapCacheFilePath:" + localMapCacheFilePath);
+           
             if (MapFileExistsOrIsTooOld(localMapCacheFilePath, 8))
             {
                 // cached file too old or does not exist yet
@@ -499,6 +736,7 @@ namespace TeslaLogger
                     int num = random.Next(0, 3);
                     char abc = (char)('a' + num);
                     Uri url = new Uri($"http://{abc}.tile.osm.org/{zoom}/{tile_x}/{tile_y}.png");
+                    if (debug) Console.WriteLine("Download:" + url);
                     try
                     {
                         using (WebClient wc = new WebClient())
@@ -515,14 +753,14 @@ namespace TeslaLogger
             }
             try
             {
-                using (Image img = Image.FromFile(localMapCacheFilePath))
+                using (SKImage img = SKImage.FromEncodedData(localMapCacheFilePath))
                 {
-                    return new Bitmap(img);
+                    return SKBitmap.FromImage(img);
                 }
             }
             catch (Exception)
             {
-                return new Bitmap(tileSize, tileSize);
+                return new SKBitmap(tileSize, tileSize);
             }
         }
 
@@ -562,8 +800,9 @@ namespace TeslaLogger
             return (int)(Math.Round(px));
         }
 
-        private static void DrawAttribution(Bitmap image)
+        private static void DrawAttribution(SKBitmap image)
         {
+            /* ccc
             using (Graphics g = Graphics.FromImage(image))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -573,15 +812,18 @@ namespace TeslaLogger
                 g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
                 g.DrawString(attribution, drawFont8, grayBrush, image.Width - size.Width - 2, image.Height - size.Height - 2);
             }
+            */
         }
 
-        private static void DrawTrip(Bitmap image, DataTable coords, int zoom, double x_center, double y_center)
+        private static void DrawTrip(SKBitmap image, DataTable coords, int zoom, double x_center, double y_center)
         {
-            using (Graphics graphics = Graphics.FromImage(image))
+            // ccc using (Graphics graphics = Graphics.FromImage(image))
+            
+            using var canvas = new SKCanvas(image);
             {
-                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                // ccc graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 // draw Trip line
-                /*
+                
                 for (int index = 1; index < coords.Rows.Count; index++)
                 {
                     int x1 = XtoPx(LngToTileX(Convert.ToDouble(coords.Rows[index - 1]["lng"]), zoom), x_center, image.Width);
@@ -590,22 +832,11 @@ namespace TeslaLogger
                     int y2 = YtoPx(LatToTileY(Convert.ToDouble(coords.Rows[index]["lat"]), zoom), y_center, image.Height);
                     if (x1 != x2 || y1 != y2)
                     {
-                        graphics.DrawLine(whitePen, x1, y1, x2, y2);
-                    }
-                }
-                */
-                for (int index = 1; index < coords.Rows.Count; index++)
-                {
-                    int x1 = XtoPx(LngToTileX(Convert.ToDouble(coords.Rows[index - 1]["lng"]), zoom), x_center, image.Width);
-                    int y1 = YtoPx(LatToTileY(Convert.ToDouble(coords.Rows[index - 1]["lat"]), zoom), y_center, image.Height);
-                    int x2 = XtoPx(LngToTileX(Convert.ToDouble(coords.Rows[index]["lng"]), zoom), x_center, image.Width);
-                    int y2 = YtoPx(LatToTileY(Convert.ToDouble(coords.Rows[index]["lat"]), zoom), y_center, image.Height);
-                    if (x1 != x2 || y1 != y2)
-                    {
-                        graphics.DrawLine(bluePen, x1, y1, x2, y2);
+                        canvas.DrawLine(x1, y1, x2, y2, bluePen);
                     }
                 }
             }
+            canvas.Flush();
         }
 
         // transform longitude to tile number
@@ -620,8 +851,9 @@ namespace TeslaLogger
             return (1.0 - Math.Log(Math.Tan(lat * Math.PI / 180.0) + 1 / Math.Cos(lat * Math.PI / 180.0)) / Math.PI) / 2.0 * Math.Pow(2.0, zoom);
         }
 
-        private static void DrawIcon(Bitmap image, double lat, double lng, MapIcon icon, int zoom, double x_center, double y_center)
+        private static void DrawIcon(SKBitmap image, double lat, double lng, MapIcon icon, int zoom, double x_center, double y_center)
         {
+            
             int scale = 1;
             switch (icon)
             {
@@ -632,42 +864,79 @@ namespace TeslaLogger
             }
             int x = XtoPx(LngToTileX(lng, zoom), x_center, image.Width);
             int y = YtoPx(LatToTileY(lat, zoom), y_center, image.Height);
-            Rectangle rect = new Rectangle(x - 4 * scale, y - 10 * scale, 8 * scale, 8 * scale);
-            Point[] triangle = new Point[] { new Point(x - 4 * scale, y - 6 * scale), new Point(x, y), new Point(x + 4 * scale, y - 6 * scale) };
-            using (Graphics g = Graphics.FromImage(image))
+            int left = x - 4 * scale;
+            int top = y - 10 * scale;
+            SKRectI rect = new SKRectI(left, top, left + 8 * scale, top + 8 * scale);
+            SKPoint[] triangle = new SKPoint[] { new SKPoint(x - 4 * scale, y - 6 * scale), new SKPoint(x, y), new SKPoint(x + 4 * scale, y - 6 * scale) };
+            //using (Graphics g = Graphics.FromImage(image))
+            using var g = new SKCanvas(image);
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.PixelOffsetMode = PixelOffsetMode.Half;
+                // ccc g.SmoothingMode = SmoothingMode.AntiAlias;
+                // ccc g.PixelOffsetMode = PixelOffsetMode.Half;
+                 
                 switch (icon)
                 {
                     case MapIcon.Start:
-                        g.FillPie(greenBrush, rect, 180, 180);
-                        g.FillPolygon(greenBrush, triangle);
+                        using (SKPath path = new SKPath())
+                        {
+                            path.ArcTo(rect, -180, 180, false);
+                            path.AddPoly(triangle);
+                            g.DrawPath(path, greenBrush);
+                        }
+
+                        //g.FillPie(greenBrush, rect, 180, 180);
+                        //g.FillPolygon(greenBrush, triangle);
                         break;
                     case MapIcon.End:
-                        g.FillPie(redBrush, rect, 180, 180);
-                        g.FillPolygon(redBrush, triangle);
+                        using (SKPath path = new SKPath())
+                        {
+                            path.ArcTo(rect, -180, 180, false);
+                            path.AddPoly(triangle);
+                            g.DrawPath(path, redBrush);
+                        }
+
+                        //g.FillPie(redBrush, rect, 180, 180);
+                        //g.FillPolygon(redBrush, triangle);
                         break;
                     case MapIcon.Park:
-                        g.FillPie(blueBrush, rect, 180, 180);
-                        g.FillPolygon(blueBrush, triangle);
+                        using (SKPath path = new SKPath())
+                        {
+                            path.ArcTo(rect, -180, 180, false);
+                            path.AddPoly(triangle);
+                            g.DrawPath(path, blueBrush);
+                        }
+
+                        //g.FillPie(blueBrush, rect, 180, 180);
+                        //g.FillPolygon(blueBrush, triangle);
                         break;
                     case MapIcon.Charge:
-                        g.FillPie(orangeBrush, rect, 180, 180);
-                        g.FillPolygon(orangeBrush, triangle);
+                        using (SKPath path = new SKPath())
+                        {
+                            path.ArcTo(rect, -180, 180, false);
+                            path.AddPoly(triangle);
+                            g.DrawPath(path, orangeBrush);
+                        }
+
+                        //g.FillPie(orangeBrush, rect, 180, 180);
+                        //g.FillPolygon(orangeBrush, triangle);
                         break;
-                }
-                g.DrawArc(thinWhitePen, rect, 180, 180);
-                g.DrawLine(thinWhitePen, triangle[0], triangle[1]);
-                g.DrawLine(thinWhitePen, triangle[1], triangle[2]);
+                } 
+                
+                g.DrawArc(rect, 180, 180, false, thinWhitePen);
+                g.DrawLine( triangle[0], triangle[1], thinWhitePen);
+                g.DrawLine( triangle[1], triangle[2], thinWhitePen);
                 if (icon == MapIcon.Park || icon == MapIcon.Charge)
                 {
-                    string text = icon == MapIcon.Park ? "P" : "\u26A1";
-                    SizeF size = g.MeasureString(text, drawFont12b);
-                    g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-                    g.DrawString(text, drawFont12b, whiteBrush, x - size.Width / 2, y - 6 * scale - size.Height / 2);
+                    
+                    string text = icon == MapIcon.Park ? "P" : "C";
+                    float size = drawFont12b.MeasureText(text);
+                    // ccc g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+                    //g.DrawText(text, x - size / 2, y - 6 * scale - size / 2, drawFont12b);
+                    g.DrawText(text, x - size / 2, y - scale - rect.Height / 2 , drawFont12b);
                     g.Dispose();
                 }
+
+                // g.Flush();
             }
         }
     }
