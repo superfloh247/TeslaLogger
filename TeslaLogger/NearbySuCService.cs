@@ -7,7 +7,6 @@ using System.Threading;
 using MySql.Data.MySqlClient;
 using Exceptionless;
 using Newtonsoft.Json;
-using System.Runtime.Caching;
 using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
 using System.Net;
@@ -447,8 +446,9 @@ VALUES(
             return false;
         }
 
-        void GetNextSuperchargerToCalculate()
+        static void GetNextSuperchargerToCalculate()
         {
+            string resultContent = string.Empty;
             try
             {
                 if (Car.Allcars.Count > 0)
@@ -457,7 +457,7 @@ VALUES(
                     HttpClient client = c.webhelper.httpclient_teslalogger_de;
 
                     HttpResponseMessage result = client.GetAsync("https://teslalogger.de:8089/GetNextSuperchargerToCalculate").Result;
-                    var resultContent = result.Content.ReadAsStringAsync().Result;
+                    resultContent = result.Content.ReadAsStringAsync().Result;
 
                     if (int.TryParse(resultContent, out int trid))
                     {
@@ -469,10 +469,11 @@ VALUES(
             {
                 ex.ToExceptionless().FirstCarUserID().Submit();
                 Tools.DebugLog("GetNextSuperchargerToCalculate: Exception", ex);
+                Tools.DebugLog($"GetNextSuperchargerToCalculate: resultContent:{resultContent}");
             }
         }
 
-        Available GetGuestAvailability(Car car, int trid)
+        static Available GetGuestAvailability(Car car, int trid)
         {
             Available a = new Available();
 
@@ -485,71 +486,79 @@ VALUES(
             {
                 using (var scontent = new StringContent(content, Encoding.UTF8, "application/json"))
                 {
-                    string r = "";
+                    string resultContent = "";
                     try
                     {
                         var result = client.PostAsync("https://www.tesla.com/charging/guest/api/graphql?operationName=GetSiteDetails", scontent).Result;
-                        r = result.Content.ReadAsStringAsync().Result;
+                        resultContent = result.Content.ReadAsStringAsync().Result;
                     }
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine(ex.ToString());
-                        throw;
+                        Tools.DebugLog("GetGuestAvailability: Exception", ex);
+                        Tools.DebugLog($"GetGuestAvailability: resultContent:{resultContent}");
                     }
 
-                    dynamic j = JsonConvert.DeserializeObject(r);
-                    if (j?["data"] == null || j["errors"] != null)
+                    try
                     {
-                        Tools.DebugLog($"Unexpected GuestAPI response: {r}");
-                        return a;
+                        dynamic j = JsonConvert.DeserializeObject(resultContent);
+                        if (j?["data"] == null || j["errors"] != null)
+                        {
+                            Tools.DebugLog($"Unexpected GuestAPI response: {resultContent}");
+                            return a;
+                        }
+
+                        dynamic site = j["data"]["chargingNetwork"]["site"];
+                        JArray chargers = site["chargerList"];
+                        //JArray chargerDetails = site["chargersAvailable"]["chargerDetails"];
+
+                        string name = site["name"];
+
+                        a.total = chargers.Count;
+
+                        foreach (dynamic charger in chargers)
+                        {
+                            string id = charger["id"];
+                            string label = charger["label"];
+
+                            string availability = charger["availability"];
+                            // System.Diagnostics.Debug.WriteLine($"Label: {label} availability: {availability}");
+
+                            if (availability == "CHARGER_AVAILABILITY_AVAILABLE")
+                                a.available++;
+                            else if (availability == "CHARGER_AVAILABILITY_OCCUPIED")
+                                a.occupied++;
+                            else if (availability == "CHARGER_AVAILABILITY_DOWN")
+                                a.down++;
+                            else if (availability == "CHARGER_AVAILABILITY_UNKNOWN")
+                                a.unknown++;
+                            else
+                                a.unhandled++;
+                        }
+
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            Tools.DebugLog($"#{car.CarInDB} Guest SuC: <{name}> <{a.available}> <{a.total}>");
+
+                            ArrayList send = new ArrayList();
+                            Dictionary<string, object> sendKV = new Dictionary<string, object>();
+                            send.Add(sendKV);
+                            sendKV.Add("n", name);
+                            // sendKV.Add("lat", lat);
+                            // sendKV.Add("lng", lng);
+                            sendKV.Add("ts", DateTime.UtcNow.ToString("s", Tools.ciEnUS));
+                            sendKV.Add("a", a.available);
+                            sendKV.Add("t", a.total);
+                            sendKV.Add("kw", 0);
+                            sendKV.Add("m", "");
+                            ShareSuc(send, false, out _, out _);
+                        }
                     }
-
-                    dynamic site = j["data"]["chargingNetwork"]["site"];
-                    JArray chargers = site["chargerList"];
-                    //JArray chargerDetails = site["chargersAvailable"]["chargerDetails"];
-
-                    string name = site["name"];
-
-                    a.total = chargers.Count;
-
-                    foreach (dynamic charger in chargers)
+                    catch (Exception ex)
                     {
-                        string id = charger["id"];
-                        string label = charger["label"];
-
-
-                        string availability = charger["availability"];
-                        // System.Diagnostics.Debug.WriteLine($"Label: {label} availability: {availability}");
-
-                        if (availability == "CHARGER_AVAILABILITY_AVAILABLE")
-                            a.available++;
-                        else if (availability == "CHARGER_AVAILABILITY_OCCUPIED")
-                            a.occupied++;
-                        else if (availability == "CHARGER_AVAILABILITY_DOWN")
-                            a.down++;
-                        else if (availability == "CHARGER_AVAILABILITY_UNKNOWN")
-                            a.unknown++;
-                        else
-                            a.unhandled++;
-
-                    }
-
-                    if (!string.IsNullOrEmpty(name))
-                    {
-                        Tools.DebugLog($"#{car.CarInDB} Guest SuC: <{name}> <{a.available}> <{a.total}>");
-
-                        ArrayList send = new ArrayList();
-                        Dictionary<string, object> sendKV = new Dictionary<string, object>();
-                        send.Add(sendKV);
-                        sendKV.Add("n", name);
-                        // sendKV.Add("lat", lat);
-                        // sendKV.Add("lng", lng);
-                        sendKV.Add("ts", DateTime.UtcNow.ToString("s", Tools.ciEnUS));
-                        sendKV.Add("a", a.available);
-                        sendKV.Add("t", a.total);
-                        sendKV.Add("kw", 0);
-                        sendKV.Add("m", "");
-                        ShareSuc(send, false, out _, out _);
+                        ex.ToExceptionless().FirstCarUserID().Submit();
+                        Tools.DebugLog("GetGuestAvailability: Exception", ex);
+                        Tools.DebugLog($"GetGuestAvailability: resultContent:{resultContent}");
                     }
                 }
             }
