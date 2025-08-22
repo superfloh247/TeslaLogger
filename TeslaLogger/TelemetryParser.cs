@@ -1,4 +1,5 @@
 ﻿using Exceptionless;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.Devices;
 using MySql.Data.MySqlClient;
@@ -171,7 +172,7 @@ namespace TeslaLogger
         {
             if (!Driving && !acCharging && !dcCharging)
             {
-                if (OnlineTimeout())
+                if (OnlineTimeout() || lastPackCurrent == 0)
                     return false;
             }
 
@@ -532,24 +533,32 @@ namespace TeslaLogger
                         if (double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out double pressure))
                         {
                             pressure = Math.Round(pressure, 2);
+                            
                             if (databaseCalls)
                             {
                                 switch (suffix)
                                 {
                                     case "Fl":
                                         car.DbHelper.InsertTPMS(1, pressure, d);
+                                        car.CurrentJSON.tpms_pressure_fl = pressure;
                                         break;
                                     case "Fr":
                                         car.DbHelper.InsertTPMS(2, pressure, d);
+                                        car.CurrentJSON.tpms_pressure_fr = pressure;
                                         break;
                                     case "Rl":
                                         car.DbHelper.InsertTPMS(3, pressure, d);
+                                        car.CurrentJSON.tpms_pressure_rl = pressure;
                                         break;
                                     case "Rr":
                                         car.DbHelper.InsertTPMS(4, pressure, d);
+                                        car.CurrentJSON.tpms_pressure_rr = pressure;
                                         break;
                                 }
                             }
+                            car.CurrentJSON.CreateCurrentJSON();
+                            car.teslaAPIState.AddValue("tpms_pressure_" + suffix.ToLower(), "double", value, Tools.ToUnixTime(d), "vehicle_state");
+                            
                         }
                     }
                     else if (key == "VehicleName")
@@ -1300,7 +1309,7 @@ namespace TeslaLogger
                     else
                         _ = car.webhelper.SendDataToAbetterrouteplannerAsync(ts, lastSoc, (double)speed, false, 0.0, (double)latitude, (double)longitude);
 
-                    lastposid = car.DbHelper.InsertPos(ts.ToString(), lastLatitude, lastLongitude, (int)speed.Value, null, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastOutsideTemp, "");
+                    lastposid = car.DbHelper.InsertPos(ts.ToString(), lastLatitude, lastLongitude, (int)speed.Value, null, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastInsideTemp, lastOutsideTemp, "");
 
                     if (loggingPosId)
                     {
@@ -2000,7 +2009,7 @@ namespace TeslaLogger
             long ts = DateTimeToUTC_UnixTimestamp(date);
 
             if (databaseCalls)
-                lastposid = car.DbHelper.InsertPos(ts.ToString(), lastLatitude, lastLongitude, speed, null, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastOutsideTemp, "");
+                lastposid = car.DbHelper.InsertPos(ts.ToString(), lastLatitude, lastLongitude, speed, null, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastInsideTemp, lastOutsideTemp, "");
 
             Log($"InsertFirstPos {date} ID: {lastposid}");
         }
