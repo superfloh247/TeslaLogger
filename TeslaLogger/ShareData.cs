@@ -217,7 +217,7 @@ ORDER BY
                                     }
                                 }
                             }
-                            catch (HttpRequestException httpEx)
+                            catch (System.Net.Http.HttpRequestException httpEx)
                             {
                                 car.SendException2Exceptionless(httpEx);
                                 car.Log("ShareData: HTTP error - " + httpEx.Message);
@@ -432,7 +432,7 @@ ORDER BY
                                 }
                             }
                         }
-                        catch (HttpRequestException httpEx)
+                        catch (System.Net.Http.HttpRequestException httpEx)
                         {
                             car.SendException2Exceptionless(httpEx);
                             car.Log("ShareData: HTTP error - " + httpEx.Message);
@@ -573,7 +573,7 @@ GROUP BY
                                 }
                             }
                         }
-                        catch (HttpRequestException httpEx)
+                        catch (System.Net.Http.HttpRequestException httpEx)
                         {
                             car.SendException2Exceptionless(httpEx);
                             car.Log("ShareData: HTTP error - " + httpEx.Message);

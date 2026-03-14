@@ -288,7 +288,7 @@ namespace TeslaLogger
                         temp = RetrieveJsonString($"http://localhost:{httpport}/currentjson/{carId}");
 
                     }
-                    catch (WebException wex) when (wex.Response is HttpWebResponse httpResponse && httpResponse.StatusCode == HttpStatusCode.NotFound)
+                    catch (System.Net.WebException wex) when (wex.Response is HttpWebResponse httpResponse && httpResponse.StatusCode == HttpStatusCode.NotFound)
                     {
                         Logfile.Log($"MQTT: Could not retrieve CurrentJson for car id {carId}: {wex.Message}");
                         Tools.DebugLog("MQTT: CurrentJson Exception", wex);
@@ -489,7 +489,7 @@ namespace TeslaLogger
                     return false;
                 }
             }
-            catch (WebException wex)
+            catch (System.Net.WebException wex)
             {
                 Logfile.Log($"MQTT: ConnectionCheck WebExeption: {wex.Message}");
                 connecting = false;
@@ -533,7 +533,7 @@ namespace TeslaLogger
 
                     ConnectionCheck();
                 }
-                catch (WebException wex)
+                catch (System.Net.WebException wex)
                 {
                     Logfile.Log($"MQTT: MQTTConnectionHandler WebExeption: {wex.Message}");
                     Task.Delay(60000).GetAwaiter().GetResult();

@@ -543,7 +543,7 @@ namespace TeslaLogger
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 car.Log($"HTTP Error: {httpEx.Message}");
                 car.CreateExeptionlessLog("UpdateTeslaTokenFromRefreshToken", $"HTTP Error: {httpEx.StatusCode}", Exceptionless.Logging.LogLevel.Error).AddObject(HttpStatusCode, "HTTP StatusCode").Submit();
@@ -596,7 +596,7 @@ namespace TeslaLogger
                                            // restart streaming thread with new token
                 RestartStreamThreadWithTask();
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 car.Log($"SetNewAccessToken: HTTP Error: {httpEx.Message}");
             }
@@ -672,7 +672,7 @@ namespace TeslaLogger
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
                 car.CreateExceptionlessClient(ex).MarkAsCritical().Submit();
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 car.Log($"HTTP Error in GetRegion: {httpEx.Message}");
                 car.CreateExceptionlessClient(httpEx).MarkAsCritical().Submit();
@@ -796,7 +796,7 @@ namespace TeslaLogger
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 car.Log($"HTTP Error in UpdateTeslaTokenFromRefreshTokenFromFleetAPI: {httpEx.Message}");
                 car.CreateExceptionlessClient(httpEx).MarkAsCritical().Submit();
@@ -925,7 +925,7 @@ namespace TeslaLogger
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 car.Log($"HTTP Error in UpdateTeslaTokenFromRefreshTokenFromFleetAPIWithClientID: {httpEx.Message}");
                 car.CreateExceptionlessClient(httpEx).MarkAsCritical().Submit();
@@ -4496,7 +4496,7 @@ WHERE
                 string responseBody = await response.Content.ReadAsStringAsync();
                 Log($"UpdateTaskerToken: {responseBody}");
             }
-            catch (HttpRequestException e)
+            catch (System.Net.Http.HttpRequestException e)
             {
                 Log($"UpdateTaskerToken error: {e.Message}");
             }
@@ -4936,14 +4936,14 @@ WHERE
                 }
 
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 car.CreateExceptionlessClient(httpEx).Submit();
                 Log("TaskerWakeupToken HTTP Error: " + httpEx.Message);
                 ExceptionWriter(httpEx, "TaskerWakeupToken HTTP Error");
                 Logfile.Log($"TaskerWakeupToken HTTP Error: {httpEx.Message}");
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 car.CreateExceptionlessClient(ioEx).Submit();
                 Log("TaskerWakeupToken File I/O Error: " + ioEx.Message);
@@ -5004,7 +5004,7 @@ WHERE
 
                 return version;
             }
-            catch (WebException wex)
+            catch (System.Net.WebException wex)
             {
                 if (!WebHelper.FilterNetworkoutage(wex))
                     wex.ToExceptionless().AddObject(contents, "ResultContent").Submit();
@@ -5211,7 +5211,7 @@ WHERE
                     }
                 }
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 car.CreateExceptionlessClient(httpEx).Submit();
                 Logfile.Log($"SendDataToAbetterrouteplannerAsync HTTP Error: {httpEx.Message}");
@@ -5316,7 +5316,7 @@ WHERE
 
                 }
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 Logfile.Log($"SuperchargeBingo HTTP Error: {httpEx.Message}");
                 car.SendException2Exceptionless(httpEx);
@@ -5443,7 +5443,7 @@ WHERE
                     return false;
                 }
             }
-            catch (HttpRequestException httpEx)
+            catch (System.Net.Http.HttpRequestException httpEx)
             {
                 httpEx.ToExceptionless().FirstCarUserID().Submit();
                 Logfile.Log($"BranchExists HTTP Error: {httpEx.Message}");

@@ -1308,7 +1308,7 @@ PRIMARY KEY(id)
                     client.DefaultRequestHeaders.Add("Authorization", "Bearer teslalogger");
                     client.GetAsync("http://watchtower:8080/v1/update").Wait();
                 }
-                catch (HttpRequestException ex)
+                catch (System.Net.Http.HttpRequestException ex)
                 {
                     ex.ToExceptionless().FirstCarUserID().Submit();
                     Logfile.ExceptionWriter(ex, "Failed to connect to Watchtower");

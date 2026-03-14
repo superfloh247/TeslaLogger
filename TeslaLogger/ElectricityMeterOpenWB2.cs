@@ -139,7 +139,7 @@ namespace TeslaLogger
 
                 Logfile.Log(jsonEx.ToString());
             }
-            catch (WebException wx)
+            catch (System.Net.WebException wx)
             {
                 if ((wx.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {

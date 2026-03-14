@@ -713,7 +713,7 @@ namespace TeslaLogger
                 Logfile.Log($"Copy '{srcFile}' to '{directory}'");
                 File.Copy(srcFile, directory, true);
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().FirstCarUserID().Submit();
                 Logfile.Log($"CopyFile IOException: {ioEx}");
@@ -777,7 +777,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().FirstCarUserID().AddObject(json, "JSON").Submit();
                 Logfile.Log($"IOException reading settings: {ioEx.ToString()}");
@@ -818,7 +818,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().FirstCarUserID().AddObject(json, "JSON").Submit();
                 Logfile.Log($"IOException reading HTTP port config: {ioEx.ToString()}");
@@ -857,7 +857,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().FirstCarUserID().AddObject(json, "JSON").Submit();
                 Logfile.Log($"IOException reading charging states config: {ioEx.ToString()}");
@@ -933,7 +933,7 @@ namespace TeslaLogger
 
                 Logfile.Log("StreamingPos not found in settings.json");
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().FirstCarUserID().AddObject(json, "JSON").Submit();
                 Logfile.Log($"IOException reading streaming position config: {ioEx.ToString()}");
@@ -999,7 +999,7 @@ namespace TeslaLogger
 
                 lastSleepingHourMinutsUpdated = DateTime.UtcNow;
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().AddObject(json, "JSON").Submit();
                 Logfile.Log($"IOException reading sleep schedule: {ioEx.ToString()}");
@@ -1138,7 +1138,7 @@ namespace TeslaLogger
                     return bool.Parse(j["ScanMyTesla"].ToString());
                 }
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().FirstCarUserID().AddObject(json, "JSON").Submit();
                 Logfile.Log($"IOException reading ScanMyTesla config: {ioEx.ToString()}");
@@ -1184,7 +1184,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().FirstCarUserID().AddObject(json, "JSON").Submit();
                 Logfile.Log($"IOException reading update settings: {ioEx.ToString()}");
@@ -1326,7 +1326,7 @@ namespace TeslaLogger
 
                 lastGrafanaSettings = DateTime.UtcNow;
             }
-            catch (IOException ioEx)
+            catch (System.IO.IOException ioEx)
             {
                 ioEx.ToExceptionless().AddObject(json, "JSON").AddObject(Tools.ConvertString2Base64(json), "JSON-Base64").Submit();
                 Logfile.Log($"IOException reading Grafana settings: {ioEx.ToString()}");
@@ -2475,7 +2475,7 @@ WHERE
                     Console.WriteLine($"Body: {content}");
                 }
             }
-            catch (HttpRequestException hre)
+            catch (System.Net.Http.HttpRequestException hre)
             {
                 if (hre.Message.StartsWith("Cannot assign requested address"))
                 {
