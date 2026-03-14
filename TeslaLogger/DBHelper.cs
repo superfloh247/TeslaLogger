@@ -1627,7 +1627,7 @@ HAVING
                     }
                 }
             }
-            catch (ThreadAbortException)
+            catch (System.Threading.ThreadAbortException)
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }

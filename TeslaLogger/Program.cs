@@ -658,7 +658,7 @@ namespace TeslaLogger
                         await Task.Delay(5000, UpdateTeslalogger.done.Token);
                     }
                 }
-                catch (TaskCanceledException)
+                catch (System.Threading.Tasks.TaskCanceledException)
                 {
                     // cancellation requested, continue to housekeeping
                 }

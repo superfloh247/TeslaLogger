@@ -430,11 +430,11 @@ namespace TeslaLogger
                         webhelper.CheckRefreshToken();
 
                     }
-                    catch (TaskCanceledException tce)
+                    catch (System.Threading.Tasks.TaskCanceledException tce)
                     {
                         if (!cts.IsCancellationRequested)
                         {
-                            Log($"LOOP: {tce}"); 
+                            Log($"LOOP: {tce}");
                             SendException2Exceptionless(tce);
                         }
                     }

@@ -397,7 +397,7 @@ namespace TeslaLogger
                     return tempToken;
 
             }
-            catch (ThreadAbortException)
+            catch (System.Threading.ThreadAbortException)
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }
@@ -539,7 +539,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (ThreadAbortException)
+            catch (System.Threading.ThreadAbortException)
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }
@@ -667,7 +667,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (ThreadAbortException ex)
+            catch (System.Threading.ThreadAbortException ex)
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
                 car.CreateExceptionlessClient(ex).MarkAsCritical().Submit();
@@ -792,7 +792,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (ThreadAbortException)
+            catch (System.Threading.ThreadAbortException)
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }
@@ -921,7 +921,7 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (ThreadAbortException)
+            catch (System.Threading.ThreadAbortException)
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
             }
@@ -3153,7 +3153,7 @@ namespace TeslaLogger
                     Log("StreamEnd");
                     System.Diagnostics.Debug.WriteLine("StreamEnd");
                 }
-                catch (TaskCanceledException e)
+                catch (System.Threading.Tasks.TaskCanceledException e)
                 {
                     // car.CreateExceptionlessClient(e).AddObject(resultContent, "ResultContent").Submit();
                     DrivingOrChargingByStream = false;
@@ -3161,7 +3161,7 @@ namespace TeslaLogger
                     Log("Stream: Timeout");
                     Task.Delay(10000).GetAwaiter().GetResult();
                 }
-                catch (AggregateException e)
+                catch (System.AggregateException e)
                 {
                     e.Handle(ex =>
                     {
@@ -4453,7 +4453,7 @@ WHERE
                     }
                 }
             }
-            catch (TaskCanceledException)
+            catch (System.Threading.Tasks.TaskCanceledException)
             {
                 Log("Timeout: " + cmd);
             }
@@ -5191,7 +5191,7 @@ WHERE
                     }
                 }
             }
-            catch (TaskCanceledException tce)
+            catch (System.Threading.Tasks.TaskCanceledException tce)
             {
                 car.CreateExceptionlessClient(tce).Submit();
                 // Logfile.Log(tce.ToString());
@@ -5406,7 +5406,7 @@ WHERE
                 }
 
             }
-            catch (ThreadAbortException ex)
+            catch (System.Threading.ThreadAbortException ex)
             {
                 System.Diagnostics.Debug.WriteLine("Thread Stop!");
                 car.CreateExceptionlessClient(ex).MarkAsCritical().Submit();

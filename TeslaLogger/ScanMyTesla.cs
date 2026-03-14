@@ -306,7 +306,7 @@ namespace TeslaLogger
                 }
                 
             }
-            catch (TaskCanceledException)
+            catch (System.Threading.Tasks.TaskCanceledException)
             {
                 car.CreateExeptionlessLog("ScanMyTesla", "Timeout", Exceptionless.Logging.LogLevel.Warn).Submit();
                 car.Log("Scanmytesla: Timeout");
