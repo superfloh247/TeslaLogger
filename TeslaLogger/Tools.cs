@@ -70,7 +70,7 @@ namespace TeslaLogger
             return (long)(dateTime - new DateTime(1970, 1, 1)).TotalSeconds;
         }
 
-        public static void DebugLog(MySqlCommand cmd, string prefix = "", [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string callerMemberName = null)
+        public static void DebugLog(MySqlCommand cmd, string prefix = "", [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string? callerMemberName = null)
         {
             try
             {
@@ -84,7 +84,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void DebugLog(MySqlDataReader dr, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string callerMemberName = null)
+        public static void DebugLog(MySqlDataReader dr, [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string? callerMemberName = null)
         {
             if (dr is not null)
             {
@@ -97,7 +97,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void DebugLog(DataTable dt, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string callerMemberName = null)
+        public static void DebugLog(DataTable dt, [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string? callerMemberName = null)
         {
             string msg = callerMemberName + Environment.NewLine;
             if (dt is not null)
@@ -138,7 +138,7 @@ namespace TeslaLogger
             DebugLog(msg, null, "", callerFilePath, callerLineNumber);
         }
 
-        internal static string ExpandSQLCommand(MySqlCommand cmd)
+        internal static string ExpandSQLCommand(MySqlCommand? cmd)
         {
             string msg = string.Empty;
             if (cmd is not null && cmd.Parameters is not null)
@@ -246,7 +246,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void DebugLog(string text, Exception ex = null, string prefix = "", [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
+        public static void DebugLog(string text, Exception? ex = null, string prefix = "", [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
         {
             string temp = $"DEBUG : {prefix}{text} ({Path.GetFileName(callerFilePath)}:{callerLineNumber})";
             AddToBuffer(temp);
@@ -265,7 +265,7 @@ namespace TeslaLogger
             }
         }
 
-        private static void AddToBuffer(string msg)
+        private static void AddToBuffer(string? msg)
         {
             DateTime dt = DateTime.Now;
             try
@@ -311,7 +311,7 @@ namespace TeslaLogger
             }
         }
 
-        private static string ExtractBracketed(string str)
+        private static string ExtractBracketed(string? str)
         {
             string s;
             if (str.IndexOf('<') > -1) //using the Regex when the string does not contain <brackets> returns an empty string.
@@ -1019,7 +1019,7 @@ namespace TeslaLogger
 
         // timeout in seconds
         // https://docs.microsoft.com/de-de/dotnet/api/system.diagnostics.process.exitcode?view=netcore-3.1
-        public static string ExecMono(string cmd, string param, bool logging = true, bool stderr2stdout = false, int timeout = 0)
+        public static string ExecMono(string? cmd, string? param, bool logging = true, bool stderr2stdout = false, int timeout = 0)
         {
             Logfile.Log($"Exec_mono: {cmd} {param}");
 
@@ -1094,7 +1094,7 @@ namespace TeslaLogger
             return bTimeout ? $"Timeout! {sb}" : sb.ToString();
         }
 
-        internal static string ObfuscateVIN(string input)
+        internal static string? ObfuscateVIN(string? input)
         {
             if (input is null)
                 return null;
@@ -1344,7 +1344,7 @@ namespace TeslaLogger
             }
         }
 
-        public static string ConvertString2Base64(string content)
+        public static string ConvertString2Base64(string? content)
         {
             string base64 = "";
             try
@@ -2170,7 +2170,7 @@ WHERE
             }
         }
 
-        public static string ObfuscateString(string input)
+        public static string? ObfuscateString(string? input)
         {
             if (input is null)
                 return null;
@@ -2372,7 +2372,7 @@ WHERE
             */
         }
 
-        public static string ConvertBase64toString(string base64)
+        public static string? ConvertBase64toString(string? base64)
         {
             return System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64));
         }
@@ -2544,7 +2544,7 @@ WHERE
         // This constant determines the number of iterations for the password bytes generation function.
         private const int DerivationIterations = 1000;
 
-        public static string Encrypt(string plainText, string passPhrase)
+        public static string Encrypt(string? plainText, string? passPhrase)
         {
             // Salt and IV is randomly generated each time, but is preprended to encrypted cipher text
             // so that the same Salt and IV values can be used when decrypting.  
@@ -2581,7 +2581,7 @@ WHERE
             }
         }
 
-        public static string Decrypt(string cipherText, string passPhrase)
+        public static string? Decrypt(string? cipherText, string? passPhrase)
         {
             // Get the complete stream of bytes that represent:
             // [32 bytes of Salt] + [32 bytes of IV] + [n bytes of CipherText]
@@ -2650,7 +2650,7 @@ WHERE
             return "";
         }
 
-        public static string Encrypt(string token)
+        public static string? Encrypt(string? token)
         {
             try
             {
@@ -2672,7 +2672,7 @@ WHERE
             return token;
         }
 
-        public static string Decrypt(string token)
+        public static string? Decrypt(string? token)
         {
             try
             {

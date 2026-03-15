@@ -77,14 +77,14 @@ namespace TeslaLogger
         private string cacheGUID = Guid.NewGuid().ToString();
 
         string authHost = "https://auth.tesla.com";
-        CookieContainer tokenCookieContainer;
+        CookieContainer? tokenCookieContainer;
 
         private bool _drivingOrChargingByStream; // defaults to false;
 
         const string TESLA_CLIENT_ID = "81527cff06843c8634fdc09e8ac0abefb46ac849f38fe1e431c2ef2106796384";
         const string TESLA_CLIENT_SECRET = "c7257eb71a564034f9419ee651c7d0e5f7aa6bfbd18bafb5c5c033b093bb2fa3";
         private const string INSERVICE = "INSERVICE";
-        internal ScanMyTesla scanMyTesla;
+        internal ScanMyTesla? scanMyTesla;
         private string _lastShift_State = "P";
         private static readonly Regex regexAssemblyVersion = new Regex("\n\\[assembly: AssemblyVersion\\(\"([0-9\\.]+)\"", RegexOptions.Compiled);
 
@@ -99,12 +99,12 @@ namespace TeslaLogger
         private double battery_range2ideal_battery_range = 0.8000000416972936;
 
         internal HttpClient httpclient_teslalogger_de = new HttpClient();
-        internal HttpClient httpClientForAuthentification;
-        internal static HttpClient httpClientABRP; // defaults to null;
-        internal HttpClient httpClientSuCBingo; // defaults to null;
-        private HttpClient httpClientTeslaAPI; // defaults to null;
-        private HttpClient httpClientTeslaChargingSites; // defaults to null;
-        private HttpClient httpClientGetChargingHistoryV2; // defaults to null;
+        internal HttpClient? httpClientForAuthentification;
+        internal static HttpClient? httpClientABRP; // defaults to null;
+        internal HttpClient? httpClientSuCBingo; // defaults to null;
+        private HttpClient? httpClientTeslaAPI; // defaults to null;
+        private HttpClient? httpClientTeslaChargingSites; // defaults to null;
+        private HttpClient? httpClientGetChargingHistoryV2; // defaults to null;
         private static System.Threading.SemaphoreSlim httpClientLock = new System.Threading.SemaphoreSlim(1, 1);
 
         DateTime lastRefreshToken = DateTime.MinValue;
@@ -123,12 +123,12 @@ namespace TeslaLogger
             {
                 // Dispose managed resources.
                 httpclient_teslalogger_de.Dispose();
-                httpClientForAuthentification.Dispose();
-                httpClientABRP.Dispose();
-                httpClientSuCBingo.Dispose();
-                httpClientTeslaAPI.Dispose();
-                httpClientTeslaChargingSites.Dispose();
-                httpClientGetChargingHistoryV2.Dispose();
+                httpClientForAuthentification?.Dispose();
+                httpClientABRP?.Dispose();
+                httpClientSuCBingo?.Dispose();
+                httpClientTeslaAPI?.Dispose();
+                httpClientTeslaChargingSites?.Dispose();
+                httpClientGetChargingHistoryV2?.Dispose();
             }
             // Free native resources.
         }
@@ -210,7 +210,7 @@ namespace TeslaLogger
                     reply = client.DownloadString("https://teslalogger.de/tasker_date.php?t=" + car.TaskerHash);
                     _ = DBHelper.AddMothershipDataToDBAsync("tasker_date.php", start, 200, car.CarInDB);
 
-                    if (reply.Contains("not found") || reply.Contains("never!"))
+                    if (reply?.Contains("not found") == true || reply?.Contains("never!") == true)
                     {
                         Log($"LastTaskerToken not found - Stop using fast TaskerToken request! Reply: {reply}");
                         car.UseTaskerToken = false;
@@ -236,7 +236,7 @@ namespace TeslaLogger
             }
             catch (Exception ex)
             {
-                reply = reply ?? "NULL";
+                reply ??= "NULL";
                 Log("Reply: " + reply + "\r\n" + ex.Message);
 
                 if (!WebHelper.FilterNetworkoutage(ex))
@@ -376,7 +376,7 @@ namespace TeslaLogger
             return httpClientForAuthentification;
         }
 
-        internal static void LogGetToken(string resultContent, string name)
+        internal static void LogGetToken(string? resultContent, string name)
         {
             if (System.IO.File.Exists("LOGGETTOKEN"))
                 System.IO.File.WriteAllText("Logfile_GetToken_" + name + ".txt", resultContent);
@@ -423,7 +423,7 @@ namespace TeslaLogger
             return "NULL";
         }
 
-        internal string UpdateTeslaTokenFromRefreshToken()
+        internal string? UpdateTeslaTokenFromRefreshToken()
         {
             car.CreateExeptionlessLog("Tesla Token", "UpdateTeslaTokenFromRefreshToken", Exceptionless.Logging.LogLevel.Info).Submit();
 
@@ -1091,7 +1091,7 @@ namespace TeslaLogger
                 dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
                 dynamic charge_state = jsonResult["response"]["charge_state"];
 
-                if (charge_state["charging_state"] is null || (resultContent != null && resultContent.Contains("vehicle unavailable")))
+                if (charge_state["charging_state"] is null || (resultContent?.Contains("vehicle unavailable") == true))
                 {
                     if (justCheck)
                     {
@@ -1102,7 +1102,7 @@ namespace TeslaLogger
                     {
                         Log("charging_state = null");
                     }
-                    else if (resultContent is not null && resultContent.Contains("vehicle unavailable"))
+                    else if (resultContent?.Contains("vehicle unavailable") == true)
                     {
                         Log("charging_state: vehicle unavailable");
                     }
@@ -1511,7 +1511,7 @@ namespace TeslaLogger
                 }
                 catch (Exception ex)
                 {
-                    if (resultContent.IndexOf("Retry Later", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (resultContent?.IndexOf("Retry Later", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         int sleep = random.Next(10000) + 10000;
                         Log($"GetVehicles Error: Retry Later - Sleep {sleep}");
@@ -1542,7 +1542,7 @@ namespace TeslaLogger
             }
         }
 
-        internal void GetAllVehicles(out string resultContent, out Newtonsoft.Json.Linq.JArray vehicles, bool throwExceptionOnUnauthorized, bool doNotCache = false)
+        internal void GetAllVehicles(out string? resultContent, out Newtonsoft.Json.Linq.JArray vehicles, bool throwExceptionOnUnauthorized, bool doNotCache = false)
         {
             getAllVehiclesLock.Wait();
             try
@@ -1581,7 +1581,7 @@ namespace TeslaLogger
                     {
                         DoGetVehiclesRequest(out resultContent, httpClientTeslaAPI, adresse, out resultTask, out result);
 
-                        if (resultContent.Contains("user not allowed in region"))
+                        if (resultContent?.Contains("user not allowed in region") == true)
                         {
                             car.oldAPIchinaCar = true;
                             car.DbHelper.UpdateCarColumn("oldAPIchinaCar", "1");
@@ -1629,7 +1629,7 @@ namespace TeslaLogger
             }
         }
 
-        private void InsertVehicles2AccountFromVehiclesResponse(string resultContent)
+        private void InsertVehicles2AccountFromVehiclesResponse(string? resultContent)
         {
             try
             {
