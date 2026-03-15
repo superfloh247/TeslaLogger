@@ -102,7 +102,7 @@ namespace TeslaLogger
             if (dt != null)
             {
                 // https://stackoverflow.com/questions/15547959/print-contents-of-a-datatable
-                Dictionary<string, int> colWidths = new Dictionary<string, int>();
+                Dictionary<string, int> colWidths = new();
 
                 foreach (DataColumn col in dt.Columns)
                 {
@@ -727,13 +727,13 @@ namespace TeslaLogger
 
         public static string DataTableToJSONWithJavaScriptSerializer(DataTable table)
         {
-            List<Dictionary<string, object>> parentRow = new List<Dictionary<string, object>>();
+            List<Dictionary<string, object>> parentRow = new();
             Dictionary<string, object> childRow;
             if (table != null)
             {
                 foreach (DataRow row in table.Rows)
                 {
-                    childRow = new Dictionary<string, object>();
+                    childRow = new();
                     foreach (DataColumn col in table.Columns)
                     {
                         childRow.Add(col.ColumnName, row[col]);
@@ -2705,3 +2705,4 @@ WHERE
         }
     }
 }
+

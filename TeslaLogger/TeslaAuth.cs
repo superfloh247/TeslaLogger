@@ -220,3 +220,4 @@ public class TeslaAuth
         public TimeSpan ExpiresIn { get; init; }
         public string TokenType { get; init; }
     }
+

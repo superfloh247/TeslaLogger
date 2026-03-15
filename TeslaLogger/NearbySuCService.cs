@@ -241,7 +241,7 @@ namespace TeslaLogger
                                                 InsertIntoDB(sucID, available_stalls, total_stalls);
                                                 if (!ContainsSupercharger(send, name))
                                                 {
-                                                    Dictionary<string, object> sendKV = new Dictionary<string, object>();
+                                                    Dictionary<string, object> sendKV = new();
                                                     send.Add(sendKV);
                                                     sendKV.Add("n", name);
                                                     sendKV.Add("lat", lat);
@@ -363,7 +363,7 @@ namespace TeslaLogger
                     {
                         if (!ContainsSupercharger(send, name))
                         {
-                            Dictionary<string, object> sendKV = new Dictionary<string, object>();
+                            Dictionary<string, object> sendKV = new();
                             send.Add(sendKV);
                             sendKV.Add("n", name);
                             sendKV.Add("lat", lat);
@@ -570,7 +570,7 @@ VALUES(
                             Tools.DebugLog($"#{car.CarInDB} Guest SuC: <{name}> <{a.available}> <{a.total}>");
 
                             ArrayList send = new ArrayList();
-                            Dictionary<string, object> sendKV = new Dictionary<string, object>();
+                            Dictionary<string, object> sendKV = new();
                             send.Add(sendKV);
                             sendKV.Add("n", name);
                             // sendKV.Add("lat", lat);
@@ -666,7 +666,7 @@ VALUES(
                         Tools.DebugLog($"Guest SuC: <{name}> <{a.available}> <{a.total}>");
 
                         ArrayList send = new ArrayList();
-                        Dictionary<string, object> sendKV = new Dictionary<string, object>();
+                        Dictionary<string, object> sendKV = new();
                         send.Add(sendKV);
                         sendKV.Add("n", name);
                         // sendKV.Add("lat", lat);

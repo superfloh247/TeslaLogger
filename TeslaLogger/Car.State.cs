@@ -19,3 +19,4 @@ namespace TeslaLogger
         private TeslaState _currentState = TeslaState.Start;
     }
 }
+

@@ -36,7 +36,7 @@ namespace TeslaLogger
         private static readonly Dictionary<TLFilename, string> Filenames;
         private static string _ExecutingPath; // defaults to null
 #pragma warning disable CA1810 // Statische Felder für Referenztyp inline initialisieren
-        static FileManager() => Filenames = new Dictionary<TLFilename, string>()
+        static FileManager() => Filenames = new()
 #pragma warning restore CA1810 // Statische Felder für Referenztyp inline initialisieren
             {
                 { TLFilename.CarSettings,               "car_settings.xml"},

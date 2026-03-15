@@ -170,3 +170,4 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
             }
         }
     }
+

@@ -23,7 +23,7 @@ namespace TeslaLogger
         }
 
         private readonly SortedDictionary<string, Dictionary<Key, object>> storage = new SortedDictionary<string, Dictionary<Key, object>>();
-        private readonly HashSet<string> unknownKeys = new HashSet<string>();
+        private readonly HashSet<string> unknownKeys = new();
         private readonly Car car;
         private readonly MQTT mqtt;
         private bool dumpJSON;
@@ -66,7 +66,7 @@ namespace TeslaLogger
             {
                 if (!storage.TryGetValue(name, out Dictionary<Key, object> _))
                 {
-                    storage.Add(name, new Dictionary<Key, object>() {
+                    storage.Add(name, new() {
                     { Key.Type , "undef" },
                     { Key.Value , "undef" },
                     { Key.ValueLastUpdate , timestamp },
@@ -236,7 +236,7 @@ namespace TeslaLogger
                         }
                         return true;
                     }
-                    state = new Dictionary<Key, object>() {
+                    state = new() {
                     { Key.Type , "undef" },
                     { Key.Value , "undef" },
                     { Key.Timestamp , long.MinValue },
@@ -250,7 +250,7 @@ namespace TeslaLogger
                     car.CreateExceptionlessClient(ex).Submit();
                     Tools.DebugLog("Exception", ex);
                 }
-                state = new Dictionary<Key, object>() {
+                state = new() {
                     { Key.Type , "undef" },
                     { Key.Value , "undef" },
                     { Key.Timestamp , long.MinValue },

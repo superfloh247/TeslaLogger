@@ -28,7 +28,7 @@ namespace TeslaLogger
     internal static class KVSBatchQueue
     {
         private static List<(string key, object value, string columnName)> queue = 
-            new List<(string, object, string)>();
+            new();
         private static object queueLock = new object();
         private const int AUTO_FLUSH_SIZE = 100;  // Flush automatically every 100 items
 
@@ -142,7 +142,7 @@ namespace TeslaLogger
             public DateTime Timestamp { get; set; }
         }
 
-        private static List<OperationMetric> metrics = new List<OperationMetric>();
+        private static List<OperationMetric> metrics = new();
         private static object metricsLock = new object();
 
         /// <summary>
@@ -320,3 +320,4 @@ namespace TeslaLogger
         }
     }
 }
+

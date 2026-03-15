@@ -389,7 +389,7 @@ ORDER BY
                             { "TaskerToken", TaskerToken } // TaskerToken is the primary key and is used to make sure data won't be imported twice
                         };
 
-                        List<object> t = new List<object>();
+                        List<object> t = new();
                         d1.Add("T", t);
 
                         foreach (DataRow dr in dt.Rows)
@@ -531,7 +531,7 @@ GROUP BY
                     { "TaskerToken", TaskerToken } // TaskerToken is the primary key and is used to make sure data won't be imported twice
                 };
 
-                        List<object> t = new List<object>();
+                        List<object> t = new();
                         d1.Add("T", t);
 
                         foreach (DataRow dr in dt.Rows)
@@ -599,3 +599,4 @@ GROUP BY
         }
     }
 }
+

@@ -15,7 +15,7 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     internal static class Journeys
     {
-        private static readonly Dictionary<string, string> EndPoints = new Dictionary<string, string>()
+        private static readonly Dictionary<string, string> EndPoints = new()
         {
             { "JourneysCreateSelectCar", "/journeys/create/selectCar" },
             { "JourneysCreateStart", "/journeys/create/start" },
@@ -143,7 +143,7 @@ CREATE TABLE journeys (
                 int CarID = r["carid"];
                 Tools.DebugLog($"JourneysCreateStart CarID:{CarID}");
 
-                List<object> o = new List<object>();
+                List<object> o = new();
                 o.Add(new KeyValuePair<string, string>("", "Please Select"));
 
                 try
@@ -206,7 +206,7 @@ ORDER BY
                 int CarID = r["carid"];
                 Tools.DebugLog($"JourneysCreateStart CarID:{CarID}");
 
-                List<object> o = new List<object>();
+                List<object> o = new();
                 o.Add(new KeyValuePair<string, string>("", "Please Select"));
 
 
@@ -871,3 +871,4 @@ FROM
         }
     }
 }
+

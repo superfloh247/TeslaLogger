@@ -296,7 +296,7 @@ namespace TeslaLogger
                 {
                     Tools.DebugLog("CheckSpeed() speed4");
                     // 4 or more positions
-                    Dictionary<int, int> positionKeys = new Dictionary<int, int>();
+                    Dictionary<int, int> positionKeys = new();
                     int index = 0;
                     foreach (int posID in positions.Keys.OrderBy(k => k))
                     {
@@ -330,7 +330,7 @@ namespace TeslaLogger
                 {
                     Tools.DebugLog("CheckSpeed() speed3");
                     // 3 or more positions
-                    Dictionary<int, int> positionKeys = new Dictionary<int, int>();
+                    Dictionary<int, int> positionKeys = new();
                     int index = 0;
                     foreach (int posID in positions.Keys.OrderBy(k => k))
                     {
@@ -362,9 +362,9 @@ namespace TeslaLogger
         private readonly string password = string.Empty;
 
         private bool workNow; // defaults to false
-        private static List<Komoot> komootInstances = new List<Komoot>();
+        private static List<Komoot> komootInstances = new();
 
-        private static readonly Dictionary<string, string> EndPoints = new Dictionary<string, string>()
+        private static readonly Dictionary<string, string> EndPoints = new()
         {
             { "KomootListSettings", "/komoot/listSettings" },
             { "KomootSaveSettings", "/komoot/saveSettings" },
@@ -739,7 +739,7 @@ WHERE
             if (jsonResult.ContainsKey("_embedded") && jsonResult["_embedded"].ContainsKey("coordinates") && jsonResult["_embedded"]["coordinates"].ContainsKey("items"))
             {
                 // JSON OK
-                Dictionary<int, Tuple<double, double, double>> positions = new Dictionary<int, Tuple<double, double, double>>();
+                Dictionary<int, Tuple<double, double, double>> positions = new();
                 Logfile.Log($"#{kli.carID} Komoot: ParseTourJSON({tourid}) parsing {jsonResult["_embedded"]["coordinates"]["items"].Count} coordinates ...");
                 foreach (dynamic pos in jsonResult["_embedded"]["coordinates"]["items"])
                 {
@@ -1108,7 +1108,7 @@ VALUES (
                 Logfile.Log($"#{kli.carID} Komoot: downloading tours ...");
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine();
-                Dictionary<long, KomootTour> komootTours = new Dictionary<long, KomootTour>();
+                Dictionary<long, KomootTour> komootTours = new();
                 bool nextPage = true;
                 string url = $"https://api.komoot.de/v007/users/{kli.user_id}/tours/";
                 while (nextPage)
@@ -1329,19 +1329,19 @@ VALUES (
             {
                 Logfile.Log($"#{kli.carID} Komoot: JSON error in DownloadToursAsync - {jsonEx.Message}");
                 jsonEx.ToExceptionless().FirstCarUserID().Submit();
-                return new Dictionary<long, KomootTour>();
+                return new();
             }
             catch (System.Net.Http.HttpRequestException httpEx)
             {
                 Logfile.Log($"#{kli.carID} Komoot: HTTP error in DownloadToursAsync - {httpEx.Message}");
                 httpEx.ToExceptionless().FirstCarUserID().Submit();
-                return new Dictionary<long, KomootTour>();
+                return new();
             }
             catch (Exception ex)
             {
                 Logfile.Log($"#{kli.carID} Komoot: Error in DownloadToursAsync - {ex.Message}");
                 ex.ToExceptionless().FirstCarUserID().Submit();
-                return new Dictionary<long, KomootTour>();
+                return new();
             }
         }
 
@@ -1583,7 +1583,7 @@ ON DUPLICATE KEY UPDATE
 
         private static void HandleRequest_KomootListSettings(HttpListenerRequest _, HttpListenerResponse response)
         {
-            List<object> komootConfigs = new List<object>();
+            List<object> komootConfigs = new();
             using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
             {
                 con.Open();
@@ -1621,4 +1621,5 @@ WHERE
 
     }
 }
+
 

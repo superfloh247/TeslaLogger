@@ -21,7 +21,7 @@ namespace TeslaLogger
                 return;
             }
             // workaround for linux mono libgdiplus memory leak
-            Dictionary<string, object> job = new Dictionary<string, object>();
+            Dictionary<string, object> job = new();
             Tuple<double, double, double, double> extent = DetermineExtent(coords);
             if (extent == null)
             {
@@ -42,7 +42,7 @@ namespace TeslaLogger
             job.Add("mapmode", mapmode);
             job.Add("tileSize", tileSize);
             job.Add("MapCachePath", FileManager.GetMapCachePath());
-            List<double> latlng = new List<double>();
+            List<double> latlng = new();
             for (int row = 0; row < coords.Rows.Count; row++)
             {
                 latlng.Add(Convert.ToDouble(coords.Rows[row]["lat"], Tools.ciDeDE));
@@ -124,7 +124,7 @@ namespace TeslaLogger
             int zoom = 16;
 
             // workaround for linux mono libgdiplus memory leak
-            Dictionary<string, object> job = new Dictionary<string, object>();
+            Dictionary<string, object> job = new();
             double x_center = LngToTileX(lng, zoom);
             double y_center = LatToTileY(lat, zoom);
             job.Add("zoom", zoom);
@@ -184,7 +184,7 @@ namespace TeslaLogger
             int zoom = 16;
 
             // workaround for linux mono libgdiplus memory leak
-            Dictionary<string, object> job = new Dictionary<string, object>();
+            Dictionary<string, object> job = new();
             double x_center = LngToTileX(lng, zoom);
             double y_center = LatToTileY(lat, zoom);
             job.Add("zoom", zoom);
@@ -287,3 +287,4 @@ namespace TeslaLogger
         }
     }
 }
+

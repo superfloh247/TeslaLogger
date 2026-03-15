@@ -262,3 +262,4 @@ class TelemetryConnectionWS : TelemetryConnection
             return ws.SendAsync(buffer, WebSocketMessageType.Text, true, cts.Token);
         }
     }
+

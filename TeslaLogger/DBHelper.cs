@@ -24,7 +24,7 @@ namespace TeslaLogger
     [SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     public partial class DBHelper
     {
-        private static Dictionary<string, int> mothershipCommands = new Dictionary<string, int>();
+        private static Dictionary<string, int> mothershipCommands = new();
         private static bool mothershipEnabled; // defaults to false
         private Car car;
         bool CleanPasswortDone; // defaults to false
@@ -557,7 +557,7 @@ LIMIT {batchSize}";
         // find gaps in chargingstate.id or drops in charging.charge_energy_added
         internal void AnalyzeChargingStates()
         {
-            List<int> recalculate = new List<int>();
+            List<int> recalculate = new();
             if (KVS.Get($"AnalyzeChargingStatesMaxGapID_{car.CarInDB}", out int analyzeChargingStatesMaxGapID) == KVS.NOT_FOUND)
             {
                 analyzeChargingStatesMaxGapID = 0;
@@ -788,7 +788,7 @@ ORDER BY
                                 if (int.TryParse(dr["EndPos"].ToString(), out int endPosID))
                                 {
                                     int goodDriveID = int.MinValue;
-                                    List<int> badDriveIDs = new List<int>();
+                                    List<int> badDriveIDs = new();
                                     // find the good drive state entry
                                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                                     {
@@ -880,7 +880,7 @@ WHERE
 
         private bool RecalculateChargeEnergyAdded(int ChargingStateID)
         {
-            List<Tuple<int, int>> segments = new List<Tuple<int, int>>();
+            List<Tuple<int, int>> segments = new();
             bool updatedChargePrice = false;
             try
             {
@@ -1127,7 +1127,7 @@ WHERE
         internal void UpdateEmptyChargeEnergy()
         {
             Tools.DebugLog("UpdateEmptyChargeEnergy()");
-            Queue<int> emptyChargeEnergy = new Queue<int>();
+            Queue<int> emptyChargeEnergy = new();
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -1322,7 +1322,7 @@ WHERE
                         minID = Math.Min(minID, similarChargingState);
                     }
                     // build deletion list: all IDs from minID to maxID including minID excluding maxID
-                    List<int> IDsToDelete = new List<int>();
+                    List<int> IDsToDelete = new();
                     if (candidate != maxID)
                     {
                         IDsToDelete.Add(candidate);
@@ -1549,7 +1549,7 @@ WHERE
 
         private Queue<int> FindCombineCandidates()
         {
-            Queue<int> combineCandidates = new Queue<int>();
+            Queue<int> combineCandidates = new();
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -2812,7 +2812,7 @@ WHERE
 
         private Queue<int> FindOpenChargingStates()
         {
-            Queue<int> openChargingStates = new Queue<int>();
+            Queue<int> openChargingStates = new();
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -2853,7 +2853,7 @@ ORDER BY
 
         private Queue<int> FindSimilarChargingStates(int referenceID)
         {
-            Queue<int> chargingStates = new Queue<int>();
+            Queue<int> chargingStates = new();
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -6635,16 +6635,16 @@ WHERE
 
         public static string GetJQueryDataTableJSON(MySqlDataReader dr)
         {
-            var o = new Dictionary<String, object>();
+            var o = new Dictionary<string, object>();
 
-            var aaData = new List<object>();
+            var aaData = new List<Dictionary<string, object>>();
             o.Add("aaData", aaData);
 
             int rows = 0;
             while (dr.Read())
             {
                 rows++;
-                var r = new Dictionary<String, object>();
+                var r = new Dictionary<string, object>();
                 for (int x = 0; x < dr.FieldCount; x++)
                 {
                     r.Add(dr.GetName(x), dr.GetValue(x));
@@ -6950,7 +6950,7 @@ WHERE
 
         internal List<int> GetSuCChargingStatesWithEmptySessionId()
         {
-            List<int> resultList = new List<int>();
+            List<int> resultList = new();
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
@@ -7002,7 +7002,7 @@ WHERE
 
         internal List<int> GetSuCChargingStatesWithSessionId()
         {
-            List<int> resultList = new List<int>();
+            List<int> resultList = new();
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
@@ -7056,7 +7056,7 @@ WHERE
                 }
                 int maxPosID = migratePosOdometerNullValuesMaxPosID;
                 // find all pos.id where odometer IS NULL
-                List<Tuple<int, int>> IDs = new List<Tuple<int, int>>();
+                List<Tuple<int, int>> IDs = new();
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
                     con.Open();
@@ -7542,3 +7542,4 @@ ORDER BY startdate", con))
         }
     }
 }
+

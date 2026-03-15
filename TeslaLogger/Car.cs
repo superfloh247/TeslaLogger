@@ -96,7 +96,7 @@ namespace TeslaLogger
 
         private CurrentJSON currentJSON;
 
-        private static List<Car> allcars = new List<Car>();
+        private static List<Car> allcars = new();
 
         internal DBHelper dbHelper;
 
@@ -217,7 +217,7 @@ namespace TeslaLogger
         [MethodImpl(MethodImplOptions.Synchronized)]
         internal TeslaAPIState GetTeslaAPIState() { return teslaAPIState; }
 
-        private static readonly Dictionary<string, int> VIN2DBCarID = new Dictionary<string, int>();
+        private static readonly Dictionary<string, int> VIN2DBCarID = new();
 
         public Car(int CarInDB, string TeslaName, string TeslaPasswort, int CarInAccount, string TeslaToken, DateTime TeslaTokenExpire, string ModelName, string cartype, string carspecialtype, string cartrimbadging, string displayname, string vin, string TaskerHash, double? WhTR, bool fleetAPI, TeslaState currentState = TeslaState.Start, string wheel_type = "")
         {
@@ -2264,3 +2264,4 @@ id = @carid", con))
         }
     }   
 }
+

@@ -46,7 +46,7 @@ namespace TeslaLogger
 
         static TeslaAuth teslaAuth; // defaults to null;
 
-        private readonly List<string> AllowedTeslaAPICommands = new List<string>()
+        private readonly List<string> AllowedTeslaAPICommands = new()
         {
             "auto_conditioning_start",
             "auto_conditioning_stop",
@@ -1491,7 +1491,7 @@ DROP TABLE chargingstate_bak";
 
 Logfile.Log($"Found {vehicles.Count} Vehicles");
 
-                var o = new List<object>();
+                var o = new List<KeyValuePair<string, string>>();
                 o.Add(new KeyValuePair<string, string>("", "Please Select"));
 
                 for (int x = 0; x < vehicles.Count; x++)
@@ -2131,7 +2131,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
 
         private static void Admin_DownloadLogs(HttpListenerRequest request, HttpListenerResponse response)
         {
-            Queue<string> result = new Queue<string>();
+            Queue<string> result = new();
             // set defaults
             DateTime startdt = DateTime.Now.AddHours(-48);
             DateTime enddt = DateTime.Now.AddSeconds(1);
@@ -3490,7 +3490,7 @@ FROM
                     Address addr = Geofence.GetInstance().GetPOI(lat, lng, false);
                     if (addr != null)
                     {
-                        Dictionary<string, object> data = new Dictionary<string, object>()
+                        Dictionary<string, object> data = new()
                         {
                             { "name", addr.name },
                             { "rawName", addr.rawName },
@@ -3502,7 +3502,7 @@ FROM
                             { "IsCharger", addr.IsCharger },
                             { "NoSleep", addr.NoSleep },
                         };
-                        Dictionary<string, object> specialflags = new Dictionary<string, object>();
+                        Dictionary<string, object> specialflags = new();
                         foreach (KeyValuePair<Address.SpecialFlags, string> flag in addr.specialFlags)
                         {
                             specialflags.Add(flag.Key.ToString(), flag.Value);
@@ -3553,7 +3553,7 @@ FROM
             // handle GET request
             // list available backup files
             // offer upload possibility for backup file
-            List<string> fileList = new List<string>();
+            List<string> fileList = new();
             try
             {
                 foreach (string fileName in Directory.GetFiles("/etc/teslalogger/backup", "mysqldump2023*"))
@@ -3658,3 +3658,4 @@ function checkform() {
         }
     }
 }
+

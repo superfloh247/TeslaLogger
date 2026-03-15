@@ -584,7 +584,7 @@ WHERE
         {
             foreach (int chargingstateid in car.DbHelper.GetSuCChargingStatesWithSessionId())
             {
-                List<string> sessionIds = new List<string>();
+                List<string> sessionIds = new();
                 string sessionIdmaster = string.Empty;
                 Tools.DebugLog($"CalculateCombinedChargeSessions: chargingstateid<{chargingstateid}>");
                 try
