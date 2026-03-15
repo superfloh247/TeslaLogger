@@ -89,7 +89,7 @@ WHERE
             car.CurrentJSON.CreateCurrentJSON();
         }
 
-        public async Task StartStateAsync(string state)
+        public async Task StartStateAsync(string? state)
         {
             if (state is not null)
             {
@@ -166,7 +166,7 @@ VALUES(
             }
         }
 
-        public static async Task AddMothershipDataToDBAsync(string command, DateTime start, int httpcode, int carid)
+        public static async Task AddMothershipDataToDBAsync(string? command, DateTime start, int httpcode, int carid)
         {
             if (mothershipEnabled == false)
             {
@@ -179,7 +179,7 @@ VALUES(
             await AddMothershipDataToDBAsync(command, duration, httpcode, carid);
         }
 
-        public static async Task AddMothershipDataToDBAsync(string command, double duration, int httpcode, int carid)
+        public static async Task AddMothershipDataToDBAsync(string? command, double duration, int httpcode, int carid)
         {
             if (command.Contains(WebHelper.vehicle_data_everything))
                 command = command.Replace(WebHelper.vehicle_data_everything, "vehicle_data_everything");
@@ -326,7 +326,7 @@ WHERE
             }
         }
 
-        internal string GetRefreshToken(out string tesla_token)
+        internal string? GetRefreshToken(out string? tesla_token)
         {
             tesla_token = "";
 
@@ -368,7 +368,7 @@ WHERE
             return "";
         }
 
-        public static string GetRefreshTokenFromAccessToken(string access_token)
+        public static string? GetRefreshTokenFromAccessToken(string? access_token)
         {
             try
             {
@@ -402,7 +402,7 @@ WHERE
             return "";
         }
 
-        internal bool SetCarName(string car_name)
+        internal bool SetCarName(string? car_name)
         {
             car.CarName = car_name;
 
@@ -433,7 +433,7 @@ WHERE
             return true;
         }
 
-        internal bool SetABRP(string abrp_token, int abrp_mode)
+        internal bool SetABRP(string? abrp_token, int abrp_mode)
         {
             car.ABRPToken = abrp_token;
             car.ABRPMode = abrp_mode;
@@ -472,7 +472,7 @@ WHERE
             return true;
         }
 
-        internal bool SetSucBingo(string sucBingo_user, string sucBingo_apiKey)
+        internal bool SetSucBingo(string? sucBingo_user, string? sucBingo_apiKey)
         {
             car.SuCBingoUser = sucBingo_user;
             car.SuCBingoApiKey = sucBingo_apiKey;
@@ -1027,7 +1027,7 @@ WHERE
             return double.NaN;
         }
 
-        internal bool GetCarName(out string car_name)
+        internal bool GetCarName(out string? car_name)
         {
             car_name = "";
 
@@ -1058,7 +1058,7 @@ WHERE
             return false;
         }
 
-        internal bool GetABRP(out string ABRP_token, out int ABRP_mode)
+        internal bool GetABRP(out string? ABRP_token, out int ABRP_mode)
         {
             ABRP_token = "";
             ABRP_mode = 0;
@@ -1091,7 +1091,7 @@ WHERE
             return false;
         }
 
-        internal bool GetSuCBingo(out string sucBingo_user, out string sucBingo_apiKey)
+        internal bool GetSuCBingo(out string? sucBingo_user, out string? sucBingo_apiKey)
         {
             sucBingo_user = "";
             sucBingo_apiKey = "";
@@ -1680,7 +1680,7 @@ HAVING
             }
         }
 
-        private static async Task AddCommandToDBAsync(string command)
+        private static async Task AddCommandToDBAsync(string? command)
         {
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
@@ -1714,7 +1714,7 @@ HAVING
             }
         }
 
-        internal void UpdateRefreshToken(string refresh_token)
+        internal void UpdateRefreshToken(string? refresh_token)
         {
             try
             {
@@ -1747,7 +1747,7 @@ HAVING
             }
         }
 
-        internal void UpdateCarColumn(string column, string value)
+        internal void UpdateCarColumn(string? column, string? value)
         {
             try
             {
@@ -1803,7 +1803,7 @@ HAVING
             }
         }
 
-        internal string GetFirmwareFromDate(DateTime dateTime)
+        internal string? GetFirmwareFromDate(DateTime dateTime)
         {
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
@@ -4623,7 +4623,7 @@ WHERE
 
         int last_active_route_energy_at_arrival = int.MinValue;
 
-        public async Task<int> InsertPosAsync(string timestamp, double latitude, double longitude, int speed, decimal? power, double? odometer, double idealBatteryRangeKm, double batteryRangeKm, double batteryLevel, double? insideTemp, double? outsideTemp, string altitude)
+        public async Task<int> InsertPosAsync(string? timestamp, double latitude, double longitude, int speed, decimal? power, double? odometer, double idealBatteryRangeKm, double batteryRangeKm, double batteryLevel, double? insideTemp, double? outsideTemp, string? altitude)
         {
             int posid = 0;
             //double? inside_temp = car.CurrentJSON.current_inside_temperature;
@@ -4891,7 +4891,7 @@ WHERE
         private DateTime lastChargingInsert = DateTime.Today;
 
 
-        internal void InsertCharging(string timestamp, string battery_level, string charge_energy_added, string charger_power, double ideal_battery_range, double battery_range, string charger_voltage, string charger_phases, string charger_actual_current, double? outside_temp, bool forceinsert, string charger_pilot_current, string charge_current_request)
+        internal void InsertCharging(string? timestamp, string? battery_level, string? charge_energy_added, string? charger_power, double ideal_battery_range, double battery_range, string? charger_voltage, string? charger_phases, string? charger_actual_current, double? outside_temp, bool forceinsert, string? charger_pilot_current, string? charge_current_request)
         {
             Tools.SetThreadEnUS();
 
@@ -5295,7 +5295,7 @@ WHERE
             return 0;
         }
 
-        internal void SetCarVersion(string car_version)
+        internal void SetCarVersion(string? car_version)
         {
             try
             {
@@ -5329,7 +5329,7 @@ VALUES (
             }
         }
 
-        internal string GetLastCarVersion()
+        internal string? GetLastCarVersion()
         {
             try
             {
@@ -5366,7 +5366,7 @@ LIMIT 1", con))
             return "";
         }
 
-        public static string GetVersion()
+        public static string? GetVersion()
         {
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
@@ -5385,7 +5385,7 @@ LIMIT 1", con))
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        public static bool TableExists(string table)
+        public static bool TableExists(string? table)
         {
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
@@ -5410,7 +5410,7 @@ WHERE
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        public static string GetColumnType(string table, string column)
+        public static string? GetColumnType(string? table, string? column)
         {
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
@@ -5436,7 +5436,7 @@ WHERE
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        public static bool ColumnExists(string table, string column)
+        public static bool ColumnExists(string? table, string? column)
         {
             try
             {
@@ -5464,7 +5464,7 @@ WHERE
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        public static int ExecuteSQLQuery(string sql, int timeout = 30)
+        public static int ExecuteSQLQuery(string? sql, int timeout = 30)
         {
             try
             {
@@ -5491,7 +5491,7 @@ WHERE
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        public static async Task<int> ExecuteSQLQueryAsync(string sql, int timeout = 30)
+        public static async Task<int> ExecuteSQLQueryAsync(string? sql, int timeout = 30)
         {
             try
             {
@@ -5518,14 +5518,14 @@ WHERE
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        public static object ExecuteSQLScalar(string sql, int timeout = 30)
+        public static object? ExecuteSQLScalar(string? sql, int timeout = 30)
         {
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
                     con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(sql, con))
+                    using (MySqlCommand cmd = new MySqlCommand(sql!, con))
                     {
                         if (timeout != 30)
                         {
@@ -5804,7 +5804,7 @@ WHERE
             return 0;
         }
 
-        virtual public async Task<string> UpdateCountryCodeAsync()
+        virtual public async Task<string?> UpdateCountryCodeAsync()
         {
             try
             {
@@ -5860,7 +5860,7 @@ WHERE
             return GetCars("id");
         }
         
-        private static DataTable GetCars(string orderByCol)
+        private static DataTable? GetCars(string? orderByCol)
         {
             DataTable dt = new DataTable();
 
@@ -5950,7 +5950,7 @@ WHERE
             return null;
         }
 
-        public static DataRow GetCar(string vin)
+        public static DataRow? GetCar(string? vin)
         {
             using (DataTable dt = new DataTable())
             {
@@ -6170,7 +6170,7 @@ WHERE
             return val;
         }
 
-        public static bool IsZero(string val)
+        public static bool IsZero(string? val)
         {
             if (val is null || val.Length == 0)
             {
@@ -6198,7 +6198,7 @@ WHERE
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        private static void Enable_utf8mb4_check_database(string dbname)
+        private static void Enable_utf8mb4_check_database(string? dbname)
         {
             try
             {
@@ -6235,7 +6235,7 @@ WHERE SCHEMA_NAME  = '{dbname}'", con))
             }
         }
 
-        private static void Enable_utf8mb4_alter_database(string dbname)
+        private static void Enable_utf8mb4_alter_database(string? dbname)
         {
             // ALTER DATABASE database_name CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
             try
@@ -6259,7 +6259,7 @@ COLLATE = utf8mb4_unicode_ci", 300);
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        private static void Enable_utf8mb4_check_tables(string dbname)
+        private static void Enable_utf8mb4_check_tables(string? dbname)
         {
             try
             {
@@ -6299,7 +6299,7 @@ WHERE
             }
         }
 
-        private static void Enable_utf8mb4_alter_table(string dbname, string tablename)
+        private static void Enable_utf8mb4_alter_table(string? dbname, string? tablename)
         {
             // ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             try
@@ -6322,7 +6322,7 @@ CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", 3000);
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        private static void Enable_utf8mb4_check_columns(string dbname, string tablename)
+        private static void Enable_utf8mb4_check_columns(string? dbname, string? tablename)
         {
             try
             {
@@ -6364,7 +6364,7 @@ WHERE
             }
         }
 
-        private static void Enable_utf8mb4_alter_column(string dbname, string tablename, string columnname, string columntype)
+        private static void Enable_utf8mb4_alter_column(string? dbname, string? tablename, string? columnname, string? columntype)
         {
             // ALTER TABLE `shiftstate` CHANGE `state` `state` VARCHAR(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL;
             try
@@ -6609,7 +6609,7 @@ WHERE
 
         }
 
-        public static string GetJQueryDataTableJSON(string sql)
+        public static string? GetJQueryDataTableJSON(string? sql)
         {
             string json = "";
             try
@@ -6633,7 +6633,7 @@ WHERE
             return json;
         }
 
-        public static string GetJQueryDataTableJSON(MySqlDataReader dr)
+        public static string? GetJQueryDataTableJSON(MySqlDataReader? dr)
         {
             var o = new Dictionary<string, object>();
 
@@ -6693,7 +6693,7 @@ FROM
             return newid;
         }
 
-        internal static decimal InsertNewCar(string email, string password, int teslacarid, bool freesuc, string access_token, string refresh_token, string vin, string display_name, bool fleetAPI)
+        internal static decimal InsertNewCar(string? email, string? password, int teslacarid, bool freesuc, string? access_token, string? refresh_token, string? vin, string? display_name, bool fleetAPI)
         {
             Logfile.Log($"Insert new Car: {display_name}, VIN: {vin}, TeslaCarId: {teslacarid}");
             int newid = GetNextAvailableCarID();
@@ -6844,7 +6844,7 @@ FROM
             }
         }
 
-        private static void UpdateChargingStateCountryCO2(int ChargingStateID, string country, int CO2)
+        private static void UpdateChargingStateCountryCO2(int ChargingStateID, string? country, int CO2)
         {
             try
             {

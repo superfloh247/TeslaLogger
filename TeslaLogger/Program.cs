@@ -694,7 +694,7 @@ namespace TeslaLogger
             });
         }
 
-        private static void ExitTeslaLogger(string _msg, int _exitcode = 0)
+        private static void ExitTeslaLogger(string? _msg, int _exitcode = 0)
         {
             Logfile.Log($"Exit: {_msg}");
             Environment.Exit(_exitcode);

@@ -10,7 +10,7 @@ namespace TeslaLogger
     public class Logfile
     {
         public static bool WriteToLogfile = false;
-        private static string _logfilepath = null;
+        private static string? _logfilepath = null;
         private static System.Threading.Mutex mutex = new System.Threading.Mutex(false, "teslaloggerlogfile");
         public static bool noDate = false;
 
@@ -23,7 +23,7 @@ namespace TeslaLogger
             }
         }
 
-        public static string Logfilepath
+        public static string? Logfilepath
         {
             get
             {
@@ -40,7 +40,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void Log(string text)
+        public static void Log(string? text)
         {
             
             ExternalLog(text);
@@ -66,7 +66,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void ExceptionWriter(Exception ex, string inhalt)
+        public static void ExceptionWriter(Exception? ex, string? inhalt)
         {
             try
             {
@@ -195,7 +195,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void WriteException(string temp)
+        public static void WriteException(string? temp)
         {
             ExternalLog(temp);
 
@@ -206,20 +206,20 @@ namespace TeslaLogger
             File.WriteAllText(filepath, temp);
         }
 
-        public static string GetExecutingPath()
+        public static string? GetExecutingPath()
         {
             //System.IO.Directory.GetCurrentDirectory() is not returning the current path of the assembly
 
             System.Reflection.Assembly executingAssembly = System.Reflection.Assembly.GetExecutingAssembly();
 
-            string executingPath = executingAssembly.Location;
+            string? executingPath = executingAssembly.Location;
 
             executingPath = executingPath.Replace(executingAssembly.ManifestModule.Name, string.Empty);
 
             return executingPath;
         }
 
-        public static string GetPrefix(string exception)
+        public static string GetPrefix(string? exception)
         {
             try
             {
@@ -277,7 +277,7 @@ namespace TeslaLogger
             return false;
         }
 
-        internal static void ExternalLog(string text)
+        internal static void ExternalLog(string? text)
         {
             /*
             try

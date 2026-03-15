@@ -25,7 +25,7 @@ namespace TeslaLogger
         private readonly SortedDictionary<string, Dictionary<Key, object>> storage = new SortedDictionary<string, Dictionary<Key, object>>();
         private readonly HashSet<string> unknownKeys = new();
         private readonly Car car;
-        private readonly MQTT mqtt;
+        private readonly MQTT? mqtt;
         private bool dumpJSON;
         private readonly System.Threading.SemaphoreSlim TeslaAPIStateLock = new System.Threading.SemaphoreSlim(1, 1);
 
@@ -52,14 +52,14 @@ namespace TeslaLogger
                 dumpJSON = value;
             }
         }
-        private string DumpJSONSessionDir = string.Empty;
+        private string? DumpJSONSessionDir = string.Empty;
 
         internal TeslaAPIState(Car car)
         {
             this.car = car;
         }
 
-        internal void AddValue(string name, string type, object value, long timestamp, string source)
+        internal void AddValue(string? name, string? type, object? value, long timestamp, string? source)
         {
             TeslaAPIStateLock.Wait();
             try
@@ -120,7 +120,7 @@ namespace TeslaLogger
             }
         }
 
-        private void HandleStateChange(string name, object oldvalue, object newvalue, long oldTS, long newTS)
+        private void HandleStateChange(string? name, object? oldvalue, object? newvalue, long oldTS, long newTS)
         {
             
 //            mqtt.PublishMqttValue(car.Vin, name, newvalue);
@@ -216,7 +216,7 @@ namespace TeslaLogger
             }
         }
 
-        public bool GetState(string name, out Dictionary<Key, object> state, int maxage = 0)
+        public bool GetState(string? name, out Dictionary<Key, object> state, int maxage = 0)
         {
             TeslaAPIStateLock.Wait();
             try
@@ -265,7 +265,7 @@ namespace TeslaLogger
             return false;
         }
 
-        public bool HasValue(string name)
+        public bool HasValue(string? name)
         {
             if (storage.ContainsKey(name) && storage[name].ContainsKey(Key.Type) && storage[name].ContainsKey(Key.Value))
             {
@@ -275,7 +275,7 @@ namespace TeslaLogger
             return false;
         }
 
-        public bool GetBool(string name, out bool value, int maxage = 0)
+        public bool GetBool(string? name, out bool value, int maxage = 0)
         {
             TeslaAPIStateLock.Wait();
             try
@@ -313,7 +313,7 @@ namespace TeslaLogger
             return false;
         }
 
-        public bool GetInt(string name, out int value, int maxage = 0)
+        public bool GetInt(string? name, out int value, int maxage = 0)
         {
             TeslaAPIStateLock.Wait();
             try
@@ -351,7 +351,7 @@ namespace TeslaLogger
             }
         }
 
-        public bool GetDouble(string name, out double value, int maxage = 0)
+        public bool GetDouble(string? name, out double value, int maxage = 0)
         {
             TeslaAPIStateLock.Wait();
             try
@@ -389,7 +389,7 @@ namespace TeslaLogger
             return false;
         }
 
-        public bool GetString(string name, out string value, int maxage = 0)
+        public bool GetString(string? name, out string? value, int maxage = 0)
         {
             TeslaAPIStateLock.Wait();
             try
@@ -428,7 +428,7 @@ namespace TeslaLogger
             return false;
         }
 
-        public bool ParseAPI(string JSON, string source)
+        public bool ParseAPI(string? JSON, string? source)
         {
             if (string.IsNullOrEmpty(JSON))
             {
@@ -523,7 +523,7 @@ namespace TeslaLogger
             return false;
         }
 
-        private bool ParseVehicles(string _JSON)
+        private bool ParseVehicles(string? _JSON)
         {
             try
             {
@@ -649,7 +649,7 @@ namespace TeslaLogger
             return false;
         }
 
-        private bool ParseChargeState(string _JSON)
+        private bool ParseChargeState(string? _JSON)
         {
             try
             {

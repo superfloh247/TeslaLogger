@@ -17,14 +17,14 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     internal partial class Car
     {
-        private Address lastRacingPoint; // defaults to null;
-        internal WebHelper webhelper;
-        internal TelemetryConnection telemetry;
-        internal TelemetryParser telemetryParser;
+        private Address? lastRacingPoint; // defaults to null;
+        internal WebHelper? webhelper;
+        internal TelemetryConnection? telemetry;
+        internal TelemetryParser? telemetryParser;
 
 
         // encapsulate state
-        internal WebHelper GetWebHelper() { return webhelper; }
+        internal WebHelper? GetWebHelper() { return webhelper; }
         private DateTime lastCarUsed = DateTime.Now;
         internal DateTime GetLastCarUsed() { return lastCarUsed; }
         internal void SetLastCarUsed(DateTime dt)
@@ -58,18 +58,18 @@ namespace TeslaLogger
         private HFLMode highFrequencyLoggingMode = HFLMode.Ticks;
         internal HFLMode GetHighFrequencyLoggingMode() { return highFrequencyLoggingMode; }
 
-        protected Task loopTask;
+        protected Task? loopTask;
         internal CancellationTokenSource cts = new();
         private bool run = true;
 
-        internal string TeslaName;
-        internal string TeslaPasswort;
-        internal string Tesla_Token;
+        internal string? TeslaName;
+        internal string? TeslaPasswort;
+        internal string? Tesla_Token;
         internal DateTime Tesla_Token_Expire;
         internal int CarInAccount;
         internal int CarInDB;
 
-        private string modelName;
+        private string? modelName;
         private bool raven; // defaults to false;
         private double _wh_TR = 0.190052356;
         private double dB_Wh_TR; // defaults to 0;
@@ -94,13 +94,13 @@ namespace TeslaLogger
         private string sucBingo_user = "";
         private string sucBingo_apiKey = "";
 
-        private CurrentJSON currentJSON;
+        private CurrentJSON? currentJSON;
 
         private static List<Car> allcars = new();
 
-        internal DBHelper dbHelper;
+        internal DBHelper? dbHelper;
 
-        internal readonly TeslaAPIState teslaAPIState;
+        internal readonly TeslaAPIState? teslaAPIState;
 
         private bool useTaskerToken = true;
         internal string wheel_type = "";
@@ -119,8 +119,8 @@ namespace TeslaLogger
         }
 
         public string LastSetChargeLimitAddressName { get => lastSetChargeLimitAddressName; set => lastSetChargeLimitAddressName = value; }
-        public string LastSetChargingAmpsAddressName { get; internal set; }
-        public string ModelName { get => modelName; set => modelName = value; }
+        public string? LastSetChargingAmpsAddressName { get; internal set; }
+        public string? ModelName { get => modelName; set => modelName = value; }
         public bool Raven { get => raven; set => raven = value; }
         public double DBWhTR { get => dB_Wh_TR; set => dB_Wh_TR = value; }
         public int DBWhTRcount { get => dB_Wh_TR_count; set => dB_Wh_TR_count = value; }
@@ -137,14 +137,14 @@ namespace TeslaLogger
         public int ABRPMode { get => aBRP_mode; set => aBRP_mode = value; }
         public string SuCBingoUser { get => sucBingo_user; set => sucBingo_user = value; }
         public string SuCBingoApiKey { get => sucBingo_apiKey; set => sucBingo_apiKey = value; }
-        public CurrentJSON CurrentJSON { get => currentJSON; set => currentJSON = value; }
+        public CurrentJSON? CurrentJSON { get => currentJSON; set => currentJSON = value; }
         public static List<Car> Allcars { get => allcars; }
-        public DBHelper DbHelper { get => dbHelper; set => dbHelper = value; }
+        public DBHelper? DbHelper { get => dbHelper; set => dbHelper = value; }
         public bool UseTaskerToken { get => useTaskerToken; set => useTaskerToken = value; }
-        public string MFACode { get => mFA_Code; set => mFA_Code = value; }
-        public string Captcha { get => captcha; set => captcha = value; }
-        public string CaptchaString { get => captcha_String; set => captcha_String = value; }
-        public string ReCaptchaCode { get => reCaptcha_Code; set => reCaptcha_Code = value; }
+        public string? MFACode { get => mFA_Code; set => mFA_Code = value; }
+        public string? Captcha { get => captcha; set => captcha = value; }
+        public string? CaptchaString { get => captcha_String; set => captcha_String = value; }
+        public string? ReCaptchaCode { get => reCaptcha_Code; set => reCaptcha_Code = value; }
         public double Avgkm { get => avgkm; set => avgkm = value; }
         public double Kwh100km { get => kwh100km; set => kwh100km = value; }
         public double Avgsocdiff { get => avgsocdiff; set => avgsocdiff = value; }
@@ -184,10 +184,10 @@ namespace TeslaLogger
             }
         }
 
-        private string mFA_Code;
-        private string captcha;
-        private string captcha_String;
-        private string reCaptcha_Code;
+        private string? mFA_Code;
+        private string? captcha;
+        private string? captcha_String;
+        private string? reCaptcha_Code;
 
         internal int LoginRetryCounter; // defaults to 0;
         private double sumkm; // defaults to 0;
@@ -219,7 +219,7 @@ namespace TeslaLogger
 
         private static readonly Dictionary<string, int> VIN2DBCarID = new();
 
-        public Car(int CarInDB, string TeslaName, string TeslaPasswort, int CarInAccount, string TeslaToken, DateTime TeslaTokenExpire, string ModelName, string cartype, string carspecialtype, string cartrimbadging, string displayname, string vin, string TaskerHash, double? WhTR, bool fleetAPI, TeslaState currentState = TeslaState.Start, string wheel_type = "")
+        public Car(int CarInDB, string? TeslaName, string? TeslaPasswort, int CarInAccount, string? TeslaToken, DateTime TeslaTokenExpire, string? ModelName, string? cartype, string? carspecialtype, string? cartrimbadging, string? displayname, string? vin, string? TaskerHash, double? WhTR, bool fleetAPI, TeslaState currentState = TeslaState.Start, string? wheel_type = "")
         {
             lock (_syncRoot)
             {
@@ -595,7 +595,7 @@ namespace TeslaLogger
             }
         }
 
-        internal void ExitCarThread(string v)
+        internal void ExitCarThread(string? v)
         {
             Log($"ExitCarThread: {v}");
             run = false;
@@ -1781,7 +1781,7 @@ namespace TeslaLogger
             }
         }
 
-        internal void Restart(string reason, int waitSeconds)
+        internal void Restart(string? reason, int waitSeconds)
         {
             Log($"Restart Car {CarInDB}");
 
@@ -1894,12 +1894,12 @@ namespace TeslaLogger
             DbHelper.WriteCarSettings();
         }
 
-        public void Log(string text)
+        public void Log(string? text)
         {
             Logfile.Log($"#{CarInDB}[{Thread.CurrentThread.Name}:{Thread.CurrentThread.ManagedThreadId}]: {text}");
         }
 
-        public void ExternalLog(string text)
+        public void ExternalLog(string? text)
         {
             CreateExeptionlessLog("Car", text, Exceptionless.Logging.LogLevel.Info).Submit(); ;
 
