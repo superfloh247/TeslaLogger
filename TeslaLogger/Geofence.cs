@@ -92,21 +92,21 @@ namespace TeslaLogger
 
         public int Compare(Address x, Address y)
         {
-            if (x != null && y != null && x.lat < y.lat)
+            if (x is not null && y is not null && x.lat < y.lat)
             {
                 return -1;
             }
-            else if (x != null && y != null && x.lat > y.lat)
+            else if (x is not null && y is not null && x.lat > y.lat)
             {
                 return 1;
             }
             else
             {
-                if (x != null && y != null && x.lng < y.lng)
+                if (x is not null && y is not null && x.lng < y.lng)
                 {
                     return -1;
                 }
-                else if (x != null && y != null && x.lng > y.lng)
+                else if (x is not null && y is not null && x.lng > y.lng)
                 {
                     return 1;
                 }
@@ -152,7 +152,7 @@ namespace TeslaLogger
             Logfile.Log("Geofence initialized");
             Init();
             
-            if (fsw == null)
+            if (fsw is null)
             {
                 var path = FileManager.GetFilePath(TLFilename.GeofencePrivateFilename);
                 FileInfo fpath = new FileInfo(path);
@@ -244,7 +244,7 @@ namespace TeslaLogger
                 string line;
                 using (StreamReader file = new StreamReader(filename))
                 {
-                    while ((line = file.ReadLine()) != null)
+                    while ((line = file.ReadLine()) is not null)
                     {
                         try
                         {
@@ -257,7 +257,7 @@ namespace TeslaLogger
 
                             string[] args = Regex.Split(line, ",");
 
-                            if (args.Length > 3 && args[3] != null && args[3].Length > 0)
+                            if (args.Length > 3 && args[3] is not null && args[3].Length > 0)
                             {
                                 _ = int.TryParse(args[3], out radius);
                             }
@@ -267,7 +267,7 @@ namespace TeslaLogger
                                 double.Parse(args[2].Trim(), Tools.ciEnUS.NumberFormat),
                                 radius);
 
-                            if (args.Length > 4 && args[4] != null)
+                            if (args.Length > 4 && args[4] is not null)
                             {
                                 string flags = args[4];
                                 ParseSpecialFlags(addr, flags);
@@ -512,7 +512,7 @@ namespace TeslaLogger
             {
                 LookupPOIinList(geofencePrivateList, lat, lng, logDistance, brand, maxPower, ref ret, ref retDistance, ref found);
             }
-            if (ret == null)
+            if (ret is null)
             {
                 lock (geofenceList)
                 {
@@ -561,7 +561,7 @@ namespace TeslaLogger
                             Logfile.Log($"Distance: {distance} - Radius: {p.radius} - {p.name}");
                         }
 
-                        if (ret == null)
+                        if (ret is null)
                         {
                             ret = p;
                             retDistance = distance;
@@ -604,7 +604,7 @@ namespace TeslaLogger
                 string url = "https://raw.githubusercontent.com/bassmaster187/TeslaLogger/master/TeslaLogger/bin/geofence.csv";
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url))
                 {
-                    if (lastETag != null)
+                    if (lastETag is not null)
                     {
                         request.Headers.TryAddWithoutValidation("If-None-Match", lastETag);
                     }
@@ -615,7 +615,7 @@ namespace TeslaLogger
                     }
                     else if (response.IsSuccessStatusCode)
                     {
-                        if (response.Headers.ETag != null)
+                        if (response.Headers.ETag is not null)
                         {
                             lastETag = response.Headers.ETag.Tag;
                             KVS.InsertOrUpdate("Geofence.OnlineUpdate.ETag", lastETag);
@@ -661,4 +661,5 @@ namespace TeslaLogger
 
     }
 }
+
 

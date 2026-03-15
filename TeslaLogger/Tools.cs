@@ -85,7 +85,7 @@ namespace TeslaLogger
 
         public static void DebugLog(MySqlDataReader dr, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string callerMemberName = null)
         {
-            if (dr != null)
+            if (dr is not null)
             {
                 string msg = "RAWSQL:";
                 for (int column = 0; column < dr.FieldCount; column++)
@@ -99,7 +99,7 @@ namespace TeslaLogger
         public static void DebugLog(DataTable dt, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string callerMemberName = null)
         {
             string msg = callerMemberName + Environment.NewLine;
-            if (dt != null)
+            if (dt is not null)
             {
                 // https://stackoverflow.com/questions/15547959/print-contents-of-a-datatable
                 Dictionary<string, int> colWidths = new();
@@ -140,7 +140,7 @@ namespace TeslaLogger
         internal static string ExpandSQLCommand(MySqlCommand cmd)
         {
             string msg = string.Empty;
-            if (cmd != null && cmd.Parameters != null)
+            if (cmd is not null && cmd.Parameters is not null)
             {
                 msg = cmd.CommandText;
                 foreach (MySqlParameter p in cmd.Parameters)
@@ -157,7 +157,7 @@ namespace TeslaLogger
                         case DbType.String:
                         case DbType.StringFixedLength:
                         case DbType.Time:
-                            if (p.Value != null)
+                            if (p.Value is not null)
                             {
                                 pValue = $"'{p.Value.ToString().Replace("'", "\\'")}'";
                             }
@@ -185,7 +185,7 @@ namespace TeslaLogger
                         case DbType.DateTimeOffset:
                         case DbType.Xml:
                         default:
-                            if (p.Value != null)
+                            if (p.Value is not null)
                             {
                                 pValue = p.Value.ToString();
                             }
@@ -253,7 +253,7 @@ namespace TeslaLogger
             {
                 Logfile.Log(temp);
             }
-            if (ex != null)
+            if (ex is not null)
             {
                 string exmsg = $"DEBUG : Exception {ex.GetType()} {ex}";
                 AddToBuffer(exmsg);
@@ -285,7 +285,7 @@ namespace TeslaLogger
             try
             {
                 MethodBase site = e.TargetSite;//Get the methodname from the exception.
-                string methodName = site == null ? "" : site.Name;//avoid null ref if it's null.
+                string methodName = site is null ? "" : site.Name;//avoid null ref if it's null.
                 methodName = ExtractBracketed(methodName);
 
                 StackTrace stkTrace = new System.Diagnostics.StackTrace(e, true);
@@ -333,10 +333,10 @@ namespace TeslaLogger
         public static string GetMonoRuntimeVersion()
         {
             Type type = Type.GetType("Mono.Runtime");
-            if (type != null)
+            if (type is not null)
             {
                 MethodInfo displayName = type.GetMethod("GetDisplayName", BindingFlags.NonPublic | BindingFlags.Static);
-                if (displayName != null)
+                if (displayName is not null)
                 {
                     return displayName.Invoke(null, null).ToString();
                 }
@@ -382,7 +382,7 @@ namespace TeslaLogger
 
         public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target, string excludeFile = null, bool writeToLogfile = true)
         {
-            if (source != null && target != null)
+            if (source is not null && target is not null)
             {
                 try
                 {
@@ -393,7 +393,7 @@ namespace TeslaLogger
 
                     foreach (FileInfo file in source.GetFiles())
                     {
-                        if (excludeFile != null && file.Name == excludeFile)
+                        if (excludeFile is not null && file.Name == excludeFile)
                         {
                             Logfile.Log($"CopyFilesRecursively: skip {excludeFile}");
                         }
@@ -421,7 +421,7 @@ namespace TeslaLogger
 
         internal static object VINDecoder(string vin, out int year, out string carType, out bool AWD, out bool MIC, out string battery, out string motor, out bool MIG)
         {
-            if (vin == null || vin == "")
+            if (vin is null || vin == "")
             {
                 year = 0;
                 carType = "";
@@ -729,7 +729,7 @@ namespace TeslaLogger
         {
             List<Dictionary<string, object>> parentRow = new();
             Dictionary<string, object> childRow;
-            if (table != null)
+            if (table is not null)
             {
                 foreach (DataRow row in table.Rows)
                 {
@@ -910,7 +910,7 @@ namespace TeslaLogger
             string json = "";
             try
             {
-                if (_StreamingPos != null)
+                if (_StreamingPos is not null)
                     return (bool)_StreamingPos;
 
                 string filePath = FileManager.GetFilePath(TLFilename.SettingsFilename);
@@ -1095,7 +1095,7 @@ namespace TeslaLogger
 
         internal static string ObfuscateVIN(string input)
         {
-            if (input == null)
+            if (input is null)
                 return null;
 
             string obfuscated = string.Empty;
@@ -1348,7 +1348,7 @@ namespace TeslaLogger
             string base64 = "";
             try
             {
-                if (content != null)
+                if (content is not null)
                 {
                     var t = System.Text.UTF8Encoding.UTF8.GetBytes(content);
                     base64 = Convert.ToBase64String(t);
@@ -1362,7 +1362,7 @@ namespace TeslaLogger
 
         public static bool IsPropertyExist(object settings, string name)
         {
-            if (settings == null)
+            if (settings is null)
                 return false;
 
             if (settings is Newtonsoft.Json.Linq.JObject)
@@ -2171,7 +2171,7 @@ WHERE
 
         public static string ObfuscateString(string input)
         {
-            if (input == null)
+            if (input is null)
                 return null;
 
             string obfuscated = string.Empty;
@@ -2503,7 +2503,7 @@ WHERE
         {
             try
             {
-                if (lastFirstCar != null)
+                if (lastFirstCar is not null)
                     return v.SetUserIdentity(lastFirstCar);
 
                 using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
@@ -2705,4 +2705,5 @@ WHERE
         }
     }
 }
+
 

@@ -19,7 +19,7 @@ namespace TeslaLogger
             string sessionId;
             string siteLocationName;
             DateTime chargeStartDateTime;
-            if (jsonSession != null
+            if (jsonSession is not null
                  && jsonSession.ContainsKey("sessionId")
                  && jsonSession.ContainsKey("chargeStartDateTime")
                  && jsonSession.ContainsKey("siteLocationName")
@@ -89,7 +89,7 @@ INSERT IGNORE INTO teslacharging SET
                         {
                             // ... download file
                             byte[] PDF = car.webhelper.GetChargingHistoryInvoicePDF(invoice["contentId"].ToString()).Result;
-                            if (PDF != null && PDF.Length > 0)
+                            if (PDF is not null && PDF.Length > 0)
                             {
                                 // save file to file system
                                 File.WriteAllBytes(invoicePDF, PDF);
@@ -112,9 +112,9 @@ INSERT IGNORE INTO teslacharging SET
         {
             bool nextpage = false;
             dynamic json = JsonConvert.DeserializeObject(sjson);
-            if (json == null)
+            if (json is null)
             {
-                Tools.DebugLog("ParseJSON: json == null");
+                Tools.DebugLog("ParseJSON: json is null");
                 return nextpage;
             }
             //Tools.DebugLog($"ParseJSON\n{new Tools.JsonFormatter(json.ToString()).Format()}");
@@ -161,9 +161,9 @@ INSERT IGNORE INTO teslacharging SET
             Tools.DebugLog($"GetChargingHistoryV2Service.LoadAll(#{car.CarInDB})");
             int resultPage = 1;
             string result = car.webhelper.GetChargingHistoryV2(car.Vin, resultPage).Result;
-            if (result == null || result == "{}" || string.IsNullOrEmpty(result))
+            if (result is null || result == "{}" || string.IsNullOrEmpty(result))
             {
-                Tools.DebugLog($"GetChargingHistoryV2Service.LoadAll(#{car.CarInDB}): result == null");
+                Tools.DebugLog($"GetChargingHistoryV2Service.LoadAll(#{car.CarInDB}): result is null");
                 return;
             }
             if (result.Contains("Retry later"))
@@ -183,7 +183,7 @@ INSERT IGNORE INTO teslacharging SET
             }
             Tools.DebugLog($"GetChargingHistoryV2Service GetChargingHistoryV2.LoadAll(#{car.CarInDB}) result length: {result.Length}");
 
-            while (result != null && ParseJSON(result, car))
+            while (result is not null && ParseJSON(result, car))
             {
                 resultPage++;
                 Task.Delay(2500).GetAwaiter().GetResult(); // wait a bit
@@ -196,9 +196,9 @@ INSERT IGNORE INTO teslacharging SET
         {
             Tools.DebugLog($"GetChargingHistoryV2Service.LoadLatest(#{car.CarInDB})");
             string result = car.webhelper.GetChargingHistoryV2(1).Result;
-            if (result == null || result == "{}" || string.IsNullOrEmpty(result))
+            if (result is null || result == "{}" || string.IsNullOrEmpty(result))
             {
-                Tools.DebugLog($"GetChargingHistoryV2Service.LoadLatest(#{car.CarInDB}): result == null");
+                Tools.DebugLog($"GetChargingHistoryV2Service.LoadLatest(#{car.CarInDB}): result is null");
                 return false;
             }
             if (result.Contains("Retry later"))
@@ -372,7 +372,7 @@ LIMIT 1
         private static void UpdateChargingState(int chargingstateid, string json, Car car)
         {
             dynamic session = JsonConvert.DeserializeObject(json);
-            if (session != null
+            if (session is not null
                 && session.ContainsKey("fees")
                 && session.ContainsKey("sessionId")
                 )
@@ -633,7 +633,7 @@ WHERE
                 {
                     // load master ID
                     dynamic masterJSON = LoadJSON(sessionIdmaster);
-                    if (masterJSON != null
+                    if (masterJSON is not null
                         && masterJSON.ContainsKey("fees")
                         )
                     {
@@ -641,7 +641,7 @@ WHERE
                         foreach (string otherID in sessionIds)
                         {
                             dynamic otherJSON = LoadJSON(otherID);
-                            if (otherJSON != null
+                            if (otherJSON is not null
                                 && otherJSON.ContainsKey("fees")
                                 && masterJSON["vin"].Equals(otherJSON["vin"])
                                 && masterJSON["siteLocationName"].Equals(otherJSON["siteLocationName"])

@@ -31,7 +31,7 @@ namespace TeslaLogger
 
         public ElectricityMeterWARP(string host, string parameter)
         {
-            if (client == null)
+            if (client is null)
             {
                 client = new WebClient();
             }
@@ -74,9 +74,9 @@ namespace TeslaLogger
 
             try
             {
-                if (mockup_grid_value_ids == null && mockup_grid_values == null)
+                if (mockup_grid_value_ids is null && mockup_grid_values is null)
                 {
-                    if (host == null)
+                    if (host is null)
                         return double.NaN;
 
                     string url1 = host + $"/meters/{gridMeterId}/value_ids";
@@ -119,9 +119,9 @@ namespace TeslaLogger
 
             try
             {
-                if (mockup_wallbox_value_ids == null && mockup_wallbox_values == null)
+                if (mockup_wallbox_value_ids is null && mockup_wallbox_values is null)
                 {
-                    if (host == null)
+                    if (host is null)
                         return double.NaN;
 
                     string url1 = host + $"/meters/{wallboxMeterId}/value_ids";
@@ -163,7 +163,7 @@ namespace TeslaLogger
 
             try
             {
-                if (mockup_evse_state == null && host != null)
+                if (mockup_evse_state is null && host != null)
                 {
                     string url = host + "/evse/state";
                     evse_state = client.DownloadString(url).Trim();
@@ -176,7 +176,7 @@ namespace TeslaLogger
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(evse_state);
 
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 return jsonResult["charger_state"] == 3 ? true : false;
@@ -200,7 +200,7 @@ namespace TeslaLogger
             
             try
             {
-                if (mockup_info_version == null && host != null)
+                if (mockup_info_version is null && host != null)
                 {
                     string url = host + "/info/version";
                     info_version = client.DownloadString(url).Trim();
@@ -214,7 +214,7 @@ namespace TeslaLogger
                 dynamic jsonResult = JsonConvert.DeserializeObject(info_version);
                 string value = jsonResult["firmware"];
 
-                if (value == null)
+                if (value is null)
                     return "";
 
                 return value;
@@ -234,4 +234,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

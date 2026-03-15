@@ -578,7 +578,7 @@ namespace TeslaLogger
             try
             {
                 var v = ElectricityMeterBase.Instance(this);
-                if (v != null)
+                if (v is not null)
                 {
                     Log($"Meter Status: {v}");
                 }
@@ -738,9 +738,9 @@ namespace TeslaLogger
                 if (Geofence.GetInstance().RacingMode)
                 {
                     Address a = Geofence.GetInstance().GetPOI(CurrentJSON.Latitude, CurrentJSON.Longitude);
-                    if (a != null)
+                    if (a is not null)
                     {
-                        if (lastRacingPoint == null)
+                        if (lastRacingPoint is null)
                         {
                             lastRacingPoint = a;
                             Log("RACING MODE: Finish Trip!");
@@ -875,7 +875,7 @@ namespace TeslaLogger
                     lastCarUsed = DateTime.Now;
                     lastOdometerChanged = DateTime.Now;
 
-                    if (webhelper.scanMyTesla != null)
+                    if (webhelper.scanMyTesla is not null)
                     {
                         webhelper.scanMyTesla.FastMode(true);
                     }
@@ -907,7 +907,7 @@ namespace TeslaLogger
                 {
                     lastCarUsed = DateTime.Now;
                     Log("Charging");
-                    if (webhelper.scanMyTesla != null)
+                    if (webhelper.scanMyTesla is not null)
                     {
                         webhelper.scanMyTesla.FastMode(true);
                     }
@@ -962,7 +962,7 @@ namespace TeslaLogger
                         }
                         /* Bug switch between sleep and online all the time
                         var srt = webhelper.startRequestTimeout;
-                        if (srt != null && srt.Value.AddMinutes(15) < DateTime.UtcNow)
+                        if (srt is not null && srt.Value.AddMinutes(15) < DateTime.UtcNow)
                         {
                             Log("Car is sleeping because of 408");
                             SetCurrentState(TeslaState.Sleep);
@@ -973,7 +973,7 @@ namespace TeslaLogger
                     else
                     {
                         var srt = webhelper.startRequestTimeout;
-                        if (srt != null && srt.Value.AddMinutes(15) < DateTime.UtcNow)
+                        if (srt is not null && srt.Value.AddMinutes(15) < DateTime.UtcNow)
                         {
                             Log("Car is sleeping because of 408");
                             SetCurrentState(TeslaState.Sleep);
@@ -1004,7 +1004,7 @@ namespace TeslaLogger
                                 Log("sentry_mode prevents car to get sleep");
                                 lastCarUsed = DateTime.Now;
                             }
-                            else if (addr != null && addr.NoSleep)
+                            else if (addr is not null && addr.NoSleep)
                             {
                                 Log($"POI {addr.name} has +nosleep");
                                 lastCarUsed = DateTime.Now;
@@ -1074,7 +1074,7 @@ namespace TeslaLogger
                                         // check if car is already asleep/offline and we can break the loop
                                         string online = webhelper.IsOnlineAsync().Result;
                                         Tools.DebugLog($"#{CarInDB} IsOnline():{online} x:{x}");
-                                        if (online != null && (online.Equals("offline") || online.Equals("asleep")))
+                                        if (online is not null && (online.Equals("offline") || online.Equals("asleep")))
                                         {
                                             Log($"Car is {online} now");
                                             Log("Restart communication with Tesla Server! 3");
@@ -1114,7 +1114,7 @@ namespace TeslaLogger
                             if (GetTeslaAPIState().GetState("charging_state", out Dictionary<TeslaAPIState.Key, object> charging_state, 120000))
                             {
                                 // charging_state == Starting?
-                                if (charging_state[TeslaAPIState.Key.Value] != null
+                                if (charging_state[TeslaAPIState.Key.Value] is not null
                                     && (charging_state[TeslaAPIState.Key.Value].ToString().Equals("Starting", StringComparison.Ordinal)
                                         || charging_state[TeslaAPIState.Key.Value].ToString().Equals("NoPower", StringComparison.Ordinal))
                                     )
@@ -1219,7 +1219,7 @@ namespace TeslaLogger
 
             CheckSendDegradationData();
 
-            if (webhelper.scanMyTesla != null)
+            if (webhelper.scanMyTesla is not null)
             {
                 webhelper.scanMyTesla.FastMode(false);
             }
@@ -1446,13 +1446,13 @@ namespace TeslaLogger
         {
             Log($"ShiftStateChange: {oldState} -> {newState}");
 
-            if (FleetAPI && telemetry != null)
+            if (FleetAPI && telemetry is not null)
                 telemetryParser.Driving = false;
 
             lastCarUsed = DateTime.Now;
             Address addr = Geofence.GetInstance().GetPOI(CurrentJSON.Latitude, CurrentJSON.Longitude, false);
             // process special flags for POI
-            if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
+            if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0)
             {
                 foreach (KeyValuePair<Address.SpecialFlags, string> flag in addr.specialFlags)
                 {
@@ -1500,7 +1500,7 @@ namespace TeslaLogger
             Match m = Regex.Match(_flagconfig, pattern);
             if (m.Success && m.Groups.Count == 3 && m.Groups[1].Captures.Count == 1 && m.Groups[2].Captures.Count == 1)
             {
-                if (m.Groups[1].Captures[0] != null && m.Groups[2].Captures[0] != null && int.TryParse(m.Groups[1].Captures[0].ToString(), out int duration))
+                if (m.Groups[1].Captures[0] is not null && m.Groups[2].Captures[0] is not null && int.TryParse(m.Groups[1].Captures[0].ToString(), out int duration))
                 {
                     DateTime until = DateTime.Now;
                     switch (m.Groups[2].Captures[0].ToString())
@@ -1604,7 +1604,7 @@ namespace TeslaLogger
             Match m = Regex.Match(_flagconfig, pattern);
             if (m.Success && m.Groups.Count == 2 && m.Groups[1].Captures.Count == 1)
             {
-                if (m.Groups[1].Captures[0] != null && int.TryParse(m.Groups[1].Captures[0].ToString(), out int chargelimit))
+                if (m.Groups[1].Captures[0] is not null && int.TryParse(m.Groups[1].Captures[0].ToString(), out int chargelimit))
                 {
                     if (!LastSetChargeLimitAddressName.Equals(_addr.name, StringComparison.Ordinal))
                     {
@@ -1626,7 +1626,7 @@ namespace TeslaLogger
             Match m = Regex.Match(_flagconfig, pattern);
             if (m.Success && m.Groups.Count == 2 && m.Groups[1].Captures.Count == 1)
             {
-                if (m.Groups[1].Captures[0] != null && int.TryParse(m.Groups[1].Captures[0].ToString(), out int chargelimit))
+                if (m.Groups[1].Captures[0] is not null && int.TryParse(m.Groups[1].Captures[0].ToString(), out int chargelimit))
                 {
                     _ = Task.Factory.StartNew(async () =>
                       {
@@ -1713,7 +1713,7 @@ namespace TeslaLogger
             {
                 // evaluate +hfl special flag
                 Address addr = Geofence.GetInstance().GetPOI(CurrentJSON.Latitude, CurrentJSON.Longitude, false);
-                if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
+                if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0)
                 {
                     foreach (KeyValuePair<Address.SpecialFlags, string> flag in addr.specialFlags)
                     {
@@ -1745,7 +1745,7 @@ namespace TeslaLogger
             if (_oldState == TeslaState.Drive && _newState != TeslaState.Drive)
             {
                 Address addr = Geofence.GetInstance().GetPOI(CurrentJSON.Latitude, CurrentJSON.Longitude, false);
-                if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
+                if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0)
                 {
                     foreach (KeyValuePair<Address.SpecialFlags, string> flag in addr.specialFlags)
                     {
@@ -1800,7 +1800,7 @@ namespace TeslaLogger
                 webhelper.scanMyTesla?.KillThread();
 
                 var dr = DBHelper.GetCar(CarInDB);
-                if (dr != null)
+                if (dr is not null)
                 {
                     Logfile.Log($"Start Car {CarInDB}");
                     Program.StartCarThread(dr, this.GetCurrentState());
@@ -1924,8 +1924,8 @@ namespace TeslaLogger
         public bool IsParked()
         {
             // online and parked
-            if (teslaAPIState.GetString("state", out string state) && state != null && state.Equals("online", StringComparison.Ordinal)
-                && (teslaAPIState.GetString("shift_state", out string shift_state) && shift_state != null
+            if (teslaAPIState.GetString("state", out string state) && state is not null && state.Equals("online", StringComparison.Ordinal)
+                && (teslaAPIState.GetString("shift_state", out string shift_state) && shift_state is not null
                     && (shift_state.Equals("P", StringComparison.Ordinal) || shift_state.Equals("undef", StringComparison.Ordinal)))
                )
             {
@@ -1951,7 +1951,7 @@ namespace TeslaLogger
         internal bool IsCharging()
         {
             if (teslaAPIState.GetString("charging_state", out string charging_state)
-                && charging_state != null && charging_state.Equals("Charging", StringComparison.Ordinal))
+                && charging_state is not null && charging_state.Equals("Charging", StringComparison.Ordinal))
             {
                 return true;
             }
@@ -1998,7 +1998,7 @@ id = @carid", con))
                     {
                         cmd.Parameters.Add("@carid", MySqlDbType.UByte).Value = CarInDB;
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        if (dr.Read() && dr[0] != null && dr[0] != DBNull.Value && int.TryParse(dr[0].ToString(), out int freesuc))
+                        if (dr.Read() && dr[0] is not null && dr[0] != DBNull.Value && int.TryParse(dr[0].ToString(), out int freesuc))
                         {
                             Tools.DebugLog($"HasFreeSuC: {freesuc == 1}");
                             return freesuc == 1;
@@ -2093,7 +2093,7 @@ id = @carid", con))
         {
             try
             {
-                if (Car.Allcars == null)
+                if (Car.Allcars is null)
                     return;
 
                 string temp = $"Active_Cars_{Car.Allcars.Count}";
@@ -2264,4 +2264,5 @@ id = @carid", con))
         }
     }   
 }
+
 

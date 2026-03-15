@@ -104,7 +104,7 @@ namespace TeslaLogger
 
             try
             {
-                if (listener == null)
+                if (listener is null)
                 {
                     int httpport = Tools.GetHttpPort();
                     listener = new HttpListener();
@@ -134,7 +134,7 @@ namespace TeslaLogger
                 Logfile.Log(ex.ToString());
             }
 
-            while (listener != null)
+            while (listener is not null)
             {
                 try
                 {
@@ -189,7 +189,7 @@ namespace TeslaLogger
                 HttpListenerRequest request = context.Request;
                 HttpListenerResponse response = context.Response;
 
-                if (request.Url.LocalPath != null)
+                if (request.Url.LocalPath is not null)
                 {
                     localpath = request.Url.LocalPath;
                 }
@@ -531,7 +531,7 @@ namespace TeslaLogger
                             int CarId = Convert.ToInt32(dr[2], Tools.ciEnUS);
 
                             Car c = Car.GetCarByID(CarId);
-                            if (c != null)
+                            if (c is not null)
                             {
                                 c.DbHelper.UpdateDriveStatistics(StartPos, EndPos, false);
                                 WriteString(response, @"ok");
@@ -710,7 +710,7 @@ WHERE
                             _ = SQLTracer.TraceNQ(cmd2, out _);
 
                             Car c = Car.GetCarByID(id);
-                            if (c != null)
+                            if (c is not null)
                             {
                                 c.Log("Set Car Inactive");
                                 c.ExitCarThread("Car deactivated!");
@@ -745,7 +745,7 @@ WHERE
                 if (name.Length > 0 && CarID > 0)
                 {
                     Car car = Car.GetCarByID(CarID);
-                    if (car != null)
+                    if (car is not null)
                     {
                         if (car.GetTeslaAPIState().GetState(name, out Dictionary<TeslaAPIState.Key, object> state))
                         {
@@ -889,7 +889,7 @@ WHERE
                                     if (CarID > 0)
                                     {
                                         Car car = Car.GetCarByID(CarID);
-                                        if (car != null)
+                                        if (car is not null)
                                         {
                                             car.DbHelper.UpdateChargePrice(id, true);
                                             html.Append($@"
@@ -1398,7 +1398,7 @@ DROP TABLE chargingstate_bak";
             try
             {
                 string url = request.QueryString["url"];
-                if (url == null)
+                if (url is null)
                 {
                     string data = GetDataFromRequestInputStream(request);
                     dynamic r = JsonConvert.DeserializeObject(data);
@@ -1414,7 +1414,7 @@ DROP TABLE chargingstate_bak";
             catch (Exception ex)
             {
                 Exception e = ex;
-                if (e.InnerException != null)
+                if (e.InnerException is not null)
                     e = ex.InnerException;
 
                 var error = new
@@ -1471,7 +1471,7 @@ DROP TABLE chargingstate_bak";
 
                 car.webhelper.GetAllVehicles(out string resultContent, out Newtonsoft.Json.Linq.JArray vehicles, true);
 
-                if (vehicles == null)
+                if (vehicles is null)
                 {
                     if (resultContent?.Contains("error_description") == true)
                     {
@@ -1508,7 +1508,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                     if (ccVin is null)
                     {
                         var resourceType = cc["resource_type"];
-                        if (resourceType == null)
+                        if (resourceType is null)
                         {
                             Logfile.Log($"Car #{x} has invalid VIN");
                             Tools.DebugLog($"Car #{x} has invalid VIN in response \"{resultContent}\"");
@@ -1705,7 +1705,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             {
                 _ = int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
                 Car car = Car.GetCarByID(CarID);
-                if (car != null)
+                if (car is not null)
                 {
                     string data = GetDataFromRequestInputStream(request);
                     string car_name = "";
@@ -1738,7 +1738,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             {
                 _ = int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
                 Car car = Car.GetCarByID(CarID);
-                if (car != null)
+                if (car is not null)
                 {
                     car.DbHelper.GetCarName(out string carname);
                     var t = new
@@ -1760,7 +1760,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             {
                 _ = int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
                 Car car = Car.GetCarByID(CarID);
-                if (car != null)
+                if (car is not null)
                 {
                     string data = GetDataFromRequestInputStream(request);
                     int abrp_mode = 0;
@@ -1796,7 +1796,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             {
                 _ = int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
                 Car car = Car.GetCarByID(CarID);
-                if (car != null)
+                if (car is not null)
                 {
                     car.DbHelper.GetABRP(out string abrp_token, out int abrp_mode);
                     var t = new
@@ -1820,7 +1820,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             {
                 _ = int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
                 Car car = Car.GetCarByID(CarID);
-                if (car != null)
+                if (car is not null)
                 {
                     string data = GetDataFromRequestInputStream(request);
                     string sucBingo_user = "";
@@ -1856,7 +1856,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             {
                 _ = int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
                 Car car = Car.GetCarByID(CarID);
-                if (car != null)
+                if (car is not null)
                 {
                     car.DbHelper.GetSuCBingo(out string sucBingo_user, out string sucBingo_apiKey);
                     var t = new
@@ -1907,7 +1907,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 {
                     c = Car.GetCarByID(CarID);
                     Logfile.Log($"SuCBingoDev: lat={lat.ToString(Tools.ciEnUS)} lng={lng.ToString(Tools.ciEnUS)}");
-                    if(c != null)
+                    if(c is not null)
                     {
                         _ = Task.Factory.StartNew(() =>
                         {
@@ -2076,7 +2076,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 if (mfa.Length > 0 && CarID > 0)
                 {
                     Car car = Car.GetCarByID(CarID);
-                    if (car != null)
+                    if (car is not null)
                     {
                         car.Passwortinfo.Append("Send MFA to Tesla server<br>");
                         car.MFACode = mfa;
@@ -2097,7 +2097,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 if (captcha.Length > 0 && CarID > 0)
                 {
                     Car car = Car.GetCarByID(CarID);
-                    if (car != null)
+                    if (car is not null)
                     {
                         car.Passwortinfo.Append($"Set Captcha: {captcha}<br>");
                         car.CaptchaString = captcha;
@@ -2114,10 +2114,10 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             {
                 _ = int.TryParse(m.Groups[1].Captures[0].ToString(), out int CarID);
                 Car car = Car.GetCarByID(CarID);
-                if (car != null)
+                if (car is not null)
                 {
                     response.ContentType = "image/svg+xml";
-                    while (car.Captcha == null)
+                    while (car.Captcha is null)
                     {
                         Task.Delay(250).GetAwaiter().GetResult();
                     }
@@ -2319,7 +2319,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                                             alt = $"<ele>{altitude}</ele>";
                                         }
                                         string name = "";
-                                        if (dr[4] != null && dr[4] != DBNull.Value)
+                                        if (dr[4] is not null && dr[4] != DBNull.Value)
                                         {
                                             name = $"<name>{SecurityElement.Escape(dr[4].ToString())}</name>";
                                         }
@@ -2425,7 +2425,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             }
 
             var c = Car.GetCarByID(id);
-            if (c != null)
+            if (c is not null)
                 WriteString(response, c.Passwortinfo.ToString());
             else
                 WriteString(response, $"CarId not found: {id}");
@@ -2509,7 +2509,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                     StringBuilder sb = new StringBuilder();
                     c = Car.GetCarByID(CarID);
 
-                    if(c == null)
+                    if(c is null)
                     {
                         response.StatusCode = (int)HttpStatusCode.NotFound;
                         WriteString(response, "Car not found");
@@ -2573,7 +2573,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                     }
                     else
                     {
-                        if (c != null)
+                        if (c is not null)
                             ex.ToExceptionless().SetUserIdentity(c.TaskerHash).Submit();
                         else
                             ex.ToExceptionless().FirstCarUserID().Submit();
@@ -2628,7 +2628,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 if (command.Length > 0 && CarID > 0)
                 {
                     Car car = Car.GetCarByID(CarID);
-                    if (car != null)
+                    if (car is not null)
                     {
                         responseText = await SendCarCommandAsync(request, responseText, command, car);
                     }
@@ -2648,7 +2648,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 if (command.Length > 0 && CarID > 0)
                 {
                     Car car = Car.GetCarByID(CarID);
-                    if (car != null)
+                    if (car is not null)
                     {
                         responseText = await SendCarCommandAsync(request, responseText, command, car);
                     }
@@ -2731,7 +2731,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                         if (request.QueryString.Count == 1 && int.TryParse(string.Concat(request.QueryString.GetValues(0)), out int newChargeLimit))
                         {
                             Address addr = Geofence.GetInstance().GetPOI(car.CurrentJSON.Latitude, car.CurrentJSON.Longitude, false);
-                            if (addr != null)
+                            if (addr is not null)
                             {
                                 car.Log($"SetChargeLimit to {newChargeLimit} at '{addr.name}' ...");
                                 car.LastSetChargeLimitAddressName = addr.name;
@@ -2763,7 +2763,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                         if (request.QueryString.Count == 1 && int.TryParse(string.Concat(request.QueryString.GetValues(0)), out int newChargingAmps))
                         {
                             Address addr = Geofence.GetInstance().GetPOI(car.CurrentJSON.Latitude, car.CurrentJSON.Longitude, false);
-                            if (addr != null)
+                            if (addr is not null)
                             {
                                 car.Log($"SetChargingAmps to {newChargingAmps} at '{addr.name}' ...");
                                 car.LastSetChargingAmpsAddressName = addr.name;
@@ -2810,7 +2810,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                             _ = SQLTracer.TraceNQ(cmd2, out _);
 
                             Car c = Car.GetCarByID(id);
-                            if (c != null)
+                            if (c is not null)
                             {
                                 c.ExitCarThread("Car deleted!");
                             }
@@ -2834,7 +2834,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                             _ = SQLTracer.TraceNQ(cmd2, out _);
 
                             Car c = Car.GetCarByID(id);
-                            if (c != null)
+                            if (c is not null)
                             {
                                 c.Restart("Reconnect!",0);
                             }
@@ -2855,7 +2855,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
 
                     bool FleetAPI = false;
 
-                    if (r["fleetAPI"] != null)
+                    if (r["fleetAPI"] is not null)
                          FleetAPI = r["fleetAPI"];
 
                     if (id == -1)
@@ -2885,7 +2885,7 @@ FROM
                                 //decimal newid = SQLTracer.TraceSc(cmd) as decimal? ?? 1;
                                 int newid = 1;
                                 object queryresult = SQLTracer.TraceSc(cmd);
-                                if (queryresult != null && !int.TryParse(queryresult.ToString(), out newid))
+                                if (queryresult is not null && !int.TryParse(queryresult.ToString(), out newid))
                                 {
                                     // assign default id 1 if parsing the queryresult fails
                                     newid = 1;
@@ -2936,7 +2936,7 @@ FROM
                                 _ = SQLTracer.TraceNQ(cmd, out _);
 
                                 Car c = Car.GetCarByID(dbID);
-                                if (c != null)
+                                if (c is not null)
                                 {
                                     c.ExitCarThread("Credentials changed!");
                                 }
@@ -3041,7 +3041,7 @@ FROM
                 if (name.Length > 0 && CarID > 0)
                 {
                     Car car = Car.GetCarByID(CarID);
-                    if (car != null)
+                    if (car is not null)
                     {
                         if (car.GetTeslaAPIState().GetState(name, out Dictionary<TeslaAPIState.Key, object> state))
                         {
@@ -3135,7 +3135,7 @@ FROM
                 { "UpdateTeslalogger.lastVersionCheck", UpdateTeslalogger.GetLastVersionCheck().ToString(Tools.ciEnUS) },
                 {
                 "TLMemCacheKey.Housekeeping",
-                MemoryCache.Default.Get(Program.TLMemCacheKey.Housekeeping.ToString()) != null
+                MemoryCache.Default.Get(Program.TLMemCacheKey.Housekeeping.ToString()) is not null
                     ? $"AbsoluteExpiration: {((CacheItemPolicy)MemoryCache.Default.Get(Program.TLMemCacheKey.Housekeeping.ToString())).AbsoluteExpiration.ToString(Tools.ciEnUS)}"
                     : "null"
                 },
@@ -3172,7 +3172,7 @@ FROM
 
             /*{
                 "TLMemCacheKey.GetOutsideTempAsync",
-                MemoryCache.Default.Get(Program.TLMemCacheKey.GetOutsideTempAsync.ToString()) != null
+                MemoryCache.Default.Get(Program.TLMemCacheKey.GetOutsideTempAsync.ToString()) is not null
                     ? ((double)MemoryCache.Default.Get(Program.TLMemCacheKey.GetOutsideTempAsync.ToString())).ToString()
                     : "null"
             },*/
@@ -3191,7 +3191,7 @@ FROM
                 if (value.Length > 0 && CarID > 0)
                 {
                     var car = Car.GetCarByID(CarID);
-                    if (car == null)
+                    if (car is null)
                     {
                         WriteString(response, $"Car not found");
                         return;
@@ -3226,7 +3226,7 @@ FROM
             {
                 Logfile.Log("SetCost");
 
-                if (request.QueryString["JSON"] != null)
+                if (request.QueryString["JSON"] is not null)
                 {
                     json = request.QueryString["JSON"];
                 }
@@ -3399,12 +3399,12 @@ FROM
                                 try
                                 {
                                     Car c = Car.GetCarByID(Convert.ToInt32(dr["id"]));
-                                    if (c != null)
+                                    if (c is not null)
                                     {
                                         dr["SupportedByFleetTelemetry"] = c.SupportedByFleetTelemetry() ? 1 : 0;
                                         dr["vehicle_location"] = c.vehicle_location;
                                     }
-                                    else if (dr["tesla_name"] != null && dr["tesla_name"].ToString().StartsWith("KOMOOT:", StringComparison.Ordinal))
+                                    else if (dr["tesla_name"] is not null && dr["tesla_name"].ToString().StartsWith("KOMOOT:", StringComparison.Ordinal))
                                     {
                                         dr["inactive"] = 0;
                                     }
@@ -3455,7 +3455,7 @@ FROM
             }
 
             var output = response.OutputStream;
-            if (output != null && output.CanWrite)
+            if (output is not null && output.CanWrite)
             {
                 output.Write(buffer, 0, buffer.Length);
                 output.Close();
@@ -3488,7 +3488,7 @@ FROM
                 if (!double.IsNaN(lat) && !double.IsNaN(lng))
                 {
                     Address addr = Geofence.GetInstance().GetPOI(lat, lng, false);
-                    if (addr != null)
+                    if (addr is not null)
                     {
                         Dictionary<string, object> data = new()
                         {
@@ -3658,4 +3658,5 @@ function checkform() {
         }
     }
 }
+
 

@@ -90,7 +90,7 @@ namespace DamienG.Security.Cryptography
 
         private static UInt32[] InitializeTable(UInt32 polynomial)
         {
-            if (polynomial == DefaultPolynomial && defaultTable != null)
+            if (polynomial == DefaultPolynomial && defaultTable is not null)
             {
                 return defaultTable;
             }

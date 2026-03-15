@@ -29,7 +29,7 @@ namespace TeslaLogger
 
         public ElectricityMeterOpenWB2(string host, string parameter)
         {
-            if (client == null)
+            if (client is null)
             {
                 client = new WebClient();
             }
@@ -70,14 +70,14 @@ namespace TeslaLogger
                 string cacheKey = "owb2_" + topic + guid.ToString();
                 object o = MemoryCache.Default.Get(cacheKey);
 
-                if (o != null)
+                if (o is not null)
                     return (string)o;
 
                 string lastJSON = null;
                 string url = host + "/v1/?topic=" + topic;
 
                 //UnitTests
-                if (mockup_hierarchy != null && mockup_version != null && mockup_grid != null && mockup_charge_state != null && mockup_charge_point != null)
+                if (mockup_hierarchy is not null && mockup_version is not null && mockup_grid is not null && mockup_charge_state is not null && mockup_charge_point is not null)
                 {
                     if (topic.Contains("hierarchy"))
                     {
@@ -107,7 +107,7 @@ namespace TeslaLogger
                 }
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(lastJSON);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "status"))
@@ -230,7 +230,7 @@ namespace TeslaLogger
                         .SelectMany(o => o.DescendantsAndSelf().OfType<JObject>())
                         .FirstOrDefault(t => (string)t["type"] == "cp");
 
-                    if (cpEntry == null)
+                    if (cpEntry is null)
                     {
                         return double.NaN;
                     }

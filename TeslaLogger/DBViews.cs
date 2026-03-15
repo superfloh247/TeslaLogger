@@ -52,3 +52,4 @@ VIEW `trip` AS
     }
 }
 
+

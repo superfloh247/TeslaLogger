@@ -25,7 +25,7 @@ namespace TeslaLogger
 
         private void ApplyHeaders(HttpRequestMessage req)
         {
-            if (Headers == null) return;
+            if (Headers is null) return;
             foreach (string key in Headers.AllKeys)
             {
                 try
@@ -33,7 +33,7 @@ namespace TeslaLogger
                     // Some headers must be added to DefaultRequestHeaders, some to request directly.
                     if (!req.Headers.TryAddWithoutValidation(key, Headers[key]))
                     {
-                        if (req.Content == null) req.Content = new StringContent(string.Empty);
+                        if (req.Content is null) req.Content = new StringContent(string.Empty);
                         req.Content.Headers.TryAddWithoutValidation(key, Headers[key]);
                     }
                 }
@@ -97,4 +97,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

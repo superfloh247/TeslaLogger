@@ -474,7 +474,7 @@ namespace TeslaLoggerNET8.Lucid
         public static string PythonLucidAPI(string username, string password, string region, LucidCar? car, out string error)
         {
             int carid = 0;
-            if (car != null)
+            if (car is not null)
                 carid = car.CarInDB;
 
             error = string.Empty;
@@ -512,7 +512,7 @@ namespace TeslaLoggerNET8.Lucid
 
                 using (Process process = Process.Start(processInfo))
                 {
-                    if (process != null)
+                    if (process is not null)
                     {
                         string output = process.StandardOutput.ReadToEnd();
                         error = process.StandardError.ReadToEnd();
@@ -524,7 +524,7 @@ namespace TeslaLoggerNET8.Lucid
                         if (!string.IsNullOrEmpty(error))
                         {
 
-                            if (car != null)
+                            if (car is not null)
                             {
                                 car.Log("Error: " + error);    
                             }
@@ -570,3 +570,4 @@ namespace TeslaLoggerNET8.Lucid
         }
     }
 }
+

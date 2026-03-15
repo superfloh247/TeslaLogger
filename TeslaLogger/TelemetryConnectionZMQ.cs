@@ -37,7 +37,7 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
         public TelemetryConnectionZMQ(Car car)
         {
             this.car = car;
-            if (car == null)
+            if (car is null)
                 return;
 
             parser = new TelemetryParser(car);
@@ -94,7 +94,7 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
 
                     ConnectToServer();
 
-                    if (zmq == null)
+                    if (zmq is null)
                         continue;
 
 
@@ -114,7 +114,7 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
                         Log(se.Message);
                         car.CreateExceptionlessClient(ex.InnerException).Submit();
                     }
-                    else if (ex.InnerException?.InnerException != null)
+                    else if (ex.InnerException?.InnerException is not null)
                     {
                         Log(ex.InnerException.Message);
                         car.CreateExceptionlessClient(ex.InnerException).Submit();
@@ -136,7 +136,7 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
         {
             Log("Connect to Telemetry Server (ZQM)");
 
-            if (zmq != null)
+            if (zmq is not null)
                 zmq.Dispose();
 
             zmq = null;
@@ -154,7 +154,7 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
                 if (ex is AggregateException ex2)
                 {
                     Log("Connect to Telemetry Server (ZQM) Error: " + ex2.InnerException.Message);
-                    if (ex.InnerException != null)
+                    if (ex.InnerException is not null)
                         car.CreateExceptionlessClient(ex2.InnerException).Submit();
                     else
                         car.CreateExceptionlessClient(ex2).Submit();
@@ -170,4 +170,5 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
             }
         }
     }
+
 

@@ -61,7 +61,7 @@ namespace TeslaLogger
             catch (Exception ex)
             {
                 var wex = ex as WebException;
-                if (wex != null)
+                if (wex is not null)
                 {
                     if (IsInvalidAppKey(wex))
                         return;
@@ -120,7 +120,7 @@ namespace TeslaLogger
             catch (Exception ex)
             {
                 var wex = ex as WebException;
-                if (wex != null)
+                if (wex is not null)
                 {
                     if (IsInvalidAppKey(wex))
                         return;
@@ -140,7 +140,7 @@ namespace TeslaLogger
             {
                 return;
             }
-            if (coords == null)
+            if (coords is null)
             {
                 return;
             }
@@ -152,7 +152,7 @@ namespace TeslaLogger
 
             // https://open.mapquestapi.com/staticmap/v5/map?key=ulMOOlevG9FunIVobQB2BG2GA0EdCjjH&boundingBox=38.915,-77.072,38.876,-77.001&size=200,150&type=dark
             Tuple<double, double, double, double> extent = DetermineExtent(coords);
-            if (extent == null)
+            if (extent is null)
             {
                 return;
             }
@@ -226,7 +226,7 @@ namespace TeslaLogger
             catch (Exception ex)
             {
                 var wex = ex as WebException;
-                if (wex != null)
+                if (wex is not null)
                 {
                     if (IsInvalidAppKey(wex))
                         return;
@@ -247,7 +247,7 @@ namespace TeslaLogger
                 if (ex.Status == WebExceptionStatus.ProtocolError)
                 {
                     HttpWebResponse exh = ex.Response as HttpWebResponse;
-                    if (exh != null && exh.StatusCode == HttpStatusCode.Forbidden)
+                    if (exh is not null && exh.StatusCode == HttpStatusCode.Forbidden)
                     {
                         using (Stream stream = ex.Response.GetResponseStream())
                         {
@@ -276,7 +276,7 @@ namespace TeslaLogger
             _webClientLock.Wait();
             try
             {
-                if (_webClient == null)
+                if (_webClient is null)
                 {
                     var webClient = new MyWebClient();
                     webClient.Headers.Add("User-Agent: TeslaLogger");
@@ -317,4 +317,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

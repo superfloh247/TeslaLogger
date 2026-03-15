@@ -91,7 +91,7 @@ WHERE
 
         public async Task StartStateAsync(string state)
         {
-            if (state != null)
+            if (state is not null)
             {
                 if (state == "online")
                 {
@@ -249,7 +249,7 @@ WHERE
     id = @id", con))
                     {
 
-                        if (j["cost_total"] == null || j["cost_total"] == "" || j["cost_total"] == "0" || j["cost_total"] == "0.00")
+                        if (j["cost_total"] is null || j["cost_total"] == "" || j["cost_total"] == "0" || j["cost_total"] == "0.00")
                         {
                             cmd.Parameters.AddWithValue("@cost_total", DBNull.Value);
                         }
@@ -1259,7 +1259,7 @@ WHERE
                 Logfile.Log("CombineChargingStates disabled globally");
                 Address addr = GetAddressFromChargingState(sessionid);
                 // combine disabled, but check pos for special flag do combine
-                if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0 && addr.specialFlags.ContainsKey(Address.SpecialFlags.CombineChargingStates))
+                if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0 && addr.specialFlags.ContainsKey(Address.SpecialFlags.CombineChargingStates))
                 {
                     Logfile.Log($"CombineChargingStates disabled globally, but enabled at POI '{addr.name}'");
                     doCombine = true;
@@ -1269,7 +1269,7 @@ WHERE
             {
                 Address addr = GetAddressFromChargingState(sessionid);
                 // check pos for special flag do not combine
-                if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
+                if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0)
                 {
                     // check if DoNotCombineChargingStates is enabled
                     if (addr.specialFlags.ContainsKey(Address.SpecialFlags.DoNotCombineChargingStates))
@@ -1514,7 +1514,7 @@ WHERE
             {
                 string cacheKey = $"TPMS_{TireId}_{car.CarInDB}";
                 object cacheValue = MemoryCache.Default.Get(cacheKey);
-                if (cacheValue != null)
+                if (cacheValue is not null)
                     return;
 
                 MemoryCache.Default.Add(cacheKey, true, DateTime.Now.AddMinutes(2));
@@ -1718,7 +1718,7 @@ HAVING
         {
             try
             {
-                if (refresh_token == null || refresh_token.Length < 20)
+                if (refresh_token is null || refresh_token.Length < 20)
                 {
                     car.Log("SKIP UpdateRefreshToken !!!");
                     return;
@@ -1951,7 +1951,7 @@ HAVING
             {
                 // get addr for chargingstate.pos
                 Address addr = GetAddressFromChargingState(ChargingStateID);
-                if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0)
+                if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0)
                 {
                     // check if +ccp is enabled
                     if (addr.specialFlags.ContainsKey(Address.SpecialFlags.CopyChargePrice))
@@ -3197,7 +3197,7 @@ WHERE
                             int carid = dr["CarId"] as Int32? ?? 1;
 
                             Car c = Car.GetCarByID(carid);
-                            if (c != null)
+                            if (c is not null)
                             {
                                 c.DbHelper.UpdateMaxChargerPower(id, StartChargingID, EndChargingID);
                             }
@@ -3344,10 +3344,10 @@ LIMIT 1", con)
             ElectricityMeterBase v = null;
             try
             {
-                if (wh != null && !wh.fast_charger_present)
+                if (wh is not null && !wh.fast_charger_present)
                 {
                     v = ElectricityMeterBase.Instance(wh.car);
-                    if (v != null)
+                    if (v is not null)
                     {
                         meter_vehicle_kwh_start = v.GetVehicleMeterReading_kWh();
                         meter_utility_kwh_start = v.GetUtilityMeterReading_kWh();
@@ -3377,7 +3377,7 @@ LIMIT 1", con)
 
             int chargeID = GetMaxChargeid(out DateTime chargeStart, out double? _);
             long chargingstateid = 0;
-            if (wh != null)
+            if (wh is not null)
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
@@ -3426,14 +3426,14 @@ VALUES(
                     }
                 }
             }
-            if (wh != null)
+            if (wh is not null)
             {
                 wh.car.CurrentJSON.current_charging = true;
                 wh.car.CurrentJSON.CreateCurrentJSON();
             }
 
             // Check for one minute if meter claims car is really not charging 
-            if (v != null && v.IsCharging() != true)
+            if (v is not null && v.IsCharging() != true)
             {
                 _ =Task.Run(async () =>
                 {
@@ -3692,7 +3692,7 @@ WHERE
 
                                 int? height = srtmData.GetElevation(latitude, longitude);
 
-                                if (height != null && height < 8000 && height > -428)
+                                if (height is not null && height < 8000 && height > -428)
                                 {
                                     ExecuteSQLQuery($@"
 UPDATE
@@ -3720,7 +3720,7 @@ WHERE
                             }
                             catch (Exception ex)
                             {
-                                if (car != null)
+                                if (car is not null)
                                 {
                                     car.CreateExceptionlessClient(ex).Submit();
                                 }
@@ -3738,7 +3738,7 @@ WHERE
             }
             catch (Exception ex)
             {
-                if (car != null)
+                if (car is not null)
                 {
                     car.CreateExceptionlessClient(ex).Submit();
                 }
@@ -3755,7 +3755,7 @@ WHERE
 
             _ = Task.Factory.StartNew(() =>
             {
-                if (startPosId > 0 && car != null)
+                if (startPosId > 0 && car is not null)
                 {
                     car.DbHelper.UpdateDriveHeightStatistics(startPosId, endPosId);
                 }
@@ -4131,7 +4131,7 @@ WHERE
                     car.Log($"UpdateDriveStatistics startDT: {startDT?.ToString("yyyy-MM-dd HH:mm:ss", Tools.ciEnUS)} - endDT: {endDT?.ToString("yyyy-MM-dd HH:mm:ss", Tools.ciEnUS)}");
                 }
 
-                if (startDT != null && endDT != null)
+                if (startDT is not null && endDT is not null)
                 {
                     GetAutopilotSeconds((DateTime)startDT, (DateTime)endDT, out ap_sec_sum, out ap_sec_max);
                     GetAVG_TPMS((DateTime)startDT, (DateTime)endDT, out TPMS_FL, out TPMS_FR, out TPMS_RL, out TPMS_RR);
@@ -4490,7 +4490,7 @@ WHERE
                                 int CarId = Convert.ToInt32(dr[2], Tools.ciEnUS);
 
                                 Car c = Car.GetCarByID(CarId);
-                                if (c != null)
+                                if (c is not null)
                                 {
                                     c.DbHelper.UpdateDriveStatistics(StartPos, EndPos, false);
                                 }
@@ -4676,7 +4676,7 @@ VALUES(
                     cmd.Parameters.AddWithValue("@lng", longitude);
                     cmd.Parameters.AddWithValue("@speed", (int)Tools.MphToKmhRounded(speed));
                     
-                    if (power == null)
+                    if (power is null)
                         cmd.Parameters.AddWithValue("@power", DBNull.Value);
                     else
                         cmd.Parameters.AddWithValue("@power", Convert.ToInt32(power * 1.35962M));
@@ -4701,7 +4701,7 @@ VALUES(
                         cmd.Parameters.AddWithValue("@battery_range_km", batteryRangeKm);
                     }
 
-                    if (outsideTemp == null)
+                    if (outsideTemp is null)
                     {
                         cmd.Parameters.AddWithValue("@outside_temp", DBNull.Value);
                     }
@@ -4710,7 +4710,7 @@ VALUES(
                         cmd.Parameters.AddWithValue("@outside_temp", (double)outsideTemp);
                     }
 
-                    if (altitude != null && altitude.Length == 0)
+                    if (altitude is not null && altitude.Length == 0)
                     {
                         cmd.Parameters.AddWithValue("@altitude", DBNull.Value);
                     }
@@ -4728,7 +4728,7 @@ VALUES(
                         cmd.Parameters.AddWithValue("@battery_level", batteryLevel);
                     }
 
-                    if (insideTemp == null)
+                    if (insideTemp is null)
                     {
                         cmd.Parameters.AddWithValue("@inside_temp", DBNull.Value);
                     }
@@ -4754,12 +4754,12 @@ VALUES(
                     {
                         car.CurrentJSON.current_speed = (int)(speed * 1.609344M);
                         
-                        if (power != null)
+                        if (power is not null)
                             car.CurrentJSON.current_power = (int)(power * 1.35962M);
 
                         car.CurrentJSON.SetPosition(latitude, longitude, long.Parse(timestamp, Tools.ciEnUS));
 
-                        if (odometer != null && odometer > 0)
+                        if (odometer is not null && odometer > 0)
                         {
                             car.CurrentJSON.current_odometer = odometer.Value;
                         }
@@ -4776,7 +4776,7 @@ VALUES(
 
                         if (car.CurrentJSON.current_trip_km_start == 0)
                         {
-                            if (odometer != null)
+                            if (odometer is not null)
                                 car.CurrentJSON.current_trip_km_start = odometer.Value;
                             else
                                 car.Log("current_trip_km_start not set !!!");
@@ -5008,7 +5008,7 @@ VALUES(
                         cmd.Parameters.AddWithValue("@charger_actual_current_calc", current_calculated);
                         cmd.Parameters.AddWithValue("@battery_heater", car.CurrentJSON.current_battery_heater ? 1 : 0);
 
-                        if (charger_pilot_current != null && int.TryParse(charger_pilot_current, out int i))
+                        if (charger_pilot_current is not null && int.TryParse(charger_pilot_current, out int i))
                         {
                             cmd.Parameters.AddWithValue("@charger_pilot_current", i);
                         }
@@ -5017,7 +5017,7 @@ VALUES(
                             cmd.Parameters.AddWithValue("@charger_pilot_current", DBNull.Value);
                         }
 
-                        if (charge_current_request != null && int.TryParse(charge_current_request, out i))
+                        if (charge_current_request is not null && int.TryParse(charge_current_request, out i))
                         {
                             cmd.Parameters.AddWithValue("@charge_current_request", i);
                         }
@@ -5026,7 +5026,7 @@ VALUES(
                             cmd.Parameters.AddWithValue("@charge_current_request", DBNull.Value);
                         }
 
-                        if (outside_temp == null)
+                        if (outside_temp is null)
                         {
                             cmd.Parameters.AddWithValue("@outside_temp", DBNull.Value);
                         }
@@ -5650,7 +5650,7 @@ WHERE
         {
             string cacheKey = $"GetScanMyTeslaSignalsLastWeek_{car.CarInDB}";
             object cacheValue = MemoryCache.Default.Get(cacheKey);
-            if (cacheValue != null)
+            if (cacheValue is not null)
             {
                 return (int)cacheValue;
             }
@@ -5695,7 +5695,7 @@ WHERE
         {
             string cacheKey = $"GetScanMyTeslaPacketsLastWeek_{car.CarInDB}";
             object cacheValue = MemoryCache.Default.Get(cacheKey);
-            if (cacheValue != null)
+            if (cacheValue is not null)
             {
                 return (int)cacheValue;
             }
@@ -5745,7 +5745,7 @@ FROM
         {
             string cacheKey = $"GetAvgMaxRage_{car.CarInDB}";
             object cacheValue = MemoryCache.Default.Get(cacheKey);
-            if (cacheValue != null)
+            if (cacheValue is not null)
             {
                 return (int)cacheValue;
             }
@@ -6146,7 +6146,7 @@ WHERE
             if (val is String s && s.Length == 0)
                 return DBNull.Value;
 
-            if (val == null)
+            if (val is null)
                 return DBNull.Value;
 
             String temp = val.ToString();
@@ -6161,7 +6161,7 @@ WHERE
             if (val is String s && s.Length == 0)
                 return DBNull.Value;
 
-            if (val == null)
+            if (val is null)
                 return DBNull.Value;
 
             if (val is Newtonsoft.Json.Linq.JValue j && !j.HasValues)
@@ -6172,7 +6172,7 @@ WHERE
 
         public static bool IsZero(string val)
         {
-            if (val == null || val.Length == 0)
+            if (val is null || val.Length == 0)
             {
                 return false;
             }
@@ -6216,7 +6216,7 @@ WHERE SCHEMA_NAME  = '{dbname}'", con))
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         if (dr.Read())
                         {
-                            if (dr.HasRows && dr[0] != null && dr[1] != null)
+                            if (dr.HasRows && dr[0] is not null && dr[1] is not null)
                             {
                                 if (!dr[0].ToString().Equals("utf8mb4", StringComparison.Ordinal)
                                     || !dr[1].ToString().Equals("utf8mb4_unicode_ci", StringComparison.Ordinal))
@@ -6279,7 +6279,7 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         while (dr.Read())
                         {
-                            if (dr.HasRows && dr[0] != null && dr[1] != null)
+                            if (dr.HasRows && dr[0] is not null && dr[1] is not null)
                             {
                                 if (!dr[1].ToString().Equals("utf8mb4_unicode_ci", StringComparison.Ordinal))
                                 {
@@ -6345,7 +6345,7 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         while (dr.Read())
                         {
-                            if (dr.HasRows && dr[0] != null && dr[1] != null && dr[2] != null)
+                            if (dr.HasRows && dr[0] is not null && dr[1] is not null && dr[2] is not null)
                             {
                                 if (!dr[1].ToString().Equals("utf8mb4", StringComparison.Ordinal)
                                     || !dr[2].ToString().Equals("utf8mb4_unicode_ci", StringComparison.Ordinal))
@@ -6495,8 +6495,8 @@ WHERE
                                 MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                                 while (dr.Read())
                                 {
-                                    if (dr[0] != null && int.TryParse(dr[0].ToString(), out int startpos)
-                                        && dr[1] != null && int.TryParse(dr[1].ToString(), out int endpos))
+                                    if (dr[0] is not null && int.TryParse(dr[0].ToString(), out int startpos)
+                                        && dr[1] is not null && int.TryParse(dr[1].ToString(), out int endpos))
                                     {
                                         DateTime start = DateTime.Now;
                                         c.DbHelper.UpdateDriveStatistics(startpos, endpos, false);
@@ -6543,7 +6543,7 @@ WHERE
             try
             {
                 var v = ElectricityMeterBase.Instance(car);
-                if (v != null)
+                if (v is not null)
                 {
                     meter_vehicle_kwh_end = v.GetVehicleMeterReading_kWh();
                     meter_utility_kwh_end = v.GetUtilityMeterReading_kWh();
@@ -6684,7 +6684,7 @@ FROM
 ) AS t", con))
                 {
                     object oid = SQLTracer.TraceSc(cmd);
-                    if (oid != null)
+                    if (oid is not null)
                     {
                         newid = Convert.ToInt32(oid);
                     }
@@ -6982,7 +6982,7 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         while (dr.Read())
                         {
-                            if (dr[0] != null && int.TryParse(dr[0].ToString(), out int id))
+                            if (dr[0] is not null && int.TryParse(dr[0].ToString(), out int id))
                             {
                                 resultList.Add(id);
                             }
@@ -7027,7 +7027,7 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         while (dr.Read())
                         {
-                            if (dr[0] != null && int.TryParse(dr[0].ToString(), out int id))
+                            if (dr[0] is not null && int.TryParse(dr[0].ToString(), out int id))
                             {
                                 resultList.Add(id);
                             }
@@ -7320,11 +7320,11 @@ WHERE
                             DateTime date = dr.GetDateTime(0);
                             int state = dr.GetInt32(1);
 
-                            if (startstate == null && state == 1)
+                            if (startstate is null && state == 1)
                             {
                                 startstate = date;
                             }
-                            else if (startstate != null &&  state != 1)
+                            else if (startstate is not null &&  state != 1)
                             {
                                 TimeSpan ts = date - (DateTime)startstate;
                                 double tssec = ts.TotalSeconds;
@@ -7462,7 +7462,7 @@ ORDER BY startdate", con))
                         cmd.Parameters.AddWithValue("@startdate", startDate);
                         cmd.Parameters.AddWithValue("@enddate", endDate);
                         var odo = cmd.ExecuteScalar();
-                        if (odo != null && double.TryParse(odo.ToString(), out double drivenkm))
+                        if (odo is not null && double.TryParse(odo.ToString(), out double drivenkm))
                         {
                             return drivenkm;
                         }
@@ -7542,4 +7542,5 @@ ORDER BY startdate", con))
         }
     }
 }
+
 

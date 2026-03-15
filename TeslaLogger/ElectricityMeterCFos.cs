@@ -27,7 +27,7 @@ namespace TeslaLogger
             this.host = host;
             this.paramater = paramater;
 
-            if (client == null)
+            if (client is null)
             {
                 client = new WebClient();
             }
@@ -37,7 +37,7 @@ namespace TeslaLogger
         {
             try
             {
-                if (get_dev_info != null)
+                if (get_dev_info is not null)
                 {
                     return get_dev_info;
                 }
@@ -45,7 +45,7 @@ namespace TeslaLogger
                 string cacheKey = "CFos_" + guid.ToString();
                 object o = MemoryCache.Default.Get(cacheKey);
 
-                if (o != null)
+                if (o is not null)
                 {
                     return (string)o;
                 }
@@ -86,7 +86,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "devices"))
@@ -129,7 +129,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "devices"))
@@ -172,7 +172,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "devices"))
@@ -240,4 +240,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

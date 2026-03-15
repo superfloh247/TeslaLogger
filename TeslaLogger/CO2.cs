@@ -67,7 +67,7 @@ namespace TeslaLogger
                 else
                     content = await GetEnergyChartDataAsync(country, filename, writeCache);
 
-                if (content == null)
+                if (content is null)
                     throw new Exception("No Data for :" + path);
 
                 dynamic j = JsonConvert.DeserializeObject(content);
@@ -121,7 +121,7 @@ namespace TeslaLogger
 
                 dynamic data = d["data"];
 
-                if (data == null)
+                if (data is null)
                     continue;
 
                 if (data.Count <= ix)
@@ -401,4 +401,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

@@ -22,7 +22,7 @@ namespace TeslaLogger
             this.host = host;
             this.paramater = paramater;
 
-            if (client == null)
+            if (client is null)
                 client = new WebClient();
         }
 
@@ -32,7 +32,7 @@ namespace TeslaLogger
             try
             {
 
-                if (status != null)
+                if (status is not null)
                 {
                     return status;
                 }
@@ -40,7 +40,7 @@ namespace TeslaLogger
                 string cacheKey = "goe_" + guid.ToString();
                 object o = MemoryCache.Default.Get(cacheKey);
 
-                if (o != null)
+                if (o is not null)
                     return (string)o;
 
                 string url = host + "/status";
@@ -190,4 +190,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

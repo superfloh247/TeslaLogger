@@ -7,7 +7,7 @@ namespace TeslaLogger
         public static ElectricityMeterBase? Instance(Car car)
         {
             var dr = DBHelper.GetCar(car.CarInDB);
-            if (dr != null)
+            if (dr is not null)
             {
                 string type = dr["meter_type"] as string ?? "";
                 string host = dr["meter_host"] as string ?? "";
@@ -101,4 +101,5 @@ namespace TeslaLogger
 
     }
 }
+
 

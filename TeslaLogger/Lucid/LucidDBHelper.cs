@@ -18,3 +18,4 @@ namespace TeslaLoggerNET8.Lucid
         }
     }
 }
+

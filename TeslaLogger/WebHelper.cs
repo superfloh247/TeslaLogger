@@ -344,7 +344,7 @@ namespace TeslaLogger
             httpClientLock.Wait();
             try
             {
-                if (httpClientForAuthentification == null)
+                if (httpClientForAuthentification is null)
                 {
                     tokenCookieContainer = new CookieContainer();
 
@@ -405,7 +405,7 @@ namespace TeslaLogger
             {
                 car.Passwortinfo.Append("Error in GetTokenAsync: " + ex.Message + "<br>");
 
-                if (ex.InnerException != null)
+                if (ex.InnerException is not null)
                     car.Passwortinfo.Append("Error in GetTokenAsync: " + ex.InnerException.Message + "<br>");
 
                 if (ex.Message == "NO Credentials" || ex.Message == "Car inactive")
@@ -568,7 +568,7 @@ namespace TeslaLogger
 
         private void CheckNewRefreshToken(string refresh_token, string new_refresh_token)
         {
-            if (new_refresh_token == null || new_refresh_token.Length < 10)
+            if (new_refresh_token is null || new_refresh_token.Length < 10)
             {
                 Log("new Refresh Token is invalid!!");
             }
@@ -1024,30 +1024,30 @@ namespace TeslaLogger
         {
             _ = Task.Factory.StartNew(() =>
             {
-                if (streamThread != null)
+                if (streamThread is not null)
                     Tools.DebugLog($"streamThread {streamThread.Name}:{streamThread.ManagedThreadId} state:{streamThread.ThreadState}");
 
                 StopStreaming();
                 bool newThreadCreated = false;
                 for (int i = 0; i < 100 && !newThreadCreated; i++)
                 {
-                    if (streamThread != null)
+                    if (streamThread is not null)
                         Tools.DebugLog($"streamThread {streamThread.Name}:{streamThread.ManagedThreadId} state:{streamThread.ThreadState}");
 
-                    if (streamThread == null || streamThread.ThreadState == ThreadState.Stopped)
+                    if (streamThread is null || streamThread.ThreadState == ThreadState.Stopped)
                     {
                         newThreadCreated = true;
                         streamThread = null;
                         StartStreamThread();
 
-                        if (streamThread != null)
+                        if (streamThread is not null)
                             Tools.DebugLog($"streamThread {streamThread.Name}:{streamThread.ManagedThreadId} state:{streamThread.ThreadState}");
                     }
                     else
                     {
                         Task.Delay(1000).GetAwaiter().GetResult();
 
-                        if (streamThread != null)
+                        if (streamThread is not null)
                             Tools.DebugLog($"streamThread {streamThread.Name}:{streamThread.ManagedThreadId} state:{streamThread.ThreadState}");
                     }
                 }
@@ -1091,18 +1091,18 @@ namespace TeslaLogger
                 dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
                 dynamic charge_state = jsonResult["response"]["charge_state"];
 
-                if (charge_state["charging_state"] == null || (resultContent != null && resultContent.Contains("vehicle unavailable")))
+                if (charge_state["charging_state"] is null || (resultContent != null && resultContent.Contains("vehicle unavailable")))
                 {
                     if (justCheck)
                     {
                         return false;
                     }
 
-                    if (charge_state["charging_state"] == null)
+                    if (charge_state["charging_state"] is null)
                     {
                         Log("charging_state = null");
                     }
-                    else if (resultContent != null && resultContent.Contains("vehicle unavailable"))
+                    else if (resultContent is not null && resultContent.Contains("vehicle unavailable"))
                     {
                         Log("charging_state: vehicle unavailable");
                     }
@@ -1127,13 +1127,13 @@ namespace TeslaLogger
                 car.CurrentJSON.current_ideal_battery_range_km = Math.Round((double)ideal_battery_range * 1.609344, 1);
 
                 string battery_level = charge_state["battery_level"].ToString();
-                if (battery_level != null && Convert.ToDouble(battery_level) != car.CurrentJSON.current_battery_level)
+                if (battery_level is not null && Convert.ToDouble(battery_level) != car.CurrentJSON.current_battery_level)
                 {
                     car.CurrentJSON.current_battery_level = Convert.ToDouble(battery_level);
                     car.CurrentJSON.CreateCurrentJSON();
                 }
                 string charger_power = "";
-                if (charge_state["charger_power"] != null)
+                if (charge_state["charger_power"] is not null)
                 {
                     charger_power = charge_state["charger_power"].ToString();
                 }
@@ -1146,57 +1146,57 @@ namespace TeslaLogger
                 string charge_current_request = "";
                 string charger_pilot_current = "";
 
-                if (charge_state["charger_voltage"] != null)
+                if (charge_state["charger_voltage"] is not null)
                 {
                     charger_voltage = charge_state["charger_voltage"].ToString();
                 }
 
-                if (charge_state["charger_phases"] != null)
+                if (charge_state["charger_phases"] is not null)
                 {
                     charger_phases = charge_state["charger_phases"].ToString();
                 }
 
-                if (charge_state["charger_actual_current"] != null)
+                if (charge_state["charger_actual_current"] is not null)
                 {
                     charger_actual_current = charge_state["charger_actual_current"].ToString();
                 }
 
-                if (charge_state["charge_current_request"] != null)
+                if (charge_state["charge_current_request"] is not null)
                 {
                     charge_current_request = charge_state["charge_current_request"].ToString();
                 }
 
-                if (charge_state["charger_pilot_current"] != null)
+                if (charge_state["charger_pilot_current"] is not null)
                 {
                     charger_pilot_current = charge_state["charger_pilot_current"].ToString();
                 }
 
-                if (charge_state["fast_charger_brand"] != null)
+                if (charge_state["fast_charger_brand"] is not null)
                 {
                     fast_charger_brand = charge_state["fast_charger_brand"].ToString();
                 }
 
-                if (charge_state["fast_charger_type"] != null)
+                if (charge_state["fast_charger_type"] is not null)
                 {
                     fast_charger_type = charge_state["fast_charger_type"].ToString();
                 }
 
-                if (charge_state["conn_charge_cable"] != null)
+                if (charge_state["conn_charge_cable"] is not null)
                 {
                     conn_charge_cable = charge_state["conn_charge_cable"].ToString();
                 }
 
-                if (charge_state["fast_charger_present"] != null)
+                if (charge_state["fast_charger_present"] is not null)
                 {
                     fast_charger_present = bool.Parse(charge_state["fast_charger_present"].ToString());
                 }
 
-                if (charge_state["charge_rate"] != null)
+                if (charge_state["charge_rate"] is not null)
                 {
                     car.CurrentJSON.current_charge_rate_km = Convert.ToDouble(charge_state["charge_rate"]) * 1.609344;
                 }
 
-                if (charge_state["charge_limit_soc"] != null)
+                if (charge_state["charge_limit_soc"] is not null)
                 {
                     if (car.CurrentJSON.charge_limit_soc != Convert.ToInt32(charge_state["charge_limit_soc"]))
                     {
@@ -1205,7 +1205,7 @@ namespace TeslaLogger
                     }
                 }
 
-                if (charge_state["time_to_full_charge"] != null)
+                if (charge_state["time_to_full_charge"] is not null)
                 {
                     if (car.CurrentJSON.current_time_to_full_charge != Convert.ToDouble(charge_state["time_to_full_charge"], Tools.ciEnUS))
                     {
@@ -1266,7 +1266,7 @@ namespace TeslaLogger
             catch (Exception ex)
             {
 
-                if (resultContent == null || resultContent == "NULL")
+                if (resultContent is null || resultContent == "NULL")
                 {
                     Log("isCharging = NULL");
                     await Task.Delay(10000, car.cts.Token);
@@ -1295,7 +1295,7 @@ namespace TeslaLogger
         [MethodImpl(MethodImplOptions.Synchronized)]
         HttpClient GetHttpClientTeslaAPI()
         {
-            if (httpClientTeslaAPI == null)
+            if (httpClientTeslaAPI is null)
             {
                 if (String.IsNullOrEmpty(Tesla_token) || Tesla_token == "NULL")
                 {
@@ -1321,7 +1321,7 @@ namespace TeslaLogger
             httpClientLock.Wait();
             try
             {
-                if (httpClientTeslaChargingSites == null)
+                if (httpClientTeslaChargingSites is null)
                 {
                     httpClientTeslaChargingSites = new HttpClient();
                     {
@@ -1347,7 +1347,7 @@ namespace TeslaLogger
             httpClientLock.Wait();
             try
             {
-                if (httpClientGetChargingHistoryV2 == null)
+                if (httpClientGetChargingHistoryV2 is null)
                 {
                     httpClientGetChargingHistoryV2 = new HttpClient();
                     httpClientGetChargingHistoryV2.DefaultRequestHeaders.Add("User-Agent", "curl/8.4.0");
@@ -1373,9 +1373,9 @@ namespace TeslaLogger
                     Newtonsoft.Json.Linq.JArray r1temp;
                     GetAllVehicles(out resultContent, out r1temp, false);
 
-                    if (r1temp == null)
+                    if (r1temp is null)
                     {
-                        if (resultContent != null)
+                        if (resultContent is not null)
                             car.Log($"GetVehicles: {resultContent}");
 
                         car.CurrentJSON.FatalError = "Car not found!";
@@ -1396,7 +1396,7 @@ namespace TeslaLogger
 
                     dynamic r2 = SearchCarDictionary(r1temp);
 
-                    if (r2 == null)
+                    if (r2 is null)
                     {
                         Log($"Car VIN: {car.Vin} not exists!");
                         return "NULL";
@@ -1524,7 +1524,7 @@ namespace TeslaLogger
 
                         ExceptionWriter(ex, resultContent);
 
-                        while (ex != null)
+                        while (ex is not null)
                         {
                             if (!(ex is AggregateException))
                             {
@@ -1560,7 +1560,7 @@ namespace TeslaLogger
                 object cachedValue = MemoryCache.Default.Get(cacheKey);
                 bool checkVehicle2Account = false;
 
-                if (!doNotCache && cachedValue != null && accountid > 0)
+                if (!doNotCache && cachedValue is not null && accountid > 0)
                 {
                     resultContent = cachedValue as String;
                 }
@@ -1706,7 +1706,7 @@ namespace TeslaLogger
 
         private object SearchCarDictionary(Newtonsoft.Json.Linq.JArray cars)
         {
-            if (cars == null)
+            if (cars is null)
             {
                 return null;
             }
@@ -1789,7 +1789,7 @@ namespace TeslaLogger
                 object cachedValue = MemoryCache.Default.Get(cacheKey);
                 DateTime start = DateTime.UtcNow;
 
-                if (cachedValue != null && accountid > 0)
+                if (cachedValue is not null && accountid > 0)
                 {
                     resultContent = cachedValue as String;
                 }
@@ -1839,7 +1839,7 @@ namespace TeslaLogger
                 }
 
 
-                if (resultContent == null || resultContent == "NULL")
+                if (resultContent is null || resultContent == "NULL")
                 {
                     Log("isOnline = NULL");
                     Task.Delay(5000).GetAwaiter().GetResult();
@@ -1877,7 +1877,7 @@ namespace TeslaLogger
                 }
 
                 _ = car.GetTeslaAPIState().ParseAPI(resultContent, "vehicles");
-                if (result != null && cachedValue == null)
+                if (result != null && cachedValue is null)
                 {
                     if (result.IsSuccessStatusCode)
                     {
@@ -1905,7 +1905,7 @@ namespace TeslaLogger
                 JArray response = jsonResult["response"];
 
 
-                if (response == null && resultContent?.Contains("not found") == true)
+                if (response is null && resultContent?.Contains("not found") == true)
                 {
                     Log($"IsOnline response = NULL: {resultContent}");
 
@@ -1917,7 +1917,7 @@ namespace TeslaLogger
 
                 dynamic r4 = SearchCarDictionary(response);
 
-                if (r4 == null)
+                if (r4 is null)
                 {
                     Log("Vin not found in Response!");
                     return "NULL";
@@ -1928,7 +1928,7 @@ namespace TeslaLogger
                     string access_type = r4["access_type"].ToString();
                     car.Access_type = access_type;
 
-                    if (result != null && result.IsSuccessStatusCode && cachedValue == null)
+                    if (result != null && result.IsSuccessStatusCode && cachedValue is null)
                     {
                         if (access_type == "OWNER")
                         {
@@ -1959,7 +1959,7 @@ namespace TeslaLogger
                 }
 
                 string state = r4["state"].ToString();
-                if (r4.ContainsKey("tokens") && r4["tokens"] != null)
+                if (r4.ContainsKey("tokens") && r4["tokens"] is not null)
                 {
                     string temp_Tesla_Streamingtoken = r4["tokens"][0].ToString();
                     if (temp_Tesla_Streamingtoken != Tesla_Streamingtoken)
@@ -1984,7 +1984,7 @@ namespace TeslaLogger
                         car.Model = "M3";
 
                     var battery = oc.Where(r => r.StartsWith("BT")).ToArray();
-                    if (battery != null && battery.Length > 0)
+                    if (battery is not null && battery.Length > 0)
                     {
                         if (car.Battery != battery[0])
                         {
@@ -2117,7 +2117,7 @@ namespace TeslaLogger
                 dynamic jBadge = JsonConvert.DeserializeObject(resultContent2);
                 dynamic jBadgeResult = jBadge["response"]["vehicle_config"];
 
-                if (jBadgeResult != null)
+                if (jBadgeResult is not null)
                 {
                     string car_type = car.CarType;
                     string car_special_type = car.CarSpecialType;
@@ -2679,7 +2679,7 @@ namespace TeslaLogger
                 }
                 else
                 {
-                    if (car.telemetry != null)
+                    if (car.telemetry is not null)
                         return car.telemetryParser.Driving == true;
                     else
                         return false;
@@ -2745,7 +2745,7 @@ namespace TeslaLogger
                 {
                     // New API after 2023.38.4 
                     var rc2 = GetCommand(vehicle_data_everything).Result;
-                    if (rc2 == null)
+                    if (rc2 is null)
                         return false;
                     try
                     {
@@ -2775,19 +2775,19 @@ namespace TeslaLogger
                 car.CurrentJSON.SetPosition(latitude, longitude, ts);
 
                 int speed = 0;
-                if (drive_state["speed"] != null)
+                if (drive_state["speed"] is not null)
                 {
                     speed = (int)drive_state["speed"];
                 }
 
                 int power = 0;
-                if (drive_state["power"] != null)
+                if (drive_state["power"] is not null)
                 {
                     power = (int)drive_state["power"];
                 }
 
                 string shift_state = "";
-                if (drive_state["shift_state"] != null)
+                if (drive_state["shift_state"] is not null)
                 {
                     shift_state = drive_state["shift_state"].ToString();
                     SetLastShiftState(shift_state);
@@ -2836,7 +2836,7 @@ namespace TeslaLogger
 
                     double ideal_battery_range_km = GetIdealBatteryRangekm(out double battery_level, out double battery_range_km);
 
-                    if (t_outside_temp != null)
+                    if (t_outside_temp is not null)
                     {
                         outside_temp = t_outside_temp.Result;
                     }
@@ -2849,10 +2849,7 @@ namespace TeslaLogger
                         longitude = 0;
                     }
 
-                    if(car.CurrentJSON.current_inside_temperature != null)
-                    {
-                        inside_temp = (double)car.CurrentJSON.current_inside_temperature;
-                    }
+                    inside_temp = car.CurrentJSON.current_inside_temperature;
 
                     await car.DbHelper.InsertPosAsync(ts.ToString(), latitude, longitude, speed, power, odometer.Result, ideal_battery_range_km, battery_range_km, battery_level, inside_temp, outside_temp, elevation);
 
@@ -2865,7 +2862,7 @@ namespace TeslaLogger
             }
             catch (Exception ex)
             {
-                if (resultContent == null || resultContent == "NULL" )
+                if (resultContent is null || resultContent == "NULL" )
                 {
                     Log("IsDriving = NULL!");
                     Task.Delay(10000).GetAwaiter().GetResult();
@@ -2898,7 +2895,7 @@ namespace TeslaLogger
         {
             try
             {
-                if (inhalt != null)
+                if (inhalt is not null)
                 {
                     if (inhalt.Contains("vehicle unavailable:"))
                     {
@@ -2949,7 +2946,7 @@ namespace TeslaLogger
             if (car.FleetAPI) // Fleet API doesn't support streaming now
                 return;
 
-            if (streamThread == null)
+            if (streamThread is null)
             {
                 streamThread = new System.Threading.Thread(() => StartStream());
                 streamThread.Name = "StreamAPIThread_" + car.CarInDB;
@@ -3137,7 +3134,7 @@ namespace TeslaLogger
                         }
                         finally
                         {
-                            if (cts != null)
+                            if (cts is not null)
                             {
                                 cts.Dispose();
                                 cts = null;
@@ -3204,7 +3201,7 @@ namespace TeslaLogger
                     {
                         System.Diagnostics.Debug.WriteLine(ex.ToString());
                         Logfile.Log($"Streaming Error: {ex.Message}");
-                        if (ex.InnerException != null)
+                        if (ex.InnerException is not null)
                             Logfile.Log($"Streaming Error: {ex.InnerException.Message}");
 
                         Logfile.ExceptionWriter(ex, line);
@@ -3217,7 +3214,7 @@ namespace TeslaLogger
                 }
                 finally
                 {
-                    if (ws != null)
+                    if (ws is not null)
                     {
                         ws.Abort();
                         ws.Dispose();
@@ -3271,7 +3268,7 @@ namespace TeslaLogger
                     DrivingOrChargingByStream = true;
                 }
             }
-            else if (shift_state != null && (shift_state == "D" || shift_state == "R" || shift_state == "N"))
+            else if (shift_state is not null && (shift_state == "D" || shift_state == "R" || shift_state == "N"))
             {
                 DrivingOrChargingByStream = true;
             }
@@ -3342,10 +3339,10 @@ namespace TeslaLogger
             }
             catch (Exception ex)
             {
-                if (url == null)
+                if (url is null)
                     url = "NULL";
 
-                if (resultContent == null)
+                if (resultContent is null)
                     resultContent = "NULL";
 
                 Logfile.ExceptionWriter(ex, url + "\r\n" + resultContent);
@@ -3369,7 +3366,7 @@ namespace TeslaLogger
                 {
                     Address a = null;
                     a = Geofence.GetInstance().GetPOI(latitude, longitude);
-                    if (a != null)
+                    if (a is not null)
                     {
                         Logfile.Log("Reverse geocoding by Geofence");
                         return a.name;
@@ -3427,7 +3424,7 @@ namespace TeslaLogger
 
                     DateTime start = DateTime.UtcNow;
                     resultContent = await webClient.DownloadStringTaskAsync(new Uri(url));
-                    if (car != null)
+                    if (car is not null)
                     {
                         _ = DBHelper.AddMothershipDataToDBAsync("ReverseGeocoding", start, 0, car.CarInDB);
                     }
@@ -3450,7 +3447,7 @@ namespace TeslaLogger
                         if (loc0.ContainsKey("adminArea1") && loc0["adminArea1Type"].ToString() == "Country")
                             country_code = loc0["adminArea1"].ToString().ToLower();
 
-                        if (country_code.Length > 0 && car != null)
+                        if (country_code.Length > 0 && car is not null)
                         {
                             car.CurrentJSON.current_country_code = country_code;
                             car.CurrentJSON.current_state = loc0.ContainsKey("adminArea3") ? loc0["adminArea3"].ToString() : "";
@@ -3500,7 +3497,7 @@ namespace TeslaLogger
                         if (r2.ContainsKey("country_code"))
                             country_code = r2["country_code"].ToString();
 
-                        if (country_code.Length > 0 && car != null)
+                        if (country_code.Length > 0 && car is not null)
                         {
                             car.CurrentJSON.current_country_code = country_code;
                             car.CurrentJSON.current_state = r2.ContainsKey("state") ? r2["state"].ToString() : "";
@@ -3523,11 +3520,11 @@ namespace TeslaLogger
                             house_number = r2["house_number"].ToString();
 
                         string name = "";
-                        if (r2.ContainsKey("name") && r2["name"] != null)
+                        if (r2.ContainsKey("name") && r2["name"] is not null)
                             name = r2["name"].ToString();
 
                         string address29 = "";
-                        if (r2.ContainsKey("address29") && r2["address29"] != null)
+                        if (r2.ContainsKey("address29") && r2["address29"] is not null)
                         {
                             address29 = r2["address29"].ToString();
                         }
@@ -3575,12 +3572,12 @@ namespace TeslaLogger
             {
                 ex.ToExceptionless().AddObject(resultContent, "ResultContent").AddObject(url, "Url").Submit();
 
-                if (url == null)
+                if (url is null)
                 {
                     url = "NULL";
                 }
 
-                if (resultContent == null)
+                if (resultContent is null)
                 {
                     resultContent = "NULL";
                 }
@@ -3639,12 +3636,12 @@ namespace TeslaLogger
             {
                 ex.ToExceptionless().AddObject(resultContent, "ResultContent").AddObject(url, "Url").Submit();
 
-                if (url == null)
+                if (url is null)
                 {
                     url = "NULL";
                 }
 
-                if (resultContent == null)
+                if (resultContent is null)
                 {
                     resultContent = "NULL";
                 }
@@ -3963,12 +3960,12 @@ WHERE
                 object name = dr[3];
 
                 Address a = Geofence.GetInstance().GetPOI(lat, lng, false, brand, max_power);
-                if (a == null)
+                if (a is null)
                 {
                     if (name == DBNull.Value || name.ToString().Length == 0)
                     {
                         String newName = ReverseGecocodingAsync(null, lat, lng, true, true).Result;
-                        if (newName != null && newName.Length > 0)
+                        if (newName is not null && newName.Length > 0)
                         {
                             UpdatePosAddressName(id, newName);
                             count++;
@@ -4019,14 +4016,14 @@ WHERE
                 // resultContent = GetCommand("vehicle_data?endpoints=charge_state&let_sleep=true").Result;
                 resultContent = GetCommand(vehicle_data_everything).Result;
 
-                if (resultContent == null || resultContent == "NULL")
+                if (resultContent is null || resultContent == "NULL")
                     return -1;
 
                 Tools.SetThreadEnUS();
                 dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
                 dynamic r2 = jsonResult["response"]["charge_state"];
 
-                if (r2["ideal_battery_range"] == null)
+                if (r2["ideal_battery_range"] is null)
                 {
                     return -1;
                 }
@@ -4043,12 +4040,12 @@ WHERE
                     }
                 }
 
-                if (r2["battery_range"] != null)
+                if (r2["battery_range"] is not null)
                 {
                     battery_range_km = Tools.MlToKm(Convert.ToDouble(r2["battery_range"]), 1);
                 }
 
-                if (r2["battery_level"] != null)
+                if (r2["battery_level"] is not null)
                 {
                     battery_level = Convert.ToDouble(r2["battery_level"]);
                     car.CurrentJSON.current_battery_level = battery_level;
@@ -4082,14 +4079,14 @@ WHERE
 
                 Tools.SetThreadEnUS();
 
-                if (resultContent == null || resultContent == "NULL" || resultContent == INSERVICE)
+                if (resultContent is null || resultContent == "NULL" || resultContent == INSERVICE)
                     return lastOdometerKM;
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
                 dynamic vehicle_state = jsonResult["response"]["vehicle_state"];
                 _ = long.TryParse(vehicle_state["timestamp"].ToString(), out long ts);
 
-                if (vehicle_state.ContainsKey("sentry_mode") && vehicle_state["sentry_mode"] != null)
+                if (vehicle_state.ContainsKey("sentry_mode") && vehicle_state["sentry_mode"] is not null)
                 {
                     try
                     {
@@ -4104,7 +4101,7 @@ WHERE
                     }
                     catch (Exception ex)
                     {
-                        if (resultContent != null)
+                        if (resultContent is not null)
                             SubmitExceptionlessClientWithResultContent(ex, resultContent);
 
                         ExceptionWriter(ex, resultContent);
@@ -4112,7 +4109,7 @@ WHERE
                     }
                 }
 
-                if (vehicle_state["odometer"] == null)
+                if (vehicle_state["odometer"] is null)
                 {
                     Log("odometer = NULL");
                     return lastOdometerKM;
@@ -4165,7 +4162,7 @@ WHERE
         {
             string cacheKey = Program.TLMemCacheKey.GetOutsideTempAsync.ToString() + car.CarInDB;
             object cacheValue = MemoryCache.Default.Get(cacheKey);
-            if (cacheValue != null)
+            if (cacheValue is not null)
             {
                 return (double)cacheValue;
             }
@@ -4177,7 +4174,7 @@ WHERE
 
                 resultContent = GetCommand(vehicle_data_everything).Result;
 
-                if (resultContent == null || resultContent.Length == 0 || resultContent == "NULL")
+                if (resultContent is null || resultContent.Length == 0 || resultContent == "NULL")
                 {
                     Log("GetOutsideTempAsync: NULL");
                     return null;
@@ -4190,7 +4187,7 @@ WHERE
                 try
                 {
                     decimal? inside_temp = null;
-                    if (climate_state["inside_temp"] != null)
+                    if (climate_state["inside_temp"] is not null)
                     {
                         inside_temp = (decimal)climate_state["inside_temp"];
                         car.CurrentJSON.current_inside_temperature = (double)inside_temp;
@@ -4199,7 +4196,7 @@ WHERE
                 catch (Exception) { }
 
                 decimal? outside_temp = null;
-                if (climate_state["outside_temp"] != null)
+                if (climate_state["outside_temp"] is not null)
                 {
                     outside_temp = (decimal)climate_state["outside_temp"];
                     car.CurrentJSON.current_outside_temperature = (double)outside_temp;
@@ -4212,7 +4209,7 @@ WHERE
                 try
                 {
                     bool? battery_heater = null;
-                    if (climate_state["battery_heater"] != null)
+                    if (climate_state["battery_heater"] is not null)
                     {
                         battery_heater = (bool)climate_state["battery_heater"];
                         if (car.CurrentJSON.current_battery_heater != battery_heater)
@@ -4232,7 +4229,7 @@ WHERE
                 catch (Exception) { }
 
 
-                bool preconditioning = climate_state["is_preconditioning"] != null && (bool)climate_state["is_preconditioning"];
+                bool preconditioning = climate_state["is_preconditioning"] is not null && (bool)climate_state["is_preconditioning"];
                 if (preconditioning != car.CurrentJSON.current_is_preconditioning)
                 {
                     car.CurrentJSON.current_is_preconditioning = preconditioning;
@@ -4250,7 +4247,7 @@ WHERE
             }
             catch (Exception ex)
             {
-                if (resultContent == null)
+                if (resultContent is null)
                 {
                     Log("GetOutsideTempAsync: NULL");
                     return null;
@@ -4283,7 +4280,7 @@ WHERE
                 string cacheKey = "GetCommand_" + cmd + "_" + cacheGUID;
 
                 string cachedValue = MemoryCache.Default[cacheKey] as string;
-                if (cachedValue != null)
+                if (cachedValue is not null)
                 {
                     // Log("GetCommand Cache");
                     return cachedValue;
@@ -4383,7 +4380,7 @@ WHERE
                     }
                     else if (result.StatusCode == HttpStatusCode.RequestTimeout)
                     {
-                        if (startRequestTimeout == null)
+                        if (startRequestTimeout is null)
                             startRequestTimeout = DateTime.UtcNow;
 
                         Log("Result.Statuscode: " + (int)result.StatusCode + " (" + result.StatusCode.ToString() + ") cmd: " + cmd);
@@ -4644,7 +4641,7 @@ WHERE
             string cacheKey = "PostCommand" + car.CarInDB;
             object cacheValue = MemoryCache.Default.Get(cacheKey);
             // prevent parallel execution of command
-            while (cacheValue != null)
+            while (cacheValue is not null)
             {
                 Log($"waiting ... another command is still running: {cacheValue.ToString()}");
                 await Task.Delay(1000);
@@ -4702,7 +4699,7 @@ WHERE
 
                 car.Log("Response: " + resultContent);
 
-                if (resultContent != null)
+                if (resultContent is not null)
                 {
                     if (resultContent.Contains("vehicle rejected request: your public key has not been paired with the vehicle"))
                     {
@@ -4769,19 +4766,19 @@ WHERE
                 double longitude = double.Parse(r2["longitude"].ToString());
                 string timestamp = r2["timestamp"].ToString();
                 int speed = 0;
-                if (r2["speed"] != null)
+                if (r2["speed"] is not null)
                 {
                     speed = (int)r2["speed"];
                 }
 
                 int power = 0;
-                if (r2["power"] != null)
+                if (r2["power"] is not null)
                 {
                     power = (int)r2["power"];
                 }
 
                 string shift_state = "";
-                if (r2["shift_state"] != null)
+                if (r2["shift_state"] is not null)
                 {
                     shift_state = r2["shift_state"].ToString();
                 }
@@ -5133,7 +5130,7 @@ WHERE
                 httpClientLock.Wait();
                 try
                 {
-                    if (httpClientABRP == null)
+                    if (httpClientABRP is null)
                     {
                         CreateHttpClientABRP();
                     }
@@ -5256,7 +5253,7 @@ WHERE
                 httpClientLock.Wait();
                 try
                 {
-                    if (httpClientSuCBingo == null)
+                    if (httpClientSuCBingo is null)
                     {
                         HttpClient c = new HttpClient();
                         c.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
@@ -5472,4 +5469,5 @@ WHERE
         public bool fleetAPI;
     }
 }
+
 

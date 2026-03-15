@@ -27,3 +27,4 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("UnitTestsTeslaloggerNET8")]
 [assembly: InternalsVisibleTo("UnitTestsTeslalogger")]
+

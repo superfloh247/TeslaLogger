@@ -17,7 +17,7 @@ namespace TeslaLogger
 
         public ElectricityMeterTeslaGen3WallConnector(string host, string parameter)
         {
-            if (client == null)
+            if (client is null)
                 client = new WebClient();
 
             this.host = host;
@@ -28,7 +28,7 @@ namespace TeslaLogger
         {
             try
             {
-                if (mockup_lifetime != null)
+                if (mockup_lifetime is not null)
                     return mockup_lifetime;
 
                 string url = host + "/api/1/lifetime";
@@ -60,7 +60,7 @@ namespace TeslaLogger
         {
             try
             {
-                if (mockup_vitals != null)
+                if (mockup_vitals is not null)
                     return mockup_vitals;
 
                 string url = host + "/api/1/vitals";
@@ -93,7 +93,7 @@ namespace TeslaLogger
         {
             try
             {
-                if (mockup_version != null)
+                if (mockup_version is not null)
                     return mockup_version;
 
                 string url = host + "/api/1/version";
@@ -142,7 +142,7 @@ namespace TeslaLogger
                 string key = "energy_wh";
                 string value = jsonResult[key].ToString();
 
-                if (value == null)
+                if (value is null)
                     return null;
 
                 double v = Double.Parse(value, Tools.ciEnUS);
@@ -173,7 +173,7 @@ namespace TeslaLogger
                 j = j.Replace("nan,", "null,");
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 bool vehicle_connected = jsonResult["vehicle_connected"];
@@ -200,11 +200,11 @@ namespace TeslaLogger
             try
             {
                 j = GetCurrentDataVersion();
-                if (j == null)
+                if (j is null)
                     return "";
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return "";
 
                 string key = "firmware_version";
@@ -230,4 +230,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

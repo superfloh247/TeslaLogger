@@ -288,7 +288,7 @@ ORDER BY
 
                 Tools.DebugLog($"JourneysCreateCreate CarID:{CarID} StartPosID:{StartPosID} EndPosID:{EndPosID} name:{name}");
                 DataRow car = DBHelper.GetCar(CarID);
-                if (car != null && StartPosID < EndPosID && !string.IsNullOrEmpty(name))
+                if (car is not null && StartPosID < EndPosID && !string.IsNullOrEmpty(name))
                 {
                     try
                     {
@@ -871,4 +871,5 @@ FROM
         }
     }
 }
+
 

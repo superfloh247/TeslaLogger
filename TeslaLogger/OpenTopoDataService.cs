@@ -28,7 +28,7 @@ namespace TeslaLogger
 
         public static OpenTopoDataService GetSingleton()
         {
-            if (_OpenTopoDataService == null)
+            if (_OpenTopoDataService is null)
             {
                 _OpenTopoDataService = new OpenTopoDataService();
             }
@@ -121,7 +121,7 @@ namespace TeslaLogger
                 {
                     dynamic jr = JsonConvert.DeserializeObject(resultContent);
                     var jsonResult = jr.ToObject<Dictionary<string, object>>();
-                    if (jsonResult != null)
+                    if (jsonResult is not null)
                     {
                         if (((Dictionary<string, object>)jsonResult).ContainsKey("status")
                             && ((Dictionary<string, object>)jsonResult)["status"].Equals("OK")
@@ -177,4 +177,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

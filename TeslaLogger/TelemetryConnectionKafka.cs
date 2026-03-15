@@ -23,7 +23,7 @@ namespace TeslaLoggerNET8
             {
                 try
                 {
-                    if (instance == null)
+                    if (instance is null)
                     {
                         instance = this;
                         tQueue = Task.Run(async () =>
@@ -61,7 +61,7 @@ namespace TeslaLoggerNET8
                 try
                 {
                     parserDict.TryGetValue(msg.vin, out var parser);
-                    if (parser != null)
+                    if (parser is not null)
                     {
                         await parser.handleMessageAsync(msg.msg);
                     }
@@ -80,4 +80,5 @@ namespace TeslaLoggerNET8
         }
     }
 }
+
 

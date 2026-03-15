@@ -46,7 +46,7 @@ namespace TeslaLogger
                     }
                     catch (Exception) { }
                 }
-                else if (ComfortingMessages != null)
+                else if (ComfortingMessages is not null)
                 {
                     comfortingMessagesCTS.Cancel();
                     ComfortingMessages.Wait();
@@ -540,7 +540,7 @@ LIMIT 1", con))
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         while (dr.Read())
                         {
-                            if (dr[0] != null && dr[0].ToString().Equals("trip") && dr[1] != null)
+                            if (dr[0] is not null && dr[0].ToString().Equals("trip") && dr[1] is not null)
                             {
                                 viewtrip = dr[1].ToString();
                             }
@@ -1351,7 +1351,7 @@ PRIMARY KEY(id)
                     else
                     {
                         string ret = Tools.ExecMono("optipng", "-version");
-                        if (ret == null)
+                        if (ret is null)
                             ret = "NULL";
 
                         ExceptionlessClient.Default.CreateLog("Install", $"optipng: {ret}", Exceptionless.Logging.LogLevel.Warn).Submit();
@@ -2736,7 +2736,7 @@ PRIMARY KEY(id)
         {
             try
             {
-                if (name == null || name.Length == 0)
+                if (name is null || name.Length == 0)
                     return s;
 
                 Regex regexAlias = new("(templating.*\\\"text\\\":\\s\\\")(\\\".*?value\\\":\\s\\\")(.*?)(\\\")(.*?display_name)(.*?label\\\":\\s\\\")(.*?)(\\\")", RegexOptions.Singleline | RegexOptions.Multiline);

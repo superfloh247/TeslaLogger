@@ -35,7 +35,7 @@ class TelemetryConnectionWS : TelemetryConnection
         public TelemetryConnectionWS(Car car)
         {
             this.car = car;
-            if (car == null)
+            if (car is null)
                 return;
 
             parser = new TelemetryParser(car);
@@ -92,7 +92,7 @@ class TelemetryConnectionWS : TelemetryConnection
 
                     ConnectToServer();
 
-                    if (ws == null)
+                    if (ws is null)
                         continue;
 
                     Login();
@@ -112,7 +112,7 @@ class TelemetryConnectionWS : TelemetryConnection
                         Log(se.Message);
                         car.CreateExceptionlessClient(ex.InnerException).Submit();
                     }
-                    else if (ex.InnerException?.InnerException != null)
+                    else if (ex.InnerException?.InnerException is not null)
                     {
                         Log(ex.InnerException.Message);
                         car.CreateExceptionlessClient(ex.InnerException).Submit();
@@ -191,7 +191,7 @@ class TelemetryConnectionWS : TelemetryConnection
         {
             Log("Connect to Telemetry Server (WS)");
 
-            if (ws != null)
+            if (ws is not null)
                 ws.Dispose();
 
             ws = null;
@@ -209,7 +209,7 @@ class TelemetryConnectionWS : TelemetryConnection
                 if (ex is AggregateException ex2)
                 {
                     Log("Connect to Telemetry Server (WS) Error: " + ex2.InnerException?.Message);
-                    if (ex2.InnerException != null)
+                    if (ex2.InnerException is not null)
                         car.CreateExceptionlessClient(ex2.InnerException).Submit();
                     else
                         car.CreateExceptionlessClient(ex2).Submit();
@@ -262,4 +262,5 @@ class TelemetryConnectionWS : TelemetryConnection
             return ws.SendAsync(buffer, WebSocketMessageType.Text, true, cts.Token);
         }
     }
+
 

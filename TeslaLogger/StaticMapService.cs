@@ -78,7 +78,7 @@ namespace TeslaLogger
 
         public static StaticMapService GetSingleton()
         {
-            if (_StaticMapService == null)
+            if (_StaticMapService is null)
             {
                 _StaticMapService = new StaticMapService();
                 _StaticMapProvider = StaticMapProvider.GetSingleton();
@@ -135,7 +135,7 @@ namespace TeslaLogger
         private void Work()
         {
             //Tools.DebugLog("StaticMapService:Work() queue:" + queue.Count + " MapProvider:" + _StaticMapProvider);
-            if (_StaticMapProvider != null)
+            if (_StaticMapProvider is not null)
             {
                 int queueLength = queue.Count;
                 if (queue.TryDequeue(out Request request))
@@ -152,12 +152,12 @@ namespace TeslaLogger
                         {
                             using (DataTable dt = TripToCoords((TripRequest)request))
                             {
-                                if (dt != null & dt.Rows.Count > 1)
+                                if (dt is not null & dt.Rows.Count > 1)
                                 {
                                     _StaticMapProvider.CreateTripMap(dt, width, height, request.Mode, request.Special, filename);
                                     dt.Clear();
                                     dt.Dispose();
-                                    if (_StaticMapProvider != null)
+                                    if (_StaticMapProvider is not null)
                                     {
                                         Task.Delay(_StaticMapProvider.GetDelayMS());
                                     }
@@ -188,7 +188,7 @@ namespace TeslaLogger
                                 default:
                                     break;
                             }
-                            if (_StaticMapProvider != null)
+                            if (_StaticMapProvider is not null)
                             {
                                 Task.Delay(_StaticMapProvider.GetDelayMS());
                             }

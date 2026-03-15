@@ -95,7 +95,7 @@ namespace TeslaLogger
 
         public static MQTT GetSingleton()
         {
-            if (_Mqtt == null)
+            if (_Mqtt is null)
             {
                 _Mqtt = new MQTT();
             }
@@ -239,7 +239,7 @@ namespace TeslaLogger
         internal void Work()
         {
             // TODO: in unittest, initialization is not done like in real code
-            if (allCars == null && Tools.IsUnitTest())
+            if (allCars is null && Tools.IsUnitTest())
             {
                 allCars = GetAllcars();
             }
@@ -439,7 +439,7 @@ namespace TeslaLogger
         {
             try
             {
-                if (client != null)
+                if (client is not null)
                 {
                     if (client.IsConnected)
                     {
@@ -456,7 +456,7 @@ namespace TeslaLogger
                         if (!connecting)
                         {
                             string newClientId;
-                            if(clientid != null)
+                            if(clientid is not null)
                             {
                                 newClientId = clientid;
                             }
@@ -466,7 +466,7 @@ namespace TeslaLogger
                             }
                             connecting = true;
                             Tools.DebugLog("MQTT: not connected, connecting = true");
-                            if (user != null && password != null)
+                            if (user is not null && password is not null)
                             {
                                 Logfile.Log($"MQTT: Connecting with credentials: {host}:{port} with ClientID: {newClientId}");
                                 client.Connect(newClientId, user, password, false, 0, true, $@"{topic}/system/status", "offline", true, 30);
@@ -572,7 +572,7 @@ namespace TeslaLogger
                     int id = car["id"];
                     string inactiveFlag = car["inactive"];
                     var carObj = Car.GetCarByID(id);
-                    if (carObj == null || carObj.GetCurrentState() == Car.TeslaState.Inactive || inactiveFlag == "1")
+                    if (carObj is null || carObj.GetCurrentState() == Car.TeslaState.Inactive || inactiveFlag == "1")
                     {
                         continue; //skip inactive cars
                     }
@@ -620,7 +620,7 @@ namespace TeslaLogger
             }
             string model = "Model " + vin[3]; //Car.GetCarByID(carId).CarType;
             var car = Car.GetCarByID(carId);
-            if (car == null)
+            if (car is null)
             {
                 Logfile.Log($"MQTT: AutoDiscovery for {vin}: car {carId} not found or not active");
             }
@@ -673,39 +673,39 @@ namespace TeslaLogger
                     entityConfig.Add("stat_t", $"{topic}/car/{vin}/{entity}");
 
 
-                    if (entityIcon != null)
+                    if (entityIcon is not null)
                     {
                         entityConfig.Add("icon", entityIcon);
                     }
-                    if (entityClass != null)
+                    if (entityClass is not null)
                     {
                         entityConfig.Add("dev_cla", entityClass);
                     }
-                    if (entityUnit != null)
+                    if (entityUnit is not null)
                     {
                         entityConfig.Add("unit_of_meas", entityUnit);
                     }
-                    if (entityTextOn != null)
+                    if (entityTextOn is not null)
                     {
                         entityConfig.Add("pl_on", entityTextOn);
                     }
-                    if (entityTextOff != null)
+                    if (entityTextOff is not null)
                     {
                         entityConfig.Add("pl_off", entityTextOff);
                     }
-                    if (entityControlTopic != null)
+                    if (entityControlTopic is not null)
                     {
                         entityConfig.Add("cmd_t", $"{topic}/command/{vin}/{entityControlTopic}");
                     }
-                    if (entityMin != null)
+                    if (entityMin is not null)
                     {
                         entityConfig.Add("min", entityMin);
                     }
-                    if (entityMax != null)
+                    if (entityMax is not null)
                     {
                         entityConfig.Add("max", entityMax);
                     }
-                    if (entityStep != null)
+                    if (entityStep is not null)
                     {
                         entityConfig.Add("step", entityStep);
                     }
@@ -878,4 +878,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

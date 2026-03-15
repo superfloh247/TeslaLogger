@@ -29,3 +29,4 @@ namespace TeslaLoggerNET8.Kafka
         }
     }
 }
+

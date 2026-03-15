@@ -50,7 +50,7 @@ namespace TeslaLogger
 
         public static StaticMapProvider GetSingleton()
         {
-            if (_StaticMapProvider == null)
+            if (_StaticMapProvider is null)
             {
                 foreach (Type type in Assembly.GetAssembly(typeof(StaticMapProvider)).GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(StaticMapProvider))))
                 {
@@ -70,7 +70,7 @@ namespace TeslaLogger
                         _StaticMapProvider = (StaticMapProvider)Activator.CreateInstance(type);
                     }*/
                 }
-                if (_StaticMapProvider == null)
+                if (_StaticMapProvider is null)
                 {
                     _StaticMapProvider = new OSMMapProvider(); // default
                 }

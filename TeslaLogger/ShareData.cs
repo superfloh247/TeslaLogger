@@ -144,13 +144,13 @@ ORDER BY
                             if (double.TryParse(dr["lat"].ToString(), out double lat) && double.TryParse(dr["lng"].ToString(), out double lng))
                             {
                                 Address addr = Geofence.GetInstance().GetPOI(lat, lng, false);
-                                if (addr != null && addr.IsHome)
+                                if (addr is not null && addr.IsHome)
                                 {
                                     car.Log("Do not share ChargingData for +home (" + addr.name + ")");
                                     continue;
                                 }
                                 // get raw address w/o automatically added unicode characters
-                                if (dr["pos_name"] != null && addr != null)
+                                if (dr["pos_name"] is not null && addr is not null)
                                 {
                                     dr["pos_name"] = addr.rawName;
                                 }
@@ -599,4 +599,5 @@ GROUP BY
         }
     }
 }
+
 

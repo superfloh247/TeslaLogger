@@ -291,10 +291,10 @@ namespace TeslaLogger
                     if (key == "SentryMode")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["sentryModeStateValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -341,10 +341,10 @@ namespace TeslaLogger
                     else if (key == "OutsideTemp")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["doubleValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -362,10 +362,10 @@ namespace TeslaLogger
                     else if (key == "InsideTemp")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["doubleValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -383,10 +383,10 @@ namespace TeslaLogger
                     else if (key == "TimeToFullCharge")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["doubleValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -400,10 +400,10 @@ namespace TeslaLogger
                     else if (key == "ChargeLimitSoc")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["intValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -425,10 +425,10 @@ namespace TeslaLogger
                     else if (key == "MinutesToArrival")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["doubleValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -442,10 +442,10 @@ namespace TeslaLogger
                     else if (key == "MilesToArrival")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["doubleValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -499,10 +499,10 @@ namespace TeslaLogger
                     else if (key == "BatteryHeaterOn")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["booleanValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -518,10 +518,10 @@ namespace TeslaLogger
                     else if (key == "DefrostForPreconditioning")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["booleanValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -538,10 +538,10 @@ namespace TeslaLogger
                     {
                         string suffix = key.Substring(key.Length - 2);
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["doubleValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -610,10 +610,10 @@ namespace TeslaLogger
                     else if (key == "ServiceMode")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["booleanValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -627,10 +627,10 @@ namespace TeslaLogger
                     else if (key == "CarType")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["carTypeValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -673,10 +673,10 @@ namespace TeslaLogger
                     else if (key == "SoftwareUpdateInstallationPercentComplete")
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["intValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -806,10 +806,10 @@ namespace TeslaLogger
                     else if (key == "Locked")
                     {
                         string v = value["stringValue"];
-                        if (v == null)
+                        if (v is null)
                         {
                             v = value["booleanValue"];
-                            if (v == null)
+                            if (v is null)
                             {
                                 continue;
                             }
@@ -825,10 +825,10 @@ namespace TeslaLogger
                     {
                         string apistatekey = key.ToLower().Insert(2, "_");
                         string Window = value["stringValue"];
-                        if (Window == null)
+                        if (Window is null)
                         {
                             Window = value["windowStateValue"];
-                            if (Window == null)
+                            if (Window is null)
                             {
                                 continue;
                             }
@@ -921,13 +921,13 @@ namespace TeslaLogger
                     string key = jj["key"];
                     dynamic value = jj["value"];
 
-                    if (key == "ACChargingEnergyIn" && charge_energy_added == null)
+                    if (key == "ACChargingEnergyIn" && charge_energy_added is null)
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -943,10 +943,10 @@ namespace TeslaLogger
                     if (key == "ACChargingPower")
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -967,10 +967,10 @@ namespace TeslaLogger
                     if (key == "DCChargingEnergyIn" && acCharging)
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if(v1 == null)
+                            if(v1 is null)
                             {
                                 continue;
                             }
@@ -987,10 +987,10 @@ namespace TeslaLogger
                     else if (key == "DCChargingEnergyIn" && dcCharging)
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -1007,10 +1007,10 @@ namespace TeslaLogger
                     else if (key == "Soc")
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -1030,10 +1030,10 @@ namespace TeslaLogger
                     else if (key == "ACChargingPower" && acCharging)
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -1048,10 +1048,10 @@ namespace TeslaLogger
                     else if (key == "DCChargingPower" && dcCharging)
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -1067,10 +1067,10 @@ namespace TeslaLogger
                     else if (key == "IdealBatteryRange")
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -1087,10 +1087,10 @@ namespace TeslaLogger
                     else if (key == "RatedRange")
                     {
                         string v1 = value["stringValue"];
-                        if (v1 == null)
+                        if (v1 is null)
                         {
                             v1 = value["doubleValue"];
-                            if (v1 == null)
+                            if (v1 is null)
                             {
                                 continue;
                             }
@@ -1203,7 +1203,7 @@ namespace TeslaLogger
                     else if (key == "Location")
                     {
                         dynamic locationValue = value["locationValue"];
-                        if (locationValue != null)
+                        if (locationValue is not null)
                         {
                             latitude = locationValue["latitude"];
                             longitude = locationValue["longitude"];
@@ -1211,7 +1211,7 @@ namespace TeslaLogger
                         else
                         {
                             string v = value["stringValue"];
-                            if (v != null)
+                            if (v is not null)
                             {
                                 v = v.Replace("(", "").Replace(")", "");
                                 v = v.Replace("\"", "");
@@ -1242,7 +1242,7 @@ namespace TeslaLogger
 
                         if (lastLatitude != latitude || lastLongitude != longitude)
                         {
-                            if (latitude != null && longitude != null)
+                            if (latitude is not null && longitude is not null)
                             {
                                 if (lastLatitude != 0 && lastLongitude != 0)
                                 {
@@ -1279,15 +1279,15 @@ namespace TeslaLogger
                     }
                 }
 
-                if (speed == null)
+                if (speed is null)
                 {
                     speed = lastVehicleSpeed;
                 }
 
 
-                if (latitude != null && longitude != null && (speed != null || force))
+                if (latitude is not null && longitude is not null && (speed is not null || force))
                 {
-                    if (force && speed == null)
+                    if (force && speed is null)
                         speed = 0;
 
                     Log("Insert Location" + (force ? " Force" : ""));
@@ -1315,7 +1315,7 @@ namespace TeslaLogger
                 {
                     long ts = DateTimeToUTC_UnixTimestamp(d);
                     
-                    if (speed == null)
+                    if (speed is null)
                         speed = 0;
 
                     var power = PrintPS();
@@ -1361,7 +1361,7 @@ namespace TeslaLogger
 
                 dynamic skipped_vehicles = response["skipped_vehicles"];
 
-                if (skipped_vehicles != null)
+                if (skipped_vehicles is not null)
                 {
                     dynamic missing_key = skipped_vehicles["missing_key"];
 
@@ -1430,7 +1430,7 @@ namespace TeslaLogger
                     cmd.Parameters.AddWithValue("@startedAt", startedAt);
                     cmd.Parameters.AddWithValue("@nameID", nameid);
 
-                    if (endedAt != null)
+                    if (endedAt is not null)
                         cmd.Parameters.AddWithValue("@endedAt", endedAt);
                     else
                         cmd.Parameters.AddWithValue("@endedAt", DBNull.Value);
@@ -1474,7 +1474,7 @@ namespace TeslaLogger
                     cmd.Parameters.AddWithValue("@name", name);
                     object o = await cmd.ExecuteScalarAsync();
 
-                    if (o != null)
+                    if (o is not null)
                         return Convert.ToInt32(o);
                     else
                     {
@@ -1535,7 +1535,7 @@ namespace TeslaLogger
                                         break;
                                 }
 
-                                if (state != null)
+                                if (state is not null)
                                 {
                                     using (var con = new MySqlConnection(DBHelper.DBConnectionstring))
                                     {
@@ -1746,7 +1746,7 @@ namespace TeslaLogger
 
         private decimal? PrintPS()
         {
-            if (lastPackVoltage == null)
+            if (lastPackVoltage is null)
                 return null;
 
             var kw = lastPackVoltage * lastPackCurrent / 1000.0 * -1 * 1.3596;
@@ -1777,7 +1777,7 @@ namespace TeslaLogger
         {
             Log("InsertFirstCharging " + date.ToString() + " charge_energy_added: " + charge_energy_added);
 
-            if (charge_energy_added == null)
+            if (charge_energy_added is null)
                 return;
 
             using (MySqlCommand cmd = new MySqlCommand())
@@ -2081,10 +2081,10 @@ namespace TeslaLogger
             try
             {
                 j = o.SelectToken("$[?(@.key=='PackCurrent')].value.stringValue");
-                if (j == null)
+                if (j is null)
                 {
                     j = o.SelectToken("$[?(@.key=='PackCurrent')].value.doubleValue");
-                    if (j == null)
+                    if (j is null)
                     {
                         var ts = date - lastPackCurrentDate;
                         if (ts.TotalSeconds < 10)
@@ -2191,4 +2191,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

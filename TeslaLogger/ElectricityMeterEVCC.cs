@@ -21,7 +21,7 @@ namespace TeslaLogger
 
         public ElectricityMeterEVCC(string host, string parameter)
         {
-            if (client == null)
+            if (client is null)
             {
                 client = new WebClient();
             }
@@ -29,7 +29,7 @@ namespace TeslaLogger
             this.host = host;
             this.parameter = parameter;
 
-            if(parameter != null)
+            if(parameter is not null)
             {
                 loadpointcarname = parameter;
             }
@@ -39,7 +39,7 @@ namespace TeslaLogger
         {
             try
             {
-                if (api_state != null)
+                if (api_state is not null)
                 {
                     return api_state;
                 }
@@ -47,7 +47,7 @@ namespace TeslaLogger
                 string cacheKey = "evcc_" + guid.ToString();
                 object o = MemoryCache.Default.Get(cacheKey);
 
-                if (o != null)
+                if (o is not null)
                     return (string)o;
 
                 string url = host + "/api/state";
@@ -83,7 +83,7 @@ namespace TeslaLogger
             // Maybe vehicle name?
             loadpoint = json.SelectToken($"$.loadpoints[?(@.vehicleName == '{loadpointcarname}')]");
 
-            if (loadpoint == null)
+            if (loadpoint is null)
             {
                 // it's not a vehicle name, maybe vehicle title?
                 foreach (var vehicle in json.vehicles)
@@ -97,11 +97,11 @@ namespace TeslaLogger
                     }
                 }
                 // it's also not a vehicle title. Maybe loadpoint title?
-                if (loadpoint == null)
+                if (loadpoint is null)
                 {
 
                     loadpoint = json.SelectToken($"$.loadpoints[?(@.title == '{loadpointcarname}')]");
-                    if (loadpoint == null)
+                    if (loadpoint is null)
                     {
                         return null;
                     }
@@ -119,14 +119,14 @@ namespace TeslaLogger
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
 
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "grid"))
                     return null;
 
                 JToken grid = jsonResult.SelectToken($"$.grid");
-                if (grid != null)
+                if (grid is not null)
                 {
                     Dictionary<string, object> r1 = grid.ToObject<Dictionary<string, object>>();
 
@@ -173,7 +173,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "loadpoints"))
@@ -181,7 +181,7 @@ namespace TeslaLogger
 
                 JToken loadpoint = getLoadPointJson(jsonResult);
 
-                if (loadpoint == null)
+                if (loadpoint is null)
                     return null;
 
                 Dictionary<string, object> r1 = loadpoint.ToObject<Dictionary<string, object>>();
@@ -219,7 +219,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "loadpoints"))
@@ -227,12 +227,12 @@ namespace TeslaLogger
 
                 JToken loadpoint = getLoadPointJson(jsonResult);
 
-                if (loadpoint == null)
+                if (loadpoint is null)
                     return null;
 
                 Dictionary<string, object> r1 = loadpoint.ToObject<Dictionary<string, object>>();
 
-                if (r1.ContainsKey("sessionPrice") && r1["sessionPrice"] != null)
+                if (r1.ContainsKey("sessionPrice") && r1["sessionPrice"] is not null)
                 {
                     if(double.TryParse(r1["sessionPrice"].ToString(), out double value))
                         return value;
@@ -267,7 +267,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "loadpoints"))
@@ -275,7 +275,7 @@ namespace TeslaLogger
 
                 JToken loadpoint = getLoadPointJson(jsonResult);
 
-                if (loadpoint == null)
+                if (loadpoint is null)
                     return null;
 
                 Dictionary<string, object> r1 = loadpoint.ToObject<Dictionary<string, object>>();
@@ -313,7 +313,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 if (!Tools.IsPropertyExist(jsonResult, "version"))
@@ -342,4 +342,5 @@ namespace TeslaLogger
     }
 
 }
+
 

@@ -18,7 +18,7 @@ namespace TeslaLogger
 
         public ElectricityMeterOpenWB(string host, string parameter)
         {
-            if (client == null)
+            if (client is null)
             {
                 client = new WebClient();
             }
@@ -43,7 +43,7 @@ namespace TeslaLogger
                 string cacheKey = "openwb_" + guid.ToString();
                 object o = MemoryCache.Default.Get(cacheKey);
 
-                if (o != null)
+                if (o is not null)
                     return (string)o;
 
                 string url = host + "/openWB/web/api.php?get=all";
@@ -143,7 +143,7 @@ namespace TeslaLogger
                 j = GetCurrentData();
 
                 dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                if (jsonResult == null)
+                if (jsonResult is null)
                     return null;
 
                 string key = "ladungaktivLP" + LP;
@@ -193,4 +193,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

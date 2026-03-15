@@ -241,7 +241,7 @@ namespace TeslaLogger
         public static string GetExecutingPath()
         {
             //System.IO.Directory.GetCurrentDirectory() is not returning the current path of the assembly
-            if (_ExecutingPath == null)
+            if (_ExecutingPath is null)
             {
 
                 System.Reflection.Assembly executingAssembly = System.Reflection.Assembly.GetExecutingAssembly();

@@ -26,7 +26,7 @@ namespace TeslaLogger
 
         internal ScanMyTesla(Car c)
         {
-            if (c != null)
+            if (c is not null)
             {
                 token = c.TaskerHash;
                 car = c;
@@ -351,4 +351,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

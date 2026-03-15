@@ -16,14 +16,14 @@ namespace TeslaLogger
 
         public override void CreateTripMap(DataTable coords, int width, int height, MapMode mapmode, MapSpecial special, string filename)
         {
-            if (coords == null)
+            if (coords is null)
             {
                 return;
             }
             // workaround for linux mono libgdiplus memory leak
             Dictionary<string, object> job = new();
             Tuple<double, double, double, double> extent = DetermineExtent(coords);
-            if (extent == null)
+            if (extent is null)
             {
                 return;
             }
@@ -287,4 +287,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

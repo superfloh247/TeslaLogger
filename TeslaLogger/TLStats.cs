@@ -21,7 +21,7 @@ namespace TeslaLogger
 
         public static TLStats GetInstance()
         {
-            if (_tLStats == null)
+            if (_tLStats is null)
             {
                 _tLStats = new TLStats();
             }
@@ -96,4 +96,5 @@ DESC", con))
 
     }
 }
+
 

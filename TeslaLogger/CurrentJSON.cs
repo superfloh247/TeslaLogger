@@ -282,7 +282,7 @@ namespace TeslaLogger
                 }
 
                 Address addr = Geofence.GetInstance().GetPOI(latitude, longitude, false);
-                if (addr != null && addr.rawName != null)
+                if (addr is not null && addr.rawName is not null)
                 {
                     values.Add("TLGeofence", addr.rawName);
                     values.Add("TLGeofenceIsHome", addr.IsHome);
@@ -362,4 +362,5 @@ namespace TeslaLogger
         }
     }
 }
+
 

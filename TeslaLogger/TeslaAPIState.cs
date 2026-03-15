@@ -80,13 +80,13 @@ namespace TeslaLogger
                     {
                         if (storage.TryGetValue(name, out Dictionary<Key, object> dict)
                             && dict.TryGetValue(Key.Value, out object oldvalue)
-                            && dict.TryGetValue(Key.Timestamp, out object oldTS) && oldTS != null)
+                            && dict.TryGetValue(Key.Timestamp, out object oldTS) && oldTS is not null)
                         {
                             if (
                                 // olvalue != null and value changed
-                                !(oldvalue == null || value == null || oldvalue.ToString() == value.ToString())
+                                !(oldvalue is null || value is null || oldvalue.ToString() == value.ToString())
                                 // oldvalue was null and newvalue is not null
-                                || (oldvalue == null && value != null)
+                                || (oldvalue is null && value != null)
                                 )
                             {
                                 storage[name][Key.ValueLastUpdate] = timestamp;
@@ -102,7 +102,7 @@ namespace TeslaLogger
                     }
                 }
                 storage[name][Key.Type] = type;
-                if (type.Equals("string", StringComparison.Ordinal) && (value == null || (value != null && string.IsNullOrEmpty(value.ToString()))))
+                if (type.Equals("string", StringComparison.Ordinal) && (value is null || (value != null && string.IsNullOrEmpty(value.ToString()))))
                 {
                     storage[name][Key.Value] = string.Empty;
                 }
@@ -138,7 +138,7 @@ namespace TeslaLogger
                         car.DriveFinished();
                     }
                     // car was used, eg. door opened/closed
-                    if (oldvalue != null && newvalue != null && oldvalue != newvalue)
+                    if (oldvalue is not null && newvalue is not null && oldvalue != newvalue)
                     {
                         car.SetLastCarUsed(DateTime.Now);
                     }
@@ -152,7 +152,7 @@ namespace TeslaLogger
                 case "ft":
                 case "rt":
                     // car was used, eg. door opened/closed
-                    if (oldvalue != null && newvalue != null && oldvalue != newvalue)
+                    if (oldvalue is not null && newvalue is not null && oldvalue != newvalue)
                     {
                         car.SetLastCarUsed(DateTime.Now);
                         car.CurrentJSON.CreateCurrentJSON();
@@ -164,7 +164,7 @@ namespace TeslaLogger
                     if (oldvalue.Equals("Charging") && newvalue.Equals("Complete"))
                     {
                         Address addr = Geofence.GetInstance().GetPOI(car.CurrentJSON.Latitude, car.CurrentJSON.Longitude, false);
-                        if (addr != null && addr.specialFlags != null && addr.specialFlags.Count > 0) {
+                        if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0) {
                             foreach (KeyValuePair<Address.SpecialFlags, string> flag in addr.specialFlags)
                             {
                                 switch (flag.Key)
@@ -284,7 +284,7 @@ namespace TeslaLogger
                 {
                     if (storage.ContainsKey(name) && storage[name].ContainsKey(Key.Type) && storage[name].ContainsKey(Key.Value))
                     {
-                        if (storage[name][Key.Type].Equals("bool") && storage[name][Key.Value] != null)
+                        if (storage[name][Key.Type].Equals("bool") && storage[name][Key.Value] is not null)
                         {
                             if (maxage != 0)
                             {
@@ -322,7 +322,7 @@ namespace TeslaLogger
                 {
                     if (storage.ContainsKey(name) && storage[name].ContainsKey(Key.Type) && storage[name].ContainsKey(Key.Value))
                     {
-                        if (storage[name][Key.Type].Equals("int") && storage[name][Key.Value] != null)
+                        if (storage[name][Key.Type].Equals("int") && storage[name][Key.Value] is not null)
                         {
                             if (maxage != 0)
                             {
@@ -360,7 +360,7 @@ namespace TeslaLogger
                 {
                     if (storage.ContainsKey(name) && storage[name].ContainsKey(Key.Type) && storage[name].ContainsKey(Key.Value))
                     {
-                        if (storage[name][Key.Type].Equals("double") && storage[name][Key.Value] != null)
+                        if (storage[name][Key.Type].Equals("double") && storage[name][Key.Value] is not null)
                         {
                             if (maxage != 0)
                             {
@@ -398,7 +398,7 @@ namespace TeslaLogger
                 {
                     if (storage.ContainsKey(name) && storage[name].ContainsKey(Key.Type) && storage[name].ContainsKey(Key.Value))
                     {
-                        if (storage[name][Key.Type].Equals("string") && storage[name][Key.Value] != null)
+                        if (storage[name][Key.Type].Equals("string") && storage[name][Key.Value] is not null)
                         {
                             if (maxage != 0)
                             {
@@ -529,12 +529,12 @@ namespace TeslaLogger
             {
                 dynamic jsonResult = JsonConvert.DeserializeObject(_JSON);
                 dynamic r1 = jsonResult["response"];
-                if (r1 == null)
+                if (r1 is null)
                     return false;
 
                 dynamic r3 = SearchCarDictionary(r1);
 
-                if (r3 == null)
+                if (r3 is null)
                     return false;
 
                 Dictionary<string, object> r4 = r3.ToObject<Dictionary<string, object>>();
@@ -1366,7 +1366,7 @@ namespace TeslaLogger
                         return;
                 }
 
-                if (r2.ContainsKey("tpms_pressure_"+Prefix) && r2.ContainsKey("tpms_last_seen_pressure_time_" + Prefix) && r2["tpms_last_seen_pressure_time_" + Prefix] != null && r2["tpms_pressure_"+Prefix] != null)
+                if (r2.ContainsKey("tpms_pressure_"+Prefix) && r2.ContainsKey("tpms_last_seen_pressure_time_" + Prefix) && r2["tpms_last_seen_pressure_time_" + Prefix] is not null && r2["tpms_pressure_"+Prefix] is not null)
                 {
                     double pressure = (double)r2["tpms_pressure_"+Prefix];
                     DateTime dtPressure = DBHelper.UnixToDateTime((long)r2["tpms_last_seen_pressure_time_"+Prefix] * 1000);
@@ -1391,11 +1391,11 @@ namespace TeslaLogger
              *   "version":"2020.36.3.1"
              *  }
              */
-            if (software_update != null
+            if (software_update is not null
                 && software_update is JObject jo)
             {
                 Dictionary<string, object> dictionary = jo.ToObject<Dictionary<string, object>>();
-                if (dictionary != null)
+                if (dictionary is not null)
                 {
                     foreach (string key in dictionary.Keys)
                     {
@@ -1589,7 +1589,7 @@ namespace TeslaLogger
             string str = string.Empty;
             foreach (string key in storage.Keys)
             {
-                if (compareTs && storage[key][Key.Timestamp] != null
+                if (compareTs && storage[key][Key.Timestamp] is not null
                     && long.TryParse(storage[key][Key.Timestamp].ToString(), out long ts) && ts != 0
                     && long.TryParse(storage[key][Key.ValueLastUpdate].ToString(), out long vlu) && vlu != 0)
                 {
@@ -1620,7 +1620,7 @@ namespace TeslaLogger
 
         private void UpdateCurrentJson(string name, object value)
         {
-            if(car?.CurrentJSON == null || value == null)
+            if(car?.CurrentJSON is null || value is null)
             {
                 return;
             }

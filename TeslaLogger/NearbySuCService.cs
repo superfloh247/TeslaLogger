@@ -29,7 +29,7 @@ namespace TeslaLogger
 
         public static NearbySuCService GetSingleton()
         {
-            if (_NearbySuCService == null)
+            if (_NearbySuCService is null)
             {
                 _NearbySuCService = new NearbySuCService();
             }
@@ -122,7 +122,7 @@ namespace TeslaLogger
                     try
                     {
                         result = car.webhelper.GetNearbyChargingSitesOwnerAPI();
-                        if (result == null || result == "NULL")
+                        if (result is null || result == "NULL")
                         {
                             continue;
                         }
@@ -144,20 +144,20 @@ namespace TeslaLogger
                         }
 
                         dynamic jsonResult = JsonConvert.DeserializeObject(result);
-                        if (jsonResult == null)
+                        if (jsonResult is null)
                         {
                             continue;
                         }
 
                         dynamic response = jsonResult["response"];
-                        if (response == null)
+                        if (response is null)
                         {
                             Tools.DebugLog(new Tools.JsonFormatter(result).Format());
                             continue;
                         }
 
                         dynamic superchargers = response["superchargers"];
-                        if (superchargers == null)
+                        if (superchargers is null)
                         {
                             Tools.DebugLog(new Tools.JsonFormatter(result).Format());
                             continue;
@@ -529,7 +529,7 @@ VALUES(
                         try
                         {
                             dynamic j = JsonConvert.DeserializeObject(content);
-                        if (j?["data"] == null || j["errors"] != null)
+                        if (j?["data"] is null || j["errors"] != null)
                         {
                             Tools.DebugLog($"Unexpected GuestAPI response: {content}");
                             return a;
@@ -619,7 +619,7 @@ VALUES(
                     try
                     {
                         dynamic j = JsonConvert.DeserializeObject(r);
-                    if (j?["data"] == null || j["errors"] != null)
+                    if (j?["data"] is null || j["errors"] != null)
                     {
                         Tools.DebugLog($"Unexpected GuestAPI response: {r}");
                         return a;
@@ -708,7 +708,7 @@ VALUES(
         static HttpClient _teslaGuestHttpClient;
         static HttpClient TeslaGuestHttpClient()
         {
-            if (_teslaGuestHttpClient == null)
+            if (_teslaGuestHttpClient is null)
             {
                 var ch = new HttpClientHandler
                 {
