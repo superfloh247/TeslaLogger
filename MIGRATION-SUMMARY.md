@@ -6,6 +6,13 @@
 **Duration**: March 8-14, 2026 (7 days)  
 **Status**: ✅ **100% COMPLETE & FULLY TESTED**
 
+### Target Platform Requirements
+- **Device**: Raspberry Pi 3B
+- **.NET Runtime**: .NET 8
+- **Architecture**: ARM32 (ARMv7)
+- **Constraints**: ~1GB RAM, limited CPU, slow SD card storage
+- **Key Implication**: All modernizations prioritize performance optimization (async patterns, batching, memory-efficient LINQ operations)
+
 ---
 
 ## Executive Summary
