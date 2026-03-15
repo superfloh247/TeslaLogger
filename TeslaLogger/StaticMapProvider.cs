@@ -85,6 +85,7 @@ namespace TeslaLogger
 
         public abstract bool UseIt();
 
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         public static void SaveImage(Bitmap image, string filename)
         {
             if (image != null)

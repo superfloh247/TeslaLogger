@@ -14,6 +14,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -2217,7 +2218,11 @@ WHERE
                 {
                     if (File.Exists(path) && overwrite)
                     {
-                        File.Decrypt(path);
+                        // File.Decrypt is Windows-only
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            File.Decrypt(path);
+                        }
                     }
                     FileInfo fileInfo = new FileInfo(path);
                     HttpResponseMessage response = await httpClient.GetAsync(uri).ConfigureAwait(false);
