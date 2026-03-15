@@ -26,6 +26,7 @@ namespace TeslaLogger
         {
             this.host = host;
             this.paramater = paramater;
+            guid = Guid.NewGuid();
 
             if (client is null)
             {

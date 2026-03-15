@@ -25,7 +25,9 @@ namespace TeslaLogger
         private readonly SortedDictionary<string, Dictionary<Key, object>> storage = new SortedDictionary<string, Dictionary<Key, object>>();
         private readonly HashSet<string> unknownKeys = new();
         private readonly Car car;
+        #pragma warning disable CS0169 // Field never used
         private readonly MQTT? mqtt;
+        #pragma warning restore CS0169
         private bool dumpJSON;
         private readonly System.Threading.SemaphoreSlim TeslaAPIStateLock = new System.Threading.SemaphoreSlim(1, 1);
 

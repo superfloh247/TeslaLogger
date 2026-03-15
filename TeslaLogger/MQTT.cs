@@ -814,7 +814,9 @@ namespace TeslaLogger
 
         public bool IsConnected => _client?.IsConnected ?? false;
 
+        #pragma warning disable CS0067 // Event never used
         public event MqttMsgPublishEventHandler MqttMsgPublishReceived;
+        #pragma warning restore CS0067
 
         public static IMqttClient CreateClient(string brokerHostName, int brokerPort, bool secure, X509Certificate caCert, X509Certificate clientCert, MqttSslProtocols sslProtocol)
         {

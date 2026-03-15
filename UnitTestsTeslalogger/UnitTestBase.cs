@@ -1509,7 +1509,7 @@ namespace UnitTestsTeslalogger
                 string decryptedWrong = StringCipher.Decrypt(encrypted, wrongPass);
                 Assert.Fail("Should throw an exception");
             }
-            catch (CryptographicException ex)
+            catch (CryptographicException)
             {
                 expectedExceptionCatched = true;
                 System.Diagnostics.Debug.WriteLine("Expected CryptographicException catched");

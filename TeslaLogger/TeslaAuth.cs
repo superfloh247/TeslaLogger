@@ -15,7 +15,9 @@ namespace TeslaLogger;
 
 public class TeslaAuth
 {
+    #pragma warning disable CS0414 // Field assigned but never used
     readonly string UserAgent = "TLV1";
+    #pragma warning restore CS0414
     readonly HttpClient client;
     readonly LoginInfo loginInfo;
     // use Random.Shared from .NET 6+ for thread-safe random

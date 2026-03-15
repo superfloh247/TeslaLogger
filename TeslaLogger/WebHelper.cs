@@ -91,7 +91,9 @@ namespace TeslaLogger
         internal ConcurrentDictionary<string, string> TeslaAPI_Commands = new ConcurrentDictionary<string, string>();
         internal Car car;
 
+        #pragma warning disable CS0169 // Field never used
         bool getTokenDebugVerbose; // defaults to false, only needed for debugging
+        #pragma warning restore CS0169
         private double last_latitude_streaming = double.NaN;
         private double last_longitude_streaming = double.NaN;
         private decimal last_power_streaming = 0;
@@ -5068,12 +5070,12 @@ WHERE
             }
         }
 
-        public static bool CheckJWT(string jwt, out bool vehicle_location, out bool offline_access)
+        public static bool CheckJWT(string? jwt, out bool vehicle_location, out bool offline_access)
         {
             vehicle_location = false;
             offline_access = false;
 
-            if (jwt == "NULL")
+            if (jwt is null || jwt == "NULL")
                 return false;
 
             try

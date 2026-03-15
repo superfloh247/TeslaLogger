@@ -18,6 +18,8 @@ namespace TeslaLogger
 
         public ElectricityMeterOpenWB(string host, string parameter)
         {
+            guid = Guid.NewGuid();
+
             if (client is null)
             {
                 client = new WebClient();

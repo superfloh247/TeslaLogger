@@ -13,7 +13,9 @@ namespace UnitTestsTeslalogger
     public class UnitTestGeocodeMapQuest
     {
         Car c = null;
+#pragma warning disable CS0169 // Field never used
         Geofence geofence;
+#pragma warning restore CS0169
 
         [TestInitialize]
         public void TestInitialize()
