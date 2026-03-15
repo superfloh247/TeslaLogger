@@ -3659,9 +3659,11 @@ namespace TeslaLogger
             using (SqlConnection con = new SqlConnection(DBHelper.DBConnectionstring))
             {
                 con.Open();
+#pragma warning disable CS0618 // Type or member is obsolete
                 using (SqlCommand cmd = new SqlCommand("Select lat, lng, id from pos where address = ''", con))
                 {
                     SqlDataReader dr = cmd.ExecuteReader();
+#pragma warning restore CS0618
                     while (dr.Read())
                     {
                         Task.Delay(10000).GetAwaiter().GetResult(); // Sleep to not get banned by Nominatim !
@@ -3732,6 +3734,7 @@ namespace TeslaLogger
                         Task.Delay(10000).GetAwaiter().GetResult(); // Sleep to not get banned by Nominatim !
                         try
                         {
+#pragma warning disable CS8602 // Dereference of possibly null reference
                             if (!(dr["Start_address"] != DBNull.Value && dr["Start_address"].ToString().Length > 0))
                             {
                                 int id = (int)dr["PosStartId"];
@@ -3749,6 +3752,7 @@ namespace TeslaLogger
                             }
 
                             if (!(dr["End_address"] != DBNull.Value && dr["End_address"].ToString().Length > 0))
+#pragma warning restore CS8602
                             {
                                 int id = (int)dr["PosEndId"];
                                 double lat = (double)dr["PosEndtLat"];
