@@ -43,8 +43,8 @@ namespace TeslaLogger
 
     public class MqttMsgPublishEventArgs : EventArgs
     {
-        public string Topic { get; set; }
-        public byte[] Message { get; set; }
+        public string? Topic { get; set; }
+        public byte[]? Message { get; set; }
         public byte QosLevel { get; set; }
         public bool Retain { get; set; }
     }
@@ -69,23 +69,23 @@ namespace TeslaLogger
     {
         private static MQTT _Mqtt;
 
-        private string clientid;
-        private string host;
+        private string? clientid;
+        private string? host;
         private int port = 1883;
         private string topic = "teslalogger";
         private bool singletopics;
         private bool publishJson;
         private bool discoveryEnable;
         private string discoverytopic = "homeassistant";
-        private string user;
-        private string password;
+        private string? user;
+        private string? password;
         private static int httpport = 5000;
         private static int heartbeatCounter;
         private static bool connecting;
 
-        private IMqttClient client;
+        private IMqttClient? client;
 
-        System.Collections.Generic.HashSet<string> allCars;
+        System.Collections.Generic.HashSet<string> allCars = new();
         System.Collections.Generic.Dictionary<int, string> lastjson = new();
 
         private MQTT()
