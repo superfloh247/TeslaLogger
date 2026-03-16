@@ -1114,13 +1114,11 @@ namespace TeslaLogger
                     return lastCharging_State == "Charging";
                 }
 
-                string charging_state = charge_state["charging_state"].ToString();
-                _ = long.TryParse(charge_state["timestamp"].ToString(), out long ts);
+                string charging_state = charge_state["charging_state"]?.ToString() ?? "";
+                _ = long.TryParse(charge_state["timestamp"]?.ToString(), out long ts);
 
-
-                decimal battery_range = (decimal)charge_state["battery_range"];
-
-                decimal ideal_battery_range = (decimal)charge_state["ideal_battery_range"];
+                decimal battery_range = (decimal)(charge_state["battery_range"] ?? 0);
+                decimal ideal_battery_range = (decimal)(charge_state["ideal_battery_range"] ?? 0);
                 if (ideal_battery_range == 999)
                 {
                     ideal_battery_range = battery_range;
@@ -1128,98 +1126,71 @@ namespace TeslaLogger
 
                 car.CurrentJSON.current_ideal_battery_range_km = Math.Round((double)ideal_battery_range * 1.609344, 1);
 
-                string battery_level = charge_state["battery_level"].ToString();
-                if (battery_level is not null && Convert.ToDouble(battery_level) != car.CurrentJSON.current_battery_level)
+                string battery_level = charge_state["battery_level"]?.ToString() ?? "0";
+                if (double.TryParse(battery_level, Tools.ciEnUS, out double battery_level_double) &&
+                    battery_level_double != car.CurrentJSON.current_battery_level)
                 {
-                    car.CurrentJSON.current_battery_level = Convert.ToDouble(battery_level);
+                    car.CurrentJSON.current_battery_level = battery_level_double;
                     car.CurrentJSON.CreateCurrentJSON();
                 }
-                string charger_power = "";
-                if (charge_state["charger_power"] is not null)
+
+                string charger_power = charge_state["charger_power"]?.ToString() ?? "";
+                string charge_energy_added = charge_state["charge_energy_added"]?.ToString() ?? "";
+
+                string charger_voltage = charge_state["charger_voltage"]?.ToString() ?? "";
+                string charger_phases = charge_state["charger_phases"]?.ToString() ?? "";
+                string charger_actual_current = charge_state["charger_actual_current"]?.ToString() ?? "";
+                string charge_current_request = charge_state["charge_current_request"]?.ToString() ?? "";
+                string charger_pilot_current = charge_state["charger_pilot_current"]?.ToString() ?? "";
+
+                fast_charger_brand = charge_state["fast_charger_brand"] is not null ? 
+                    charge_state["fast_charger_brand"].ToString() : fast_charger_brand;
+
+                fast_charger_type = charge_state["fast_charger_type"] is not null ? 
+                    charge_state["fast_charger_type"].ToString() : fast_charger_type;
+
+                conn_charge_cable = charge_state["conn_charge_cable"] is not null ? 
+                    charge_state["conn_charge_cable"].ToString() : conn_charge_cable;
+
+                bool fcp = fast_charger_present;
+                if (charge_state["fast_charger_present"] is not null &&
+                    bool.TryParse(charge_state["fast_charger_present"]!.ToString(), out fcp))
                 {
-                    charger_power = charge_state["charger_power"].ToString();
+                    fast_charger_present = fcp;
                 }
 
-                string charge_energy_added = charge_state["charge_energy_added"].ToString();
-
-                string charger_voltage = "";
-                string charger_phases = "";
-                string charger_actual_current = "";
-                string charge_current_request = "";
-                string charger_pilot_current = "";
-
-                if (charge_state["charger_voltage"] is not null)
+                double chargeRate = 0;
+                if (charge_state["charge_rate"] is not null &&
+                    double.TryParse(charge_state["charge_rate"]!.ToString(), Tools.ciEnUS, out chargeRate))
                 {
-                    charger_voltage = charge_state["charger_voltage"].ToString();
+                    car.CurrentJSON.current_charge_rate_km = chargeRate * 1.609344;
                 }
 
-                if (charge_state["charger_phases"] is not null)
+                int chargeLimitSoc = car.CurrentJSON.charge_limit_soc;
+                if (charge_state["charge_limit_soc"] is not null &&
+                    int.TryParse(charge_state["charge_limit_soc"]!.ToString(), out chargeLimitSoc))
                 {
-                    charger_phases = charge_state["charger_phases"].ToString();
-                }
-
-                if (charge_state["charger_actual_current"] is not null)
-                {
-                    charger_actual_current = charge_state["charger_actual_current"].ToString();
-                }
-
-                if (charge_state["charge_current_request"] is not null)
-                {
-                    charge_current_request = charge_state["charge_current_request"].ToString();
-                }
-
-                if (charge_state["charger_pilot_current"] is not null)
-                {
-                    charger_pilot_current = charge_state["charger_pilot_current"].ToString();
-                }
-
-                if (charge_state["fast_charger_brand"] is not null)
-                {
-                    fast_charger_brand = charge_state["fast_charger_brand"].ToString();
-                }
-
-                if (charge_state["fast_charger_type"] is not null)
-                {
-                    fast_charger_type = charge_state["fast_charger_type"].ToString();
-                }
-
-                if (charge_state["conn_charge_cable"] is not null)
-                {
-                    conn_charge_cable = charge_state["conn_charge_cable"].ToString();
-                }
-
-                if (charge_state["fast_charger_present"] is not null)
-                {
-                    fast_charger_present = bool.Parse(charge_state["fast_charger_present"].ToString());
-                }
-
-                if (charge_state["charge_rate"] is not null)
-                {
-                    car.CurrentJSON.current_charge_rate_km = Convert.ToDouble(charge_state["charge_rate"]) * 1.609344;
-                }
-
-                if (charge_state["charge_limit_soc"] is not null)
-                {
-                    if (car.CurrentJSON.charge_limit_soc != Convert.ToInt32(charge_state["charge_limit_soc"]))
+                    if (car.CurrentJSON.charge_limit_soc != chargeLimitSoc)
                     {
-                        car.CurrentJSON.charge_limit_soc = Convert.ToInt32(charge_state["charge_limit_soc"]);
+                        car.CurrentJSON.charge_limit_soc = chargeLimitSoc;
                         car.CurrentJSON.CreateCurrentJSON();
                     }
                 }
 
-                if (charge_state["time_to_full_charge"] is not null)
+                double timeToFull = car.CurrentJSON.current_time_to_full_charge;
+                if (charge_state["time_to_full_charge"] is not null &&
+                    double.TryParse(charge_state["time_to_full_charge"]!.ToString(), Tools.ciEnUS, out timeToFull))
                 {
-                    if (car.CurrentJSON.current_time_to_full_charge != Convert.ToDouble(charge_state["time_to_full_charge"], Tools.ciEnUS))
+                    if (car.CurrentJSON.current_time_to_full_charge != timeToFull)
                     {
-                        car.CurrentJSON.current_time_to_full_charge = Convert.ToDouble(charge_state["time_to_full_charge"], Tools.ciEnUS);
+                        car.CurrentJSON.current_time_to_full_charge = timeToFull;
                         car.CurrentJSON.CreateCurrentJSON();
                     }
                 }
 
                 double power = 0;
-                if (Double.TryParse(charger_power, out power))
+                if (double.TryParse(charger_power, Tools.ciEnUS, out power))
                     power *= -1;
-
 
                 if (justCheck)
                 {
@@ -1228,7 +1199,7 @@ namespace TeslaLogger
                         string dtTimestamp = "?";
                         try
                         {
-                            dtTimestamp = DBHelper.UnixToDateTime(long.Parse(ts.ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            dtTimestamp = DBHelper.UnixToDateTime(ts).ToString("yyyy-MM-dd HH:mm:ss");
                         }
                         catch (Exception)
                         { }
@@ -1238,7 +1209,7 @@ namespace TeslaLogger
                         {
                             car.DbHelper.InsertCharging(ts.ToString(), battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, (double)battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp.Result, car.IsHighFrequenceLoggingEnabled(true), charger_pilot_current, charge_current_request);
                         }
-                        return double.TryParse(charger_power, out double dPowerkW) && dPowerkW >= 1.0;
+                        return double.TryParse(charger_power, Tools.ciEnUS, out double dPowerkW) && dPowerkW >= 1.0;
                     }
                     else
                     {
