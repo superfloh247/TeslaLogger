@@ -23,6 +23,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using static TeslaLogger.Car;
+using static TeslaLogger.NullSafetyHelpers;
 
 #nullable enable
 
@@ -3147,9 +3148,11 @@ namespace TeslaLogger
                                 resultContent = resultContent.Trim('\0');
                                 // System.Diagnostics.Debug.WriteLine("Stream: " + resultContent);
 
-                                dynamic j = JsonConvert.DeserializeObject(resultContent);
+                                JObject? j = SafeJObject(resultContent);
+                                if (j == null)
+                                    break;
 
-                                string msg_type = j["msg_type"];
+                                string msg_type = j.GetSafeString("msg_type", "");
 
                                 switch (msg_type)
                                 {
@@ -3157,7 +3160,7 @@ namespace TeslaLogger
                                         // car.Log("Stream Hello");
                                         break;
                                     case "data:error":
-                                        string error_type = j["error_type"];
+                                        string error_type = j.GetSafeString("error_type", "");
 
                                         if (error_type == "vehicle_disconnected")
                                         {
@@ -3165,7 +3168,7 @@ namespace TeslaLogger
                                         }
                                         else if (error_type == "vehicle_error")
                                         {
-                                            string v = j["value"];
+                                            string v = j.GetSafeString("value", "");
                                             if (v == "Vehicle is offline")
                                             {
                                                 throw new Exception("Vehicle is offline");
@@ -3178,7 +3181,7 @@ namespace TeslaLogger
                                         }
                                         else if (error_type == "client_error")
                                         {
-                                            string v = j["value"];
+                                            string v = j.GetSafeString("value", "");
                                             if (v.Contains("Can't validate token"))
                                             {
                                                 Tools.DebugLog($"StreamingAPI: {v}");
@@ -3232,7 +3235,7 @@ namespace TeslaLogger
                                         }
                                         break;
                                     case "data:update":
-                                        string value = j["value"];
+                                        string value = j.GetSafeString("value", "");
                                         StreamDataUpdate(value);
                                         break;
                                     default:
@@ -3728,15 +3731,18 @@ namespace TeslaLogger
                     resultContent = await webClient.DownloadStringTaskAsync(new Uri(url));
                     _ = DBHelper.AddMothershipDataToDBAsync("ReverseGeocoding", start, 0, 0);
 
-                    dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
+                    JObject? jsonResult = SafeJObject(resultContent);
+                    if (jsonResult == null)
+                        return "";
 
-                    dynamic r2 = jsonResult["address"];
+                    JObject? r2 = jsonResult["address"] as JObject;
+                    if (r2 == null)
+                        return "";
 
-                    string country_code = "";
+                    string country_code = r2.GetSafeString("country_code", "");
 
-                    if (r2.ContainsKey("country_code"))
+                    if (!string.IsNullOrEmpty(country_code))
                     {
-                        country_code = r2["country_code"].ToString();
                         return country_code;
                     }
                 }
@@ -4316,24 +4322,36 @@ WHERE
                 }
 
                 Tools.SetThreadEnUS();
-                dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                dynamic climate_state = jsonResult["response"]["climate_state"];
-                _ = long.TryParse(climate_state["timestamp"].ToString(), out long ts);
+                JObject? jsonResult = SafeJObject(resultContent);
+                if (jsonResult == null)
+                    return null;
+
+                JObject? response = jsonResult["response"] as JObject;
+                if (response == null)
+                    return null;
+
+                JObject? climate_state = response["climate_state"] as JObject;
+                if (climate_state == null)
+                    return null;
+
+                _ = long.TryParse(climate_state.GetSafeString("timestamp", "0"), out long ts);
                 try
                 {
                     decimal? inside_temp = null;
-                    if (climate_state["inside_temp"] is not null)
+                    string inside_temp_str = climate_state.GetSafeString("inside_temp", "");
+                    if (!string.IsNullOrEmpty(inside_temp_str) && decimal.TryParse(inside_temp_str, out decimal it))
                     {
-                        inside_temp = (decimal)climate_state["inside_temp"];
+                        inside_temp = it;
                         car.CurrentJSON.current_inside_temperature = (double)inside_temp;
                     }
                 }
                 catch (Exception) { }
 
                 decimal? outside_temp = null;
-                if (climate_state["outside_temp"] is not null)
+                string outside_temp_str = climate_state.GetSafeString("outside_temp", "");
+                if (!string.IsNullOrEmpty(outside_temp_str) && decimal.TryParse(outside_temp_str, out decimal ot))
                 {
-                    outside_temp = (decimal)climate_state["outside_temp"];
+                    outside_temp = ot;
                     car.CurrentJSON.current_outside_temperature = (double)outside_temp;
                 }
                 else
@@ -4344,9 +4362,10 @@ WHERE
                 try
                 {
                     bool? battery_heater = null;
-                    if (climate_state["battery_heater"] is not null)
+                    string battery_heater_str = climate_state.GetSafeString("battery_heater", "");
+                    if (!string.IsNullOrEmpty(battery_heater_str) && bool.TryParse(battery_heater_str, out bool bh))
                     {
-                        battery_heater = (bool)climate_state["battery_heater"];
+                        battery_heater = bh;
                         if (car.CurrentJSON.current_battery_heater != battery_heater)
                         {
                             car.CurrentJSON.current_battery_heater = (bool)battery_heater;
@@ -4364,7 +4383,8 @@ WHERE
                 catch (Exception) { }
 
 
-                bool preconditioning = climate_state["is_preconditioning"] is not null && (bool)climate_state["is_preconditioning"];
+                string preconditioning_str = climate_state.GetSafeString("is_preconditioning", "false");
+                bool preconditioning = !string.IsNullOrEmpty(preconditioning_str) && bool.Parse(preconditioning_str);
                 if (preconditioning != car.CurrentJSON.current_is_preconditioning)
                 {
                     car.CurrentJSON.current_is_preconditioning = preconditioning;
@@ -5439,8 +5459,8 @@ WHERE
                         else
                         {
                             //Logfile.Log($"SuperchargeBingo: Checkin not OK, response: {response}");
-                            dynamic jsonResult = JsonConvert.DeserializeObject(response);
-                            dynamic message = jsonResult["message"];
+                            JObject? jsonResult = SafeJObject(response);
+                            string message = jsonResult?.GetSafeString("message", "") ?? "";
                             Logfile.Log($"SuperchargeBingo: Checkin Error: {message}");
                             Tools.DebugLog($"SuperchargeBingo error {json}");
                         }
@@ -5502,10 +5522,20 @@ WHERE
                                 return null;
                             }
 
-                            dynamic jsonResult = JsonConvert.DeserializeObject(result);
-                            dynamic response = jsonResult["response"];
-                            JArray key_paired_vins = response["key_paired_vins"];
-                            var kpv = key_paired_vins.Any(t => t.Value<String>() == car.Vin);
+                            JObject? jsonResult = SafeJObject(result);
+                            if (jsonResult == null)
+                                return null;
+
+                            JObject? response = jsonResult["response"] as JObject;
+                            if (response == null)
+                                return null;
+
+                            JToken? kpv_token = response["key_paired_vins"];
+                            if (kpv_token?.Type != JTokenType.Array)
+                                return null;
+
+                            JArray? key_paired_vins = kpv_token as JArray;
+                            var kpv = key_paired_vins?.Any(t => t.Value<String>() == car.Vin) ?? false;
 
                             if (kpv)
                             {
@@ -5514,8 +5544,12 @@ WHERE
                                 return true;
                             }
 
-                            JArray unpaired_vins = response["unpaired_vins"];
-                            var upv = unpaired_vins.Any(t => t.Value<String>() == car.Vin);
+                            JToken? upv_token = response["unpaired_vins"];
+                            if (upv_token?.Type != JTokenType.Array)
+                                return null;
+
+                            JArray? unpaired_vins = upv_token as JArray;
+                            var upv = unpaired_vins?.Any(t => t.Value<String>() == car.Vin) ?? false;
 
                             if (upv)
                             {
