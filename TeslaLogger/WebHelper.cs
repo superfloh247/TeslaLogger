@@ -757,8 +757,9 @@ namespace TeslaLogger
 
                             try
                             {
-                                dynamic j2 = JsonConvert.DeserializeObject(result);
-                                error = j2["error"];
+                                JObject? j2 = NullSafetyHelpers.SafeJObject(result);
+                                if (j2 != null)
+                                    error = j2.GetSafeString("error", result);
                             }
                             catch (Exception)
                             { }
@@ -771,15 +772,22 @@ namespace TeslaLogger
                             return "";
                         }
 
-                        dynamic jsonResult = JsonConvert.DeserializeObject(result);
-                        if (jsonResult.ContainsKey("expires_in"))
+                        JObject? jsonResult = NullSafetyHelpers.SafeJObject(result);
+                        if (jsonResult == null)
                         {
-                            var t = DateTime.UtcNow.AddSeconds((int)(jsonResult["expires_in"])).AddHours(-2);
+                            car.Log("Failed to parse token response");
+                            return "";
+                        }
+
+                        int expiresIn = jsonResult.GetSafeInt("expires_in", 0);
+                        if (expiresIn > 0)
+                        {
+                            var t = DateTime.UtcNow.AddSeconds(expiresIn).AddHours(-2);
                             if (t > DateTime.UtcNow.AddHours(1))
                                 nextTeslaTokenFromRefreshToken = t;
                             else
                             {
-                                t = DateTime.UtcNow.AddSeconds((int)(jsonResult["expires_in"]));
+                                t = DateTime.UtcNow.AddSeconds(expiresIn);
                                 nextTeslaTokenFromRefreshToken = t;
                             }
 
@@ -796,9 +804,15 @@ namespace TeslaLogger
                             _ = MemoryCache.Default.Add("RefreshToken_" + car.CarInDB+ $"_{Environment.TickCount}", policy, policy);
                             */
                         }
-                        string access_token = jsonResult["access_token"];
+                        
+                        string access_token = jsonResult.GetSafeString("access_token", "");
+                        if (string.IsNullOrEmpty(access_token))
+                        {
+                            car.Log("No access_token in response");
+                            return "";
+                        }
 
-                        string new_refresh_token = jsonResult["refresh_token"];
+                        string new_refresh_token = jsonResult.GetSafeString("refresh_token", "");
                         CheckNewRefreshToken(refresh_token, new_refresh_token);
 
                         SetNewAccessToken(access_token);
@@ -886,8 +900,9 @@ namespace TeslaLogger
 
                             try
                             {
-                                dynamic j2 = JsonConvert.DeserializeObject(result);
-                                error = j2["error"];
+                                JObject? j2 = NullSafetyHelpers.SafeJObject(result);
+                                if (j2 != null)
+                                    error = j2.GetSafeString("error", result);
                             }
                             catch (Exception)
                             { }
@@ -900,15 +915,22 @@ namespace TeslaLogger
                             return "";
                         }
 
-                        dynamic jsonResult = JsonConvert.DeserializeObject(result);
-                        if (jsonResult.ContainsKey("expires_in"))
+                        JObject? jsonResult = NullSafetyHelpers.SafeJObject(result);
+                        if (jsonResult == null)
                         {
-                            var t = DateTime.UtcNow.AddSeconds((int)(jsonResult["expires_in"])).AddHours(-2);
+                            car.Log("Failed to parse token response");
+                            return "";
+                        }
+
+                        int expiresIn = jsonResult.GetSafeInt("expires_in", 0);
+                        if (expiresIn > 0)
+                        {
+                            var t = DateTime.UtcNow.AddSeconds(expiresIn).AddHours(-2);
                             if (t > DateTime.UtcNow.AddHours(1))
                                 nextTeslaTokenFromRefreshToken = t;
                             else
                             {
-                                t = DateTime.UtcNow.AddSeconds((int)(jsonResult["expires_in"]));
+                                t = DateTime.UtcNow.AddSeconds(expiresIn);
                                 nextTeslaTokenFromRefreshToken = t;
                             }
 
@@ -916,7 +938,7 @@ namespace TeslaLogger
 
                             /*
                             CacheItemPolicy policy = new CacheItemPolicy();
-                            policy.AbsoluteExpiration = DateTime.Now.AddSeconds((int)(jsonResult["expires_in"])).AddMinutes(-5);
+                            policy.AbsoluteExpiration = DateTime.Now.AddSeconds(expiresIn).AddMinutes(-5);
                             policy.RemovedCallback = new CacheEntryRemovedCallback((CacheEntryRemovedArguments _) =>
                             {
                                 Tools.DebugLog($"#{car.CarInDB}: access token will expire in 5 minutes");
@@ -925,9 +947,15 @@ namespace TeslaLogger
                             _ = MemoryCache.Default.Add("RefreshToken_" + car.CarInDB+ $"_{Environment.TickCount}", policy, policy);
                             */
                         }
-                        string access_token = jsonResult["access_token"];
+                        
+                        string access_token = jsonResult.GetSafeString("access_token", "");
+                        if (string.IsNullOrEmpty(access_token))
+                        {
+                            car.Log("No access_token in response");
+                            return "";
+                        }
 
-                        string new_refresh_token = jsonResult["refresh_token"];
+                        string new_refresh_token = jsonResult.GetSafeString("refresh_token", "");
                         CheckNewRefreshToken(refresh_token, new_refresh_token);
 
                         SetNewAccessToken(access_token);
