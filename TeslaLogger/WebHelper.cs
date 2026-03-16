@@ -646,9 +646,21 @@ namespace TeslaLogger
                             return "";
                         }
 
-                        dynamic j = JsonConvert.DeserializeObject(result);
-                        dynamic r = j["response"];
-                        String fleeturl = r["fleet_api_base_url"];
+                        JObject? j = NullSafetyHelpers.SafeJObject(result);
+                        if (j == null)
+                        {
+                            car.CreateExeptionlessLog("GetRegion", "Failed to parse JSON", LogLevel.Fatal).AddObject(result, "ResultContent").Submit();
+                            return "";
+                        }
+
+                        JObject? responseObj = j["response"] as JObject;
+                        if (responseObj == null)
+                        {
+                            car.CreateExeptionlessLog("GetRegion", "no response object", LogLevel.Fatal).AddObject(result, "ResultContent").Submit();
+                            return "";
+                        }
+
+                        string fleeturl = responseObj.GetSafeString("fleet_api_base_url", "");
                         if (fleeturl.StartsWith("https:", StringComparison.InvariantCultureIgnoreCase))
                         {
                             if (!fleeturl.EndsWith("/"))
