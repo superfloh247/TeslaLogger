@@ -208,16 +208,16 @@ public class TeslaAuth
 
     internal record LoginInfo
     {
-        public string CodeVerifier { get; init; }
-        public string CodeChallenge { get; set; }
-        public string State { get; init; }
+        public string? CodeVerifier { get; init; }
+        public string? CodeChallenge { get; set; }
+        public string? State { get; init; }
         public Dictionary<string, string> FormFields { get; init; } = new();
     }
 
     public record Tokens
     {
-        public string AccessToken { get; init; }
-        public string RefreshToken { get; init; }
+        public string? AccessToken { get; init; }
+        public string? RefreshToken { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
         public TimeSpan ExpiresIn { get; init; }
         public string TokenType { get; init; }

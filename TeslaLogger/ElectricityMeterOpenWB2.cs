@@ -12,20 +12,20 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     class ElectricityMeterOpenWB2 : ElectricityMeterBase
     {
-        string host;
-        string parameter;
-        string chargepointid;
-        string gridmeterid;
-        internal string api_state;
+        string? host;
+        string? parameter;
+        string? chargepointid;
+        string? gridmeterid;
+        internal string? api_state;
 
-        internal string mockup_version;
-        internal string mockup_charge_state;
-        internal string mockup_charge_point;
-        internal string mockup_grid;
-        internal string mockup_hierarchy;
+        internal string? mockup_version;
+        internal string? mockup_charge_state;
+        internal string? mockup_charge_point;
+        internal string? mockup_grid;
+        internal string? mockup_hierarchy;
 
         Guid guid = Guid.NewGuid(); // defaults to new Guid();
-        static WebClient client;
+        static WebClient? client;
 
         public ElectricityMeterOpenWB2(string host, string parameter)
         {

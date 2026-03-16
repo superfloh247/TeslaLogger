@@ -12,22 +12,22 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     class ElectricityMeterWARP : ElectricityMeterBase
     {
-        string host;
-        string parameter;
+        string? host;
+        string? parameter;
         internal int wallboxMeterId = 0;
         internal int wallboxValueId = 209;
         internal int gridMeterId = 1;
         internal int gridValueId = 209;
 
-        internal string mockup_info_version;
-        internal string mockup_evse_state;
-        internal string mockup_wallbox_value_ids;
-        internal string mockup_wallbox_values;
-        internal string mockup_grid_value_ids;
-        internal string mockup_grid_values;
+        internal string? mockup_info_version;
+        internal string? mockup_evse_state;
+        internal string? mockup_wallbox_value_ids;
+        internal string? mockup_wallbox_values;
+        internal string? mockup_grid_value_ids;
+        internal string? mockup_grid_values;
 
 
-        static WebClient client;
+        static WebClient? client;
 
         public ElectricityMeterWARP(string host, string parameter)
         {
