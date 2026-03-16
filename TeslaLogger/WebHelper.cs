@@ -2206,8 +2206,15 @@ namespace TeslaLogger
                 if (resultContent2?.Length > 0)
                     vehicle_config = resultContent2;
 
-                dynamic jBadge = JsonConvert.DeserializeObject(resultContent2);
-                dynamic jBadgeResult = jBadge["response"]["vehicle_config"];
+                JObject? jBadge = NullSafetyHelpers.SafeJObject(resultContent2);
+                if (jBadge == null)
+                    return;
+
+                JObject? response = jBadge["response"] as JObject;
+                if (response == null)
+                    return;
+
+                JObject? jBadgeResult = response["vehicle_config"] as JObject;
 
                 if (jBadgeResult is not null)
                 {
@@ -2216,18 +2223,21 @@ namespace TeslaLogger
                     string trim_badging = car.TrimBadging;
 
 
-                    if (Tools.IsPropertyExist(jBadgeResult, "car_type"))
+                    string car_type_val = jBadgeResult.GetSafeString("car_type", "");
+                    if (!string.IsNullOrEmpty(car_type_val))
                     {
-                        car.CarType = jBadgeResult["car_type"].ToString().ToLower().Trim();
+                        car.CarType = car_type_val.ToLower().Trim();
                     }
 
-                    if (Tools.IsPropertyExist(jBadgeResult, "car_special_type"))
+                    string car_special_type_val = jBadgeResult.GetSafeString("car_special_type", "");
+                    if (!string.IsNullOrEmpty(car_special_type_val))
                     {
-                        car.CarSpecialType = jBadgeResult["car_special_type"].ToString().ToLower().Trim();
+                        car.CarSpecialType = car_special_type_val.ToLower().Trim();
                     }
 
-                    car.TrimBadging = Tools.IsPropertyExist(jBadgeResult, "trim_badging")
-                        ? (string)jBadgeResult["trim_badging"].ToString().ToLower().Trim()
+                    string trim_badging_val = jBadgeResult.GetSafeString("trim_badging", "");
+                    car.TrimBadging = !string.IsNullOrEmpty(trim_badging_val)
+                        ? trim_badging_val.ToLower().Trim()
                         : "";
 
                     UpdateEfficiency();
