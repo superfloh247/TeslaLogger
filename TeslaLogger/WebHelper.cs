@@ -493,12 +493,16 @@ namespace TeslaLogger
 
                             car.Log($"HttpStatus: {result.StatusCode}");
 
-                            dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-
-                            if (Tools.IsPropertyExist(jsonResult, "error"))
+                            JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
+                            if (jsonResult == null)
                             {
-                                string error = jsonResult["error"];
-                                string error_description = jsonResult["error_description"];
+                                throw new Exception("Failed to parse token response");
+                            }
+
+                            if (jsonResult["error"] is not null)
+                            {
+                                string error = jsonResult.GetSafeString("error", "");
+                                string error_description = jsonResult.GetSafeString("error_description", "");
 
                                 car.Log($"ResultContent UpdateTeslaTokenFromRefreshToken: {resultContent}");
                                 car.CreateExeptionlessLog("UpdateTeslaTokenFromRefreshToken", $"Error: {error}", Exceptionless.Logging.LogLevel.Error)
@@ -508,23 +512,29 @@ namespace TeslaLogger
                                     .Submit();
                             }
 
+                            string access_token = jsonResult.GetSafeString("access_token", "");
+                            if (string.IsNullOrEmpty(access_token))
+                                throw new Exception("access_token Missing");
 
-                            string access_token = jsonResult["access_token"] ?? throw new Exception("access_token Missing");
-                            string new_refresh_token = jsonResult["refresh_token"] ?? throw new Exception("refresh_token Missing");
+                            string new_refresh_token = jsonResult.GetSafeString("refresh_token", "");
+                            if (string.IsNullOrEmpty(new_refresh_token))
+                                throw new Exception("refresh_token Missing");
+
                             CheckNewRefreshToken(refresh_token, new_refresh_token);
 
                             // as of March 21 2022 Tesla returns a bearer token. GetTokenAsync4 is no longer neeaded. 
                             car.CreateExeptionlessLog("Tesla Token", "UpdateTeslaTokenFromRefreshToken Success", Exceptionless.Logging.LogLevel.Info).Submit();
-                            string Token = jsonResult["access_token"];
+                            string Token = access_token;
 
-                            if (jsonResult.ContainsKey("expires_in"))
+                            int expiresIn = jsonResult.GetSafeInt("expires_in", 0);
+                            if (expiresIn > 0)
                             {
-                                var t = DateTime.UtcNow.AddSeconds((int)(jsonResult["expires_in"])).AddHours(-2);
+                                var t = DateTime.UtcNow.AddSeconds(expiresIn).AddHours(-2);
                                 if (t > DateTime.UtcNow.AddHours(1))
                                     nextTeslaTokenFromRefreshToken = t;
                                 else
                                 {
-                                    t = DateTime.UtcNow.AddSeconds((int)(jsonResult["expires_in"]));
+                                    t = DateTime.UtcNow.AddSeconds(expiresIn);
                                     nextTeslaTokenFromRefreshToken = t;
                                 }
 
