@@ -4133,18 +4133,27 @@ WHERE
                     return -1;
 
                 Tools.SetThreadEnUS();
-                dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                dynamic r2 = jsonResult["response"]["charge_state"];
+                JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
+                if (jsonResult == null)
+                    return -1;
 
-                if (r2["ideal_battery_range"] is null)
+                JObject? response = jsonResult["response"] as JObject;
+                if (response == null)
+                    return -1;
+
+                JObject? r2 = response["charge_state"] as JObject;
+                if (r2 == null)
+                    return -1;
+
+                decimal ideal_battery_range = r2.GetSafeDecimal("ideal_battery_range", 0);
+                if (ideal_battery_range == 0)
                 {
                     return -1;
                 }
 
-                decimal ideal_battery_range = (decimal)r2["ideal_battery_range"];
                 if (ideal_battery_range == 999)
                 {
-                    ideal_battery_range = (decimal)r2["battery_range"];
+                    ideal_battery_range = r2.GetSafeDecimal("battery_range", 0);
                     if (!car.Raven)
                     {
                         car.Raven = true;
@@ -4195,19 +4204,32 @@ WHERE
                 if (resultContent is null || resultContent == "NULL" || resultContent == INSERVICE)
                     return lastOdometerKM;
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                dynamic vehicle_state = jsonResult["response"]["vehicle_state"];
-                _ = long.TryParse(vehicle_state["timestamp"].ToString(), out long ts);
+                JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
+                if (jsonResult == null)
+                    return lastOdometerKM;
 
-                if (vehicle_state.ContainsKey("sentry_mode") && vehicle_state["sentry_mode"] is not null)
+                JObject? response = jsonResult["response"] as JObject;
+                if (response == null)
+                    return lastOdometerKM;
+
+                JObject? vehicle_state = response["vehicle_state"] as JObject;
+                if (vehicle_state == null)
+                    return lastOdometerKM;
+
+                _ = long.TryParse(vehicle_state.GetSafeString("timestamp", ""), out long ts);
+
+                string sentry_mode_val = vehicle_state.GetSafeString("sentry_mode", "");
+                if (!string.IsNullOrEmpty(sentry_mode_val))
                 {
                     try
                     {
-                        bool sentry_mode = (bool)vehicle_state["sentry_mode"];
-                        if (sentry_mode != is_sentry_mode)
+                        if (bool.TryParse(sentry_mode_val, out bool sentry_mode))
                         {
-                            is_sentry_mode = sentry_mode;
-                            Log($"sentry_mode: {sentry_mode}");
+                            if (sentry_mode != is_sentry_mode)
+                            {
+                                is_sentry_mode = sentry_mode;
+                                Log($"sentry_mode: {sentry_mode}");
+                            }
                         }
 
                         car.CurrentJSON.current_is_sentry_mode = sentry_mode;
