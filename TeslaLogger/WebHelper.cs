@@ -1987,12 +1987,15 @@ namespace TeslaLogger
                     TeslaAPI_Commands.TryAdd("vehicles", resultContent);
                 }
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
+                JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
+                if (jsonResult == null)
+                {
+                    Log("Failed to parse IsOnline response");
+                    return "NULL";
+                }
 
-                JArray response = jsonResult["response"];
-
-
-                if (response is null && resultContent?.Contains("not found") == true)
+                JToken? responseToken = jsonResult["response"];
+                if (responseToken == null || responseToken.Type != Newtonsoft.Json.Linq.JTokenType.Array)
                 {
                     Log($"IsOnline response = NULL: {resultContent}");
 
@@ -2001,6 +2004,8 @@ namespace TeslaLogger
 
                     return "NULL";
                 }
+
+                JArray response = (JArray)responseToken;
 
                 dynamic r4 = SearchCarDictionary(response);
 
