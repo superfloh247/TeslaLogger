@@ -2702,9 +2702,22 @@ namespace TeslaLogger
                 // Log("IsDriving");
 
                 Tools.SetThreadEnUS();
-                dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                dynamic drive_state = jsonResult["response"]["drive_state"];
-                _ = long.TryParse(drive_state["timestamp"].ToString(), out long ts);
+                JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
+                if (jsonResult == null)
+                {
+                    Log("Failed to parse IsDriving response");
+                    return false;
+                }
+
+                JObject? response = jsonResult["response"] as JObject;
+                JObject? drive_state = response?["drive_state"] as JObject;
+                if (drive_state == null)
+                {
+                    Log("drive_state not found in response");
+                    return false;
+                }
+
+                long ts = drive_state.GetSafeLong("timestamp", 0);
 
                 decimal dLatitude = 0;
                 decimal dLongitude = 0;
@@ -2730,11 +2743,11 @@ namespace TeslaLogger
                 }
                 */
 
-                if (drive_state.ContainsKey("latitude"))
+                if (drive_state["latitude"] is not null)
                 {
-                    dLatitude = (decimal)drive_state["latitude"];
-                    dLongitude = (decimal)drive_state["longitude"];
-                    heading = (int)drive_state["heading"];
+                    dLatitude = drive_state.GetSafeDecimal("latitude", 0);
+                    dLongitude = drive_state.GetSafeDecimal("longitude", 0);
+                    heading = drive_state.GetSafeInt("heading", 0);
                 }
                 else
                 {
@@ -2744,14 +2757,18 @@ namespace TeslaLogger
                         return false;
                     try
                     {
-                        dynamic jsonResult2 = JsonConvert.DeserializeObject(rc2);
-                        dynamic r2x = jsonResult2["response"]["drive_state"];
+                        JObject? jsonResult2 = NullSafetyHelpers.SafeJObject(rc2);
+                        if (jsonResult2 == null)
+                            return false;
 
-                        if (r2x?.ContainsKey("latitude") == true)
+                        JObject? response2 = jsonResult2["response"] as JObject;
+                        JObject? r2x = response2?["drive_state"] as JObject;
+
+                        if (r2x != null && r2x["latitude"] is not null)
                         {
-                            dLatitude = (decimal)r2x["latitude"];
-                            dLongitude = (decimal)r2x["longitude"];
-                            heading = (int)r2x["heading"];
+                            dLatitude = r2x.GetSafeDecimal("latitude", 0);
+                            dLongitude = r2x.GetSafeDecimal("longitude", 0);
+                            heading = r2x.GetSafeInt("heading", 0);
                         }
                         else
                             return false;
@@ -2769,22 +2786,12 @@ namespace TeslaLogger
 
                 car.CurrentJSON.SetPosition(latitude, longitude, ts);
 
-                int speed = 0;
-                if (drive_state["speed"] is not null)
-                {
-                    speed = (int)drive_state["speed"];
-                }
+                int speed = drive_state.GetSafeInt("speed", 0);
+                int power = drive_state.GetSafeInt("power", 0);
 
-                int power = 0;
-                if (drive_state["power"] is not null)
+                string shift_state = drive_state.GetSafeString("shift_state", "");
+                if (!string.IsNullOrEmpty(shift_state))
                 {
-                    power = (int)drive_state["power"];
-                }
-
-                string shift_state = "";
-                if (drive_state["shift_state"] is not null)
-                {
-                    shift_state = drive_state["shift_state"].ToString();
                     SetLastShiftState(shift_state);
                 }
                 else

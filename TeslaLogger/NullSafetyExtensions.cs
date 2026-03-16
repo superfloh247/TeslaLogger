@@ -185,6 +185,15 @@ namespace TeslaLogger
             return NullSafetyHelpers.SafeDouble(value, fallback);
         }
 
+        /// <summary>
+        /// Safely get decimal from JObject property.
+        /// </summary>
+        public static decimal GetSafeDecimal(this JObject? jobj, string? property, decimal fallback = 0m)
+        {
+            var value = jobj?.GetSafeToken(property)?.ToString();
+            return NullSafetyHelpers.SafeDecimal(value, fallback);
+        }
+
         #endregion
 
         #region Collection Extensions
