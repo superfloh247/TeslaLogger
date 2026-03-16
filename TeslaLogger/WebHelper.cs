@@ -1667,8 +1667,23 @@ namespace TeslaLogger
                     }
                 }
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                vehicles = jsonResult["response"];
+                JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
+                if (jsonResult == null)
+                {
+                    car.Log("Failed to parse vehicles response");
+                    vehicles = new Newtonsoft.Json.Linq.JArray();
+                    return;
+                }
+
+                JToken? response = jsonResult["response"];
+                if (response == null || response.Type != Newtonsoft.Json.Linq.JTokenType.Array)
+                {
+                    car.Log("No response array in vehicles response");
+                    vehicles = new Newtonsoft.Json.Linq.JArray();
+                    return;
+                }
+
+                vehicles = (Newtonsoft.Json.Linq.JArray)response;
 
                 if (checkVehicle2Account)
                 {
