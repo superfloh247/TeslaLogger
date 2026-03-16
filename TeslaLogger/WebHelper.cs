@@ -1702,8 +1702,19 @@ namespace TeslaLogger
             {
                 lock (vehicles2Account)
                 {
-                    dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                    JArray vehicles = jsonResult["response"];
+                    JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
+                    if (jsonResult == null)
+                    {
+                        return;
+                    }
+
+                    JToken? response = jsonResult["response"];
+                    if (response == null || response.Type != Newtonsoft.Json.Linq.JTokenType.Array)
+                    {
+                        return;
+                    }
+
+                    JArray vehicles = (JArray)response;
                     InsertVehicles2AccountFromVehiclesResponse(vehicles);
                 }
             }
@@ -1720,13 +1731,22 @@ namespace TeslaLogger
                 bool inserted = false;
                 try
                 {
-                    foreach (dynamic v in vehicles)
+                    foreach (JToken? token in vehicles)
                     {
-                        string vin = v["vin"];
+                        if (token == null || token.Type != Newtonsoft.Json.Linq.JTokenType.Object)
+                            continue;
+
+                        JObject? v = token as JObject;
+                        if (v == null)
+                            continue;
+
+                        string vin = v.GetSafeString("vin", "");
+                        if (string.IsNullOrEmpty(vin))
+                            continue;
 
                         if (!vehicles2Account.ContainsKey(vin))
                         {
-                            string display_name = v["display_name"].ToString();
+                            string display_name = v.GetSafeString("display_name", "");
 
                             Account a = new Account();
                             a.id = nextAccountId;
