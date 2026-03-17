@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static TeslaLogger.NearbySuCService;
+using static TeslaLogger.NullSafetyHelpers;
 
 namespace TeslaLogger
 {
@@ -196,15 +197,21 @@ namespace TeslaLogger
         {
             try
             {
-                dynamic j = JsonConvert.DeserializeObject(resultContent);
+                JObject? j = JsonConvert.DeserializeObject(resultContent) as JObject;
+                if (j == null)
+                    return;
 
                 if (j.ContainsKey("data"))
                 {
                     Log(resultContent);
 
-                    dynamic jData = j["data"];
-                    string vin = j["vin"];
-                    DateTime d = j["createdAt"];
+                    JToken? jData_token = j["data"];
+                    if (jData_token == null)
+                        return;
+
+                    dynamic jData = jData_token;
+                    string vin = j.GetSafeString("vin", "");
+                    DateTime d = j.Value<DateTime>("createdAt");
 
                     if (car.Vin.Equals(vin, StringComparison.OrdinalIgnoreCase))
                     {
@@ -223,9 +230,13 @@ namespace TeslaLogger
                 }
                 else if (j.ContainsKey("alerts"))
                 {
-                    dynamic jData = j["alerts"];
-                    string vin = j["vin"];
-                    DateTime d = j["createdAt"];
+                    JToken? jData_token = j["alerts"];
+                    if (jData_token == null)
+                        return;
+
+                    dynamic jData = jData_token;
+                    string vin = j.GetSafeString("vin", "");
+                    DateTime d = j.Value<DateTime>("createdAt");
 
                     if (car.Vin.Equals(vin, StringComparison.OrdinalIgnoreCase))
                     {
@@ -239,14 +250,14 @@ namespace TeslaLogger
                 }
                 else if (j.ContainsKey("Teslalogger"))
                 {
-                    String cmd = j["Teslalogger"];
+                    String cmd = j.GetSafeString("Teslalogger", "");
                     switch (cmd)
                     {
                         case "LoginRespone":
-                            handleLoginResponse(j);
+                            handleLoginResponse((dynamic)j);
                             break;
                         case "ConfigAlreadySent":
-                            string Config = j["Config"];
+                            string Config = j.GetSafeString("Config", "");
                             Log($"Config Already Sent: {Config}");
                             break;
                         default:
