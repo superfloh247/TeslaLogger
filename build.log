@@ -1,0 +1,14 @@
+  Wiederherzustellende Projekte werden ermittelt...
+  Alle Projekte sind für die Wiederherstellung auf dem neuesten Stand.
+  LogfileNET8 -> /Users/lindner/VSCode/TeslaLogger/Logfile/bin/Debug/net8.0/LogfileNET8.dll
+  OSMMapGeneratorNET8 -> /Users/lindner/VSCode/TeslaLogger/OSMMapGenerator/bin/Debug/net8.0/OSMMapGeneratorNET8.dll
+  KafkaConnector -> /Users/lindner/VSCode/TeslaLogger/KafkaConnector/bin/Debug/net8.0/KafkaConnector.dll
+  SRTMNET8 -> /Users/lindner/VSCode/TeslaLogger/srtm/src/SRTM/bin/Debug/net8.0/SRTMNET8.dll
+  TeslaLoggerNET8 -> /Users/lindner/VSCode/TeslaLogger/TeslaLogger/bin/Debug/net8.0/TeslaLoggerNET8.dll
+  UnitTestsTeslaloggerNET8 -> /Users/lindner/VSCode/TeslaLogger/UnitTestsTeslalogger/bin/Debug/net8.0/UnitTestsTeslaloggerNET8.dll
+
+Der Buildvorgang wurde erfolgreich ausgeführt.
+    0 Warnung(en)
+    0 Fehler
+
+Verstrichene Zeit 00:00:00.99

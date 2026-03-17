@@ -70,9 +70,9 @@ namespace TeslaLogger
                 if (content is null)
                     throw new Exception("No Data for :" + path);
 
-                dynamic j = JsonConvert.DeserializeObject(content);
+                JObject j = JObject.Parse(content);
 
-            Newtonsoft.Json.Linq.JArray unixtimes = j[0]["xAxisValues"];
+            Newtonsoft.Json.Linq.JArray unixtimes = (JArray)j[0]["xAxisValues"];
 
             long unixTimestamp = (long)(dateTime.ToUniversalTime().Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
             unixTimestamp *= 1000;
@@ -80,7 +80,7 @@ namespace TeslaLogger
             int ix = 0;
             for (int i = 0; i < unixtimes.Count; i++)
             {
-                dynamic t = unixtimes[i];   
+                long t = (long)unixtimes[i];   
                 if (t >= unixTimestamp)
                 {
                     ix = i;
@@ -93,7 +93,7 @@ namespace TeslaLogger
             double co2count = 0;
             double co2sum = 0;
 
-            foreach (dynamic d in j)
+            foreach (JObject d in (JArray)j)
             {
                 string name = "";
                 string namede = "";
@@ -119,7 +119,7 @@ namespace TeslaLogger
                     || name == "Residual load" || name == "Renewable share of generation" || name == "Renewable share of load" || name == "Import Balance" || name == "Load")
                     continue;
 
-                dynamic data = d["data"];
+                JArray data = (JArray)d["data"];
 
                 if (data is null)
                     continue;
@@ -130,7 +130,7 @@ namespace TeslaLogger
                 if (data[ix].Type == Newtonsoft.Json.Linq.JTokenType.Null)
                     continue;
 
-                double wert = data[ix];
+                double wert = (double)data[ix];
                 double co2factor = 0;
 
                 switch (name)
@@ -233,9 +233,9 @@ namespace TeslaLogger
                 else
                     content = GetEnergyChartDataAsync(country, filename, writeCache).Result;
 
-                dynamic j = JsonConvert.DeserializeObject(content);
+                JObject j = JObject.Parse(content);
 
-            Newtonsoft.Json.Linq.JArray unixtimes = j[0]["xAxisValues"];
+            Newtonsoft.Json.Linq.JArray unixtimes = (JArray)j[0]["xAxisValues"];
 
             long unixTimestamp = (long)(dateTime.ToUniversalTime().Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
             unixTimestamp *= 1000;
@@ -243,7 +243,7 @@ namespace TeslaLogger
             int ix = 0;
             for (int i = 0; i < unixtimes.Count; i++)
             {
-                dynamic t = unixtimes[i];
+                long t = (long)unixtimes[i];
                 if (t >= unixTimestamp)
                 {
                     ix = i;
@@ -253,19 +253,19 @@ namespace TeslaLogger
 
             // System.Diagnostics.Debug.WriteLine("Date:" + dateTime + " ix:" + ix);
 
-            foreach (dynamic d in j)
+            foreach (JObject d in (JArray)j)
             {
-                string name = d["name"][0]["en"];
-                string namede = d["name"][0]["de"];
+                string name = d["name"][0]["en"].ToString();
+                string namede = d["name"][0]["de"].ToString();
                 if (name== "sum")
                     continue;
 
-                dynamic data = d["data"];
+                JArray data = (JArray)d["data"];
 
                 if (data[ix].Type == Newtonsoft.Json.Linq.JTokenType.Null)
                     continue;
 
-                double wert = data[ix];
+                double wert = (double)data[ix];
 
                 if (wert < 0) // export not relevant for co2 calculation
                     continue;
