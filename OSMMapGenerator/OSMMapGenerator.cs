@@ -91,7 +91,7 @@ namespace TeslaLogger
                         if (!System.Diagnostics.Debugger.IsAttached)
                             File.Delete(jobfile);
 
-                        dynamic jsonResult = JsonConvert.DeserializeObject(json);
+                        JObject jsonResult = JObject.Parse(json);
                         Dictionary<string, object> job = jsonResult.ToObject<Dictionary<string, object>>();
                         if (job is not null)
                         {
