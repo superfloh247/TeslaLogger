@@ -1373,15 +1373,15 @@ namespace TeslaLogger
                 Log("new_credentials.json available");
 
                 string json = File.ReadAllText(FileManager.GetFilePath(TLFilename.NewCredentialsFilename));
-                dynamic j = JsonConvert.DeserializeObject(json);
+                JObject j = JObject.Parse(json);
 
                 XmlDocument doc = new XmlDocument();
                 doc.Load(FileManager.GetFilePath(TLFilename.TeslaLoggerExeConfigFilename));
                 XmlNodeList nodesTeslaName = doc.SelectNodes("/configuration/applicationSettings/TeslaLogger.ApplicationSettings/setting[@name='TeslaName']/value");
-                nodesTeslaName.Item(0).InnerText = j["email"];
+                nodesTeslaName.Item(0).InnerText = j["email"].ToString();
 
                 XmlNodeList nodesTeslaPasswort = doc.SelectNodes("/configuration/applicationSettings/TeslaLogger.ApplicationSettings/setting[@name='TeslaPasswort']/value");
-                nodesTeslaPasswort.Item(0).InnerText = j["password"];
+                nodesTeslaPasswort.Item(0).InnerText = j["password"].ToString();
 
                 doc.Save(FileManager.GetFilePath(TLFilename.TeslaLoggerExeConfigFilename));
 

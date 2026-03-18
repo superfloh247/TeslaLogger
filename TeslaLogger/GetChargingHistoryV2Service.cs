@@ -13,7 +13,7 @@ namespace TeslaLogger
 {
     internal class SuCSession
     {
-        internal SuCSession(dynamic jsonSession, Car car)
+        internal SuCSession(JObject jsonSession, Car car)
         {
             string VIN;
             string sessionId;
@@ -27,11 +27,11 @@ namespace TeslaLogger
                  && jsonSession.ContainsKey("vin")
                  )
             {
-                VIN = jsonSession["vin"];
-                sessionId = jsonSession["sessionId"];
-                siteLocationName = jsonSession["siteLocationName"];
-                chargeStartDateTime = jsonSession["chargeStartDateTime"];
-                if (DateTime.TryParse(jsonSession["chargeStartDateTime"].ToString("yyyy-MM-dd HH:mm:ss"), out DateTime isochargeStartDateTime))
+                VIN = jsonSession["vin"].ToString();
+                sessionId = jsonSession["sessionId"].ToString();
+                siteLocationName = jsonSession["siteLocationName"].ToString();
+                chargeStartDateTime = DateTime.Parse(jsonSession["chargeStartDateTime"].ToString());
+                if (DateTime.TryParse(jsonSession["chargeStartDateTime"].ToString(), out DateTime isochargeStartDateTime))
                 {
                     chargeStartDateTime = isochargeStartDateTime;
                 }
@@ -64,8 +64,9 @@ INSERT IGNORE INTO teslacharging SET
             // download invoice PDFs
             if (jsonSession.ContainsKey("invoices"))
             {
-                foreach (dynamic invoice in jsonSession["invoices"])
+                foreach (JToken jd in (JArray)jsonSession["invoices"])
                 {
+                    JObject invoice = (JObject)jd;
                     if (invoice.ContainsKey("contentId"))
                     {
                         // check if output directory exists, otherwise create
@@ -111,7 +112,7 @@ INSERT IGNORE INTO teslacharging SET
         private static bool ParseJSON(string sjson, Car car)
         {
             bool nextpage = false;
-            dynamic json = JsonConvert.DeserializeObject(sjson);
+            JObject json = JObject.Parse(sjson);
             if (json is null)
             {
                 Tools.DebugLog("ParseJSON: json is null");
@@ -120,16 +121,17 @@ INSERT IGNORE INTO teslacharging SET
             //Tools.DebugLog($"ParseJSON\n{new Tools.JsonFormatter(json.ToString()).Format()}");
             if (json.ContainsKey("totalResults"))
             {
-                dynamic totalResults = json["totalResults"];
+                long totalResults = (long)json["totalResults"];
                 nextpage = (totalResults > 0);
                 if (totalResults > 0)
                 {
                     if (json.ContainsKey("data"))
                     {
-                        dynamic data = json["data"];
+                        JArray data = (JArray)json["data"];
                         if (data is JArray && data.Count > 0) {
-                            foreach (dynamic session in data)
+                            foreach (JToken jd in data)
                             {
+                                JObject session = (JObject)jd;
                                 try
                                 {
                                     _ = new SuCSession(session, car);
@@ -371,7 +373,7 @@ LIMIT 1
 
         private static void UpdateChargingState(int chargingstateid, string json, Car car)
         {
-            dynamic session = JsonConvert.DeserializeObject(json);
+            JObject session = JObject.Parse(json);
             if (session is not null
                 && session.ContainsKey("fees")
                 && session.ContainsKey("sessionId")
@@ -385,12 +387,13 @@ LIMIT 1
                 double cost_idle_fee_total = double.NaN;
                 double cost_kwh_meter_invoice = double.NaN;
                 double cost_freesuc_savings_total = double.NaN;
-                string sessionId = session["sessionId"];
+                string sessionId = session["sessionId"].ToString();
                 bool freesuc = false;
 
                 // parse fees
-                foreach (dynamic fee in session["fees"])
+                foreach (JToken jd in (JArray)session["fees"])
                 {
+                    JObject fee = (JObject)jd;
                     if (fee.ContainsKey("currencyCode"))
                     {
                         cost_currency = fee["currencyCode"].ToString();
@@ -404,11 +407,11 @@ LIMIT 1
                             {
                                 if (fee.ContainsKey("rateBase"))
                                 {
-                                    _ = double.TryParse(fee["rateBase"].ToString(Tools.ciEnUS), out cost_per_kwh);
+                                    _ = double.TryParse(fee["rateBase"].ToString(), out cost_per_kwh);
                                 }
                                 if (fee.ContainsKey("usageBase"))
                                 {
-                                    if (double.TryParse(fee["usageBase"].ToString(Tools.ciEnUS), out double cost_kwh_meter_invoice_t))
+                                    if (double.TryParse(fee["usageBase"].ToString(), out double cost_kwh_meter_invoice_t))
                                     {
                                         if (double.IsNaN(cost_kwh_meter_invoice))
                                         {
@@ -426,7 +429,7 @@ LIMIT 1
                                     && fee.ContainsKey("totalDue")
                                     )
                                 {
-                                    if (double.TryParse(fee["totalDue"].ToString(Tools.ciEnUS), out double cost_for_charging_t))
+                                    if (double.TryParse(fee["totalDue"].ToString(), out double cost_for_charging_t))
                                     {
                                         if (double.IsNaN(cost_for_charging))
                                         {
@@ -456,7 +459,7 @@ LIMIT 1
                                     && fee.ContainsKey("totalDue")
                                     )
                                 {
-                                    if (double.TryParse(fee["totalDue"].ToString(Tools.ciEnUS), out double cost_for_charging_t))
+                                    if (double.TryParse(fee["totalDue"].ToString(), out double cost_for_charging_t))
                                     {
                                         if (double.IsNaN(cost_for_charging))
                                         {
@@ -483,7 +486,7 @@ LIMIT 1
                         {
                             if (fee.ContainsKey("totalDue"))
                             {
-                                if (double.TryParse(fee["totalDue"].ToString(Tools.ciEnUS), out double cost_idle_fee_total_t))
+                                if (double.TryParse(fee["totalDue"].ToString(), out double cost_idle_fee_total_t))
                                 {
                                     if (double.IsNaN(cost_idle_fee_total))
                                     {
@@ -632,7 +635,7 @@ WHERE
                 if (!string.IsNullOrEmpty(sessionIdmaster) && sessionIds.Count > 0)
                 {
                     // load master ID
-                    dynamic masterJSON = LoadJSON(sessionIdmaster);
+                    JObject masterJSON = LoadJSON(sessionIdmaster);
                     if (masterJSON is not null
                         && masterJSON.ContainsKey("fees")
                         )
@@ -640,16 +643,16 @@ WHERE
                         // load other SuC charging sessions and add their fees to the master
                         foreach (string otherID in sessionIds)
                         {
-                            dynamic otherJSON = LoadJSON(otherID);
+                            JObject otherJSON = LoadJSON(otherID);
                             if (otherJSON is not null
                                 && otherJSON.ContainsKey("fees")
-                                && masterJSON["vin"].Equals(otherJSON["vin"])
-                                && masterJSON["siteLocationName"].Equals(otherJSON["siteLocationName"])
+                                && masterJSON["vin"].ToString().Equals(otherJSON["vin"].ToString())
+                                && masterJSON["siteLocationName"].ToString().Equals(otherJSON["siteLocationName"].ToString())
                                 )
                             {
-                                foreach (dynamic fee in otherJSON["fees"])
+                                foreach (JToken jd in (JArray)otherJSON["fees"])
                                 {
-                                    ((JArray)masterJSON["fees"]).Add(fee);
+                                    ((JArray)masterJSON["fees"]).Add(jd);
                                 }
                             }
                         }
@@ -660,7 +663,7 @@ WHERE
             }
         }
 
-        private static dynamic LoadJSON(string sessionID)
+        private static JObject? LoadJSON(string sessionID)
         {
             try
             {
@@ -680,7 +683,7 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         if (dr.Read() && dr[0] != DBNull.Value)
                         {
-                            return JsonConvert.DeserializeObject(dr[0].ToString());
+                            return JObject.Parse(dr[0].ToString()!);
                         }
                     }
                 }

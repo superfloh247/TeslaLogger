@@ -70,7 +70,7 @@ namespace TeslaLogger
                 if (content is null)
                     throw new Exception("No Data for :" + path);
 
-                JObject j = JObject.Parse(content);
+                JArray j = JArray.Parse(content);
 
             Newtonsoft.Json.Linq.JArray unixtimes = (JArray)j[0]["xAxisValues"];
 
@@ -93,20 +93,21 @@ namespace TeslaLogger
             double co2count = 0;
             double co2sum = 0;
 
-            foreach (JObject d in (JArray)j)
+            foreach (JToken jd in (JArray)j)
             {
+                JObject d = (JObject)jd;
                 string name = "";
                 string namede = "";
 
-                if (d["name"] is JObject && d["name"].ContainsKey("en") && d["name"].ContainsKey("de"))
+                if (d["name"] is JObject nameObj && nameObj.ContainsKey("en") && nameObj.ContainsKey("de"))
                 {
-                    name = d["name"]["en"];
-                    namede = d["name"]["de"];
+                    name = nameObj["en"].ToString();
+                    namede = nameObj["de"].ToString();
                 }
-                else if (d["name"] is JArray)
+                else if (d["name"] is JArray nameArray)
                 {
-                    name = d["name"][0]["en"];
-                    namede = d["name"][0]["de"];
+                    name = nameArray[0]["en"].ToString();
+                    namede = nameArray[0]["de"].ToString();
                 }
                 else 
                 {
@@ -233,7 +234,7 @@ namespace TeslaLogger
                 else
                     content = GetEnergyChartDataAsync(country, filename, writeCache).Result;
 
-                JObject j = JObject.Parse(content);
+                JArray j = JArray.Parse(content);
 
             Newtonsoft.Json.Linq.JArray unixtimes = (JArray)j[0]["xAxisValues"];
 
@@ -253,8 +254,9 @@ namespace TeslaLogger
 
             // System.Diagnostics.Debug.WriteLine("Date:" + dateTime + " ix:" + ix);
 
-            foreach (JObject d in (JArray)j)
+            foreach (JToken jd in (JArray)j)
             {
+                JObject d = (JObject)jd;
                 string name = d["name"][0]["en"].ToString();
                 string namede = d["name"][0]["de"].ToString();
                 if (name== "sum")
