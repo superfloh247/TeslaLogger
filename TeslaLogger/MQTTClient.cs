@@ -14,8 +14,8 @@ namespace TeslaLogger
             {
                 try 
                 { 
-                    dynamic r = JsonConvert.DeserializeObject(mqttSettingsJson);
-                    if ((r["mqtt_host"] > 0))
+                    JObject r = JObject.Parse(mqttSettingsJson);
+                    if ((r["mqtt_host"]?.ToString() is not null))
                     {
                         Logfile.Log("MQTT: Using new MQTT client!");
                         ExceptionlessClient.Default.CreateFeatureUsage("MQTTClient").FirstCarUserID().Submit();

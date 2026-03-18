@@ -828,7 +828,7 @@ namespace TeslaLogger
         {
             try
             {
-                dynamic jsonResult = JsonConvert.DeserializeObject(_JSON);
+                JObject jsonResult = JObject.Parse(_JSON);
                 Dictionary<string, object> r1 = jsonResult["response"][command].ToObject<Dictionary<string, object>>();
                 return r1;
             }

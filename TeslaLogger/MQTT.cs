@@ -172,48 +172,48 @@ namespace TeslaLogger
             {
                 if (KVS.Get("MQTTSettings", out string mqttSettingsJson) == KVS.SUCCESS)
                 {
-                    dynamic r = JsonConvert.DeserializeObject(mqttSettingsJson);
-                    if (r["mqtt_host"] > 0)
+                JObject r = JObject.Parse(mqttSettingsJson);
+                    if (r["mqtt_host"]?.ToString() is not null)
                     {
-                        host = r["mqtt_host"];
+                        host = r["mqtt_host"]?.ToString();
                     }
                     else
                     {
                         Logfile.Log("MQTT: No host setting -> MQTT disabled! Check settings and reboot");
                         return;
                     }
-                    if (r["mqtt_port"] > 0)
+                    if (r["mqtt_port"]?.Value<int?>() > 0)
                     {
                         port = (int)r["mqtt_port"];
                     }
-                    if (r["mqtt_user"] > 0 && r["mqtt_passwd"] > 0)
+                    if (r["mqtt_user"]?.ToString() is not null && r["mqtt_passwd"]?.ToString() is not null)
                     {
-                        user = r["mqtt_user"];
-                        password = r["mqtt_passwd"];
+                        user = r["mqtt_user"]?.ToString();
+                        password = r["mqtt_passwd"]?.ToString();
                     }
-                    if (r["mqtt_topic"] > 0)
+                    if (r["mqtt_topic"]?.ToString() is not null)
                     {
-                        topic = r["mqtt_topic"];
+                        topic = r["mqtt_topic"]?.ToString();
                     }
-                    if (r["mqtt_publishjson"] > 0)
+                    if (r["mqtt_publishjson"]?.Value<bool?>() ?? false)
                     {
                         publishJson = (bool)r["mqtt_publishjson"];
                     }
-                    if (r["mqtt_singletopics"] > 0)
+                    if (r["mqtt_singletopics"]?.Value<bool?>() ?? false)
                     {
                         singletopics = (bool)r["mqtt_singletopics"];
                     }
-                    if (r["mqtt_discoveryenable"] > 0)
+                    if (r["mqtt_discoveryenable"]?.Value<bool?>() ?? false)
                     {
                         discoveryEnable = (bool)r["mqtt_discoveryenable"];
                     }
-                    if (r["mqtt_topic"] > 0)
+                    if (r["mqtt_discoverytopic"]?.ToString() is not null)
                     {
-                        discoverytopic = r["mqtt_discoverytopic"];
+                        discoverytopic = r["mqtt_discoverytopic"]?.ToString();
                     }
-                    if (r["mqtt_clientid"] > 0)
+                    if (r["mqtt_clientid"]?.ToString() is not null)
                     {
-                        clientid = r["mqtt_clientid"];
+                        clientid = r["mqtt_clientid"]?.ToString();
                     }
                     Logfile.Log("MQTT: Settings found");
                 }
@@ -566,19 +566,19 @@ namespace TeslaLogger
 
             try
             {
-                dynamic cars = JsonConvert.DeserializeObject(json);
-                foreach (dynamic car in cars)
+                JArray cars = JArray.Parse(json);
+                foreach (JToken car in cars)
                 {
-                    int id = car["id"];
-                    string inactiveFlag = car["inactive"];
+                    int id = (int)car["id"];
+                    string inactiveFlag = car["inactive"]?.ToString();
                     var carObj = Car.GetCarByID(id);
                     if (carObj is null || carObj.GetCurrentState() == Car.TeslaState.Inactive || inactiveFlag == "1")
                     {
                         continue; //skip inactive cars
                     }
 
-                    string vin = car["vin"];
-                    string display_name = car["display_name"];
+                    string vin = car["vin"]?.ToString();
+                    string display_name = car["display_name"]?.ToString();
 
                     if (!String.IsNullOrEmpty(vin))
                     {
