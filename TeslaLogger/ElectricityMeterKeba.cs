@@ -55,14 +55,14 @@ namespace TeslaLogger
             try
             {
                 Send("report 2");
-                dynamic reportJson;
+                JObject reportJson;
                 do
                 {
                     string reply = Receive();
-                    reportJson = JsonConvert.DeserializeObject(reply);
-                } while (reportJson.ID != 2);
+                    reportJson = JObject.Parse(reply);
+                } while ((long?)reportJson["ID"] != 2);
 
-                return (int) reportJson.State == 3;
+                return (int) reportJson["State"] == 3;
             }
             catch (Newtonsoft.Json.JsonException ex)
             {
@@ -88,12 +88,12 @@ namespace TeslaLogger
             try
             {
                 Send("report 3");
-                dynamic reportJson;
+                JObject reportJson;
                 do
                 {
                     string reply = Receive();
-                    reportJson = JsonConvert.DeserializeObject(reply);
-                } while (reportJson.ID != 3);
+                    reportJson = JObject.Parse(reply);
+                } while ((long?)reportJson["ID"] != 3);
 
                 return (double) reportJson["E total"] / 10000.0;
             }
@@ -116,14 +116,14 @@ namespace TeslaLogger
             try
             {
                 Send("report 1");
-                dynamic reportJson;
+                JObject reportJson;
                 do
                 {
                     string reply = Receive();
-                    reportJson = JsonConvert.DeserializeObject(reply);
-                } while (reportJson.ID != 1);
+                    reportJson = JObject.Parse(reply);
+                } while ((long?)reportJson["ID"] != 1);
 
-                return reportJson.Product + " / fw:" + reportJson.Firmware;
+                return reportJson["Product"].ToString() + " / fw:" + reportJson["Firmware"].ToString();
             }
             catch (Newtonsoft.Json.JsonException ex)
             {

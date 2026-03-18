@@ -459,9 +459,9 @@ namespace TeslaLogger
             }
             try
             {
-                dynamic jsonResult = JsonConvert.DeserializeObject(JSON);
+                JObject jsonResult = JObject.Parse(JSON);
 
-                if (!Tools.IsPropertyExist(jsonResult, "response") || string.IsNullOrEmpty(jsonResult["response"].ToString()))
+                if (!Tools.IsPropertyExist(jsonResult, "response") || string.IsNullOrEmpty(jsonResult["response"]?.ToString()))
                     return false;
             }
             catch (Newtonsoft.Json.JsonException jsonEx)
@@ -529,17 +529,17 @@ namespace TeslaLogger
         {
             try
             {
-                dynamic jsonResult = JsonConvert.DeserializeObject(_JSON);
-                dynamic r1 = jsonResult["response"];
+                JObject jsonResult = JObject.Parse(_JSON);
+                JToken r1 = jsonResult["response"];
                 if (r1 is null)
                     return false;
 
-                dynamic r3 = SearchCarDictionary(r1);
+                object? r3 = SearchCarDictionary((JArray)r1);
 
                 if (r3 is null)
                     return false;
 
-                Dictionary<string, object> r4 = r3.ToObject<Dictionary<string, object>>();
+                Dictionary<string, object> r4 = ((JToken)r3).ToObject<Dictionary<string, object>>();
                 /* {"response":
                  *      [
                  *         {

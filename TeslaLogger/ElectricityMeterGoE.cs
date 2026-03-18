@@ -78,9 +78,9 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 string key = "whg";
-                string value = jsonResult[key];
+                string value = jsonResult[key].ToString();
 
                 double v = Double.Parse(value, Tools.ciEnUS);
                 v = v / (double)10.0;
@@ -109,9 +109,9 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 string key = "eto";
-                string value = jsonResult[key];
+                string value = jsonResult[key].ToString();
 
                 double v = Double.Parse(value, Tools.ciEnUS);
                 v = v / (double)10.0;
@@ -139,9 +139,9 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 string key = "car";
-                string value = jsonResult[key];
+                string value = jsonResult[key].ToString();
 
                 return value == "2";
             }
@@ -166,9 +166,9 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 string key = "fwv";
-                string value = jsonResult[key];
+                string value = jsonResult[key].ToString();
 
                 return value;
             }

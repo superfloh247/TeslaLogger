@@ -76,7 +76,7 @@ namespace TeslaLogger
             return "";
         }
 
-        JToken getLoadPointJson(dynamic json)
+        JToken getLoadPointJson(JObject json)
         {
             JToken loadpoint = null;
             // loadpointcarname can be vehicle title ("TestCar1", vehicle name ("tsla") or loadpoint name ("Wallbox1")
@@ -86,14 +86,17 @@ namespace TeslaLogger
             if (loadpoint is null)
             {
                 // it's not a vehicle name, maybe vehicle title?
-                foreach (var vehicle in json.vehicles)
+                if (json["vehicles"] is JObject vehiclesObj)
                 {
-                    string vehicleTitle = vehicle.Value.title;
-                    string vehicleName = vehicle.Name;
-                    if (vehicleTitle == loadpointcarname)
+                    foreach (var vehicle in vehiclesObj)
                     {
-                        loadpoint = json.SelectToken($"$.loadpoints[?(@.vehicleName == '{vehicleName}')]");
-                        continue;
+                        string vehicleTitle = vehicle.Value["title"]?.ToString() ?? "";
+                        string vehicleName = vehicle.Key;
+                        if (vehicleTitle == loadpointcarname)
+                        {
+                            loadpoint = json.SelectToken($"$.loadpoints[?(@.vehicleName == '{vehicleName}')]");
+                            if (loadpoint is not null) break;
+                        }
                     }
                 }
                 // it's also not a vehicle title. Maybe loadpoint title?
@@ -117,7 +120,7 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
 
                 if (jsonResult is null)
                     return null;

@@ -190,8 +190,8 @@ namespace TeslaLogger
             {
                 if(KVS.Get("MQTTSettings", out string mqttSettings) == KVS.SUCCESS)
                 {
-                    dynamic settings = JsonConvert.DeserializeObject(mqttSettings);
-                    if (settings["mqtt_host"] > 0)
+                    JObject settings = JObject.Parse(mqttSettings);
+                    if ((long?)settings["mqtt_host"] > 0)
                     {
                         Task.Run(() =>
                         {

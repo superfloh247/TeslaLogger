@@ -119,21 +119,21 @@ namespace TeslaLogger
                 // parse result JSON
                 if (!string.IsNullOrEmpty(resultContent))
                 {
-                    dynamic jr = JsonConvert.DeserializeObject(resultContent);
-                    var jsonResult = jr.ToObject<Dictionary<string, object>>();
-                    if (jsonResult is not null)
+                    JObject jr = JObject.Parse(resultContent);
+                    if (jr is not null)
                     {
-                        if (((Dictionary<string, object>)jsonResult).ContainsKey("status")
-                            && ((Dictionary<string, object>)jsonResult)["status"].Equals("OK")
-                            && ((Dictionary<string, object>)jsonResult).ContainsKey("results"))
+                        if (jr.ContainsKey("status")
+                            && jr["status"]?.ToString().Equals("OK") == true
+                            && jr.ContainsKey("results"))
                         {
-                            dynamic objects = jsonResult["results"];
-                            foreach (dynamic result in objects)
+                            JArray objects = (JArray)jr["results"];
+                            foreach (JToken jd in objects)
                             {
+                                JObject result = (JObject)jd;
                                 if (result.ContainsKey("elevation")
                                     && result.ContainsKey("location"))
                                 {
-                                    if (double.TryParse(result["elevation"].ToString(Tools.ciEnUS), out double elevation)
+                                    if (double.TryParse(result["elevation"]?.ToString() ?? "", out double elevation)
                                         && !double.IsNaN(elevation))
                                     {
                                         Dictionary<string, object> location = result["location"].ToObject<Dictionary<string, object>>();
