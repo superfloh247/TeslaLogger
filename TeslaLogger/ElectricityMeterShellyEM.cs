@@ -93,9 +93,9 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 
-                decimal value1 = jsonResult["emeters"][channel]["total"];
+                decimal value1 = (decimal)jsonResult["emeters"][channel]["total"];
 
                 return (double?)(value1) / 1000.0;
             }
@@ -120,8 +120,8 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                decimal value1 = jsonResult["emeters"][channel]["power"];
+                JObject jsonResult = JObject.Parse(j);
+                decimal value1 = (decimal)jsonResult["emeters"][channel]["power"];
 
                 return value1 > 900;
             }
@@ -154,9 +154,9 @@ namespace TeslaLogger
                     j = mockup_shelly;
                 }
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 string key = "fw";
-                string value = jsonResult[key];
+                string value = jsonResult[key]?.ToString();
 
                 return value;
             }

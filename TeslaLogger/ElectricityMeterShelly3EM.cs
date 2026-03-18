@@ -88,10 +88,10 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                decimal value1 = jsonResult["emeters"][0]["total"];
-                decimal value2 = jsonResult["emeters"][1]["total"];
-                decimal value3 = jsonResult["emeters"][2]["total"];
+                JObject jsonResult = JObject.Parse(j);
+                decimal value1 = (decimal)jsonResult["emeters"][0]["total"];
+                decimal value2 = (decimal)jsonResult["emeters"][1]["total"];
+                decimal value3 = (decimal)jsonResult["emeters"][2]["total"];
                 
                 return (double?)(value1 + value2 + value3)/1000.0;
             }
@@ -116,10 +116,10 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
-                decimal value1 = jsonResult["emeters"][0]["power"];
-                decimal value2 = jsonResult["emeters"][1]["power"];
-                decimal value3 = jsonResult["emeters"][2]["power"];
+                JObject jsonResult = JObject.Parse(j);
+                decimal value1 = (decimal)jsonResult["emeters"][0]["power"];
+                decimal value2 = (decimal)jsonResult["emeters"][1]["power"];
+                decimal value3 = (decimal)jsonResult["emeters"][2]["power"];
                 decimal watt_total = (value1 + value2 + value3);
 
                 return watt_total > 3000;
@@ -153,9 +153,9 @@ namespace TeslaLogger
                     j = mockup_shelly;
                 }
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 string key = "fw";
-                string value = jsonResult[key];
+                string value = jsonResult[key]?.ToString();
 
                 return value;
             }
