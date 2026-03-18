@@ -138,9 +138,9 @@ CREATE TABLE journeys (
             string data = WebServer.GetDataFromRequestInputStream(request);
             try
             {
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
-                int CarID = r["carid"];
+                int CarID = (int)r["carid"];
                 Tools.DebugLog($"JourneysCreateStart CarID:{CarID}");
 
                 List<object> o = new();
@@ -201,9 +201,9 @@ ORDER BY
             string data = WebServer.GetDataFromRequestInputStream(request);
             try
             {
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
-                int CarID = r["carid"];
+                int CarID = (int)r["carid"];
                 Tools.DebugLog($"JourneysCreateStart CarID:{CarID}");
 
                 List<object> o = new();
@@ -279,12 +279,12 @@ ORDER BY
                 // out: nothing
                 // action: create journey table entry, render result selection HTML
                 string data = WebServer.GetDataFromRequestInputStream(request);
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
-                int CarID = r["CarID"];
-                int StartPosID = Convert.ToInt32(r["StartPosID"]);
-                int EndPosID = Convert.ToInt32(r["EndPosID"]);
-                string name = r["name"];
+                int CarID = (int)r["CarID"];
+                int StartPosID = (int)r["StartPosID"];
+                int EndPosID = (int)r["EndPosID"];
+                string name = r["name"]?.ToString();
 
                 Tools.DebugLog($"JourneysCreateCreate CarID:{CarID} StartPosID:{StartPosID} EndPosID:{EndPosID} name:{name}");
                 DataRow car = DBHelper.GetCar(CarID);
@@ -643,9 +643,9 @@ WHERE
             try
             {
                 string data = WebServer.GetDataFromRequestInputStream(request);
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
-                int carid = r["carid"];
+                int carid = (int)r["carid"];
 
                 string sql = $@"
 SELECT
@@ -746,9 +746,9 @@ WHERE
             try
             {
                 string data = WebServer.GetDataFromRequestInputStream(request);
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
-                int journeyID = r["id"];
+                int journeyID = (int)r["id"];
                 try
                 {
                     using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
