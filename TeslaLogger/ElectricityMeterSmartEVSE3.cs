@@ -89,9 +89,9 @@ namespace TeslaLogger
                 if (string.IsNullOrEmpty(j))
                     return null;
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
 
-                string value = jsonResult["mains_meter"]["import_active_energy"];
+                string value = jsonResult["mains_meter"]?["import_active_energy"]?.ToString();
 
                 return Double.Parse(value, Tools.ciEnUS);
             }
@@ -119,9 +119,9 @@ namespace TeslaLogger
                 if (string.IsNullOrEmpty(j))
                     return null;
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
 
-                string value = jsonResult["ev_meter"]["import_active_energy"];
+                string value = jsonResult["ev_meter"]?["import_active_energy"]?.ToString();
 
                 return Double.Parse(value, Tools.ciEnUS);
             }
@@ -146,11 +146,11 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 if (jsonResult is null)
                     return null;
 
-                return jsonResult["evse"]["state_id"] == 2 ? true : false;
+                return (int)jsonResult["evse"]["state_id"] == 2 ? true : false;
 
 
             }
@@ -175,11 +175,11 @@ namespace TeslaLogger
             {
                 j = GetCurrentData();
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 if (jsonResult is null)
                     return null;
 
-                string fwversion = jsonResult["version"];
+                string fwversion = jsonResult["version"]?.ToString();
 
                 return fwversion;
             }

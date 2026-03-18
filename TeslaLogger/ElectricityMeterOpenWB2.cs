@@ -106,7 +106,7 @@ namespace TeslaLogger
                     lastJSON = client.DownloadString(url);
                 }
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(lastJSON);
+                JObject jsonResult = JObject.Parse(lastJSON);
                 if (jsonResult is null)
                     return null;
 

@@ -174,12 +174,12 @@ namespace TeslaLogger
                 }
 
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(evse_state);
+                JObject jsonResult = JObject.Parse(evse_state);
 
                 if (jsonResult is null)
                     return null;
 
-                return jsonResult["charger_state"] == 3 ? true : false;
+                return (int)jsonResult["charger_state"] == 3 ? true : false;
             }
             catch (Newtonsoft.Json.JsonException ex)
             {
@@ -211,8 +211,8 @@ namespace TeslaLogger
                 }
 
                 
-                dynamic jsonResult = JsonConvert.DeserializeObject(info_version);
-                string value = jsonResult["firmware"];
+                JObject jsonResult = JObject.Parse(info_version);
+                string value = jsonResult["firmware"]?.ToString();
 
                 if (value is null)
                     return "";

@@ -138,7 +138,7 @@ namespace TeslaLogger
 
                 j = j.Replace("nan,", "null,");
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 string key = "energy_wh";
                 string value = jsonResult[key].ToString();
 
@@ -172,11 +172,11 @@ namespace TeslaLogger
                 j = GetCurrentDataVitals();
                 j = j.Replace("nan,", "null,");
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 if (jsonResult is null)
                     return null;
 
-                bool vehicle_connected = jsonResult["vehicle_connected"];
+                bool vehicle_connected = (bool)jsonResult["vehicle_connected"];
 
                 return vehicle_connected;
             }
@@ -203,12 +203,12 @@ namespace TeslaLogger
                 if (j is null)
                     return "";
 
-                dynamic jsonResult = JsonConvert.DeserializeObject(j);
+                JObject jsonResult = JObject.Parse(j);
                 if (jsonResult is null)
                     return "";
 
                 string key = "firmware_version";
-                string value = jsonResult[key];
+                string value = jsonResult[key]?.ToString();
                 return value;
             }
             catch (Newtonsoft.Json.JsonException ex)
