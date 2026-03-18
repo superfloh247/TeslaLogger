@@ -2759,9 +2759,9 @@ PRIMARY KEY(id)
             link = "";
             try
             {
-                dynamic j = JsonConvert.DeserializeObject(json);
-                title = j["title"];
-                uid = j["uid"];
+                JObject j = JObject.Parse(json);
+                title = j["title"]?.ToString();
+                uid = j["uid"]?.ToString();
 
                 if (!URL_Grafana.EndsWith("/", StringComparison.Ordinal))
                 {

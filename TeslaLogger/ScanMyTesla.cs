@@ -174,7 +174,7 @@ namespace TeslaLogger
                     string date = temp.Substring(0, i);
                     temp = temp.Substring(i + 2);
 
-                    dynamic j = JsonConvert.DeserializeObject(temp);
+                    JObject j = JObject.Parse(temp);
                     DateTime d = DateTime.Parse(j["d"].ToString());
                     car.CurrentJSON.lastScanMyTeslaReceived = d;
                     car.CurrentJSON.CreateCurrentJSON();

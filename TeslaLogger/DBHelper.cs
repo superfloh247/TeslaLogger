@@ -231,7 +231,7 @@ VALUES(
                 string json = System.IO.File.ReadAllText(FileManager.GetSetCostPath);
                 try
                 {
-                    dynamic j = JsonConvert.DeserializeObject(json);
+                    JObject j = JObject.Parse(json);
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                     {
                         con.Open();
@@ -249,7 +249,7 @@ WHERE
     id = @id", con))
                     {
 
-                        if (j["cost_total"] is null || j["cost_total"] == "" || j["cost_total"] == "0" || j["cost_total"] == "0.00")
+                        if (j["cost_total"] is null || j["cost_total"]?.ToString() == "" || j["cost_total"]?.ToString() == "0" || j["cost_total"]?.ToString() == "0.00")
                         {
                             cmd.Parameters.AddWithValue("@cost_total", DBNull.Value);
                         }
