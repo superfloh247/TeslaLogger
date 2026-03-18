@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Exceptionless;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Web;
 using System.Net.Http;
 using HttpMultipartParser;
@@ -1079,8 +1080,8 @@ DROP TABLE chargingstate_bak";
                 if (url is null)
                 {
                     string data = GetDataFromRequestInputStream(request);
-                    dynamic r = JsonConvert.DeserializeObject(data);
-                    url = r["url"];
+                    JObject r = JObject.Parse(data);
+                    url = r["url"]?.ToString();
                 }
 
                 var tokens = teslaAuth.GetTokenAfterLoginAsync(url).Result;
@@ -1169,8 +1170,8 @@ DROP TABLE chargingstate_bak";
                     }
                     else
                     {
-                        dynamic r = JsonConvert.DeserializeObject(data);
-                        car_name = r["car_name"];
+                        JObject r = JObject.Parse(data);
+                        car_name = r["car_name"]?.ToString();
                     }
 
                     if (!car.DbHelper.SetCarName(car_name))
@@ -1226,9 +1227,9 @@ DROP TABLE chargingstate_bak";
                     }
                     else
                     {
-                        dynamic r = JsonConvert.DeserializeObject(data);
+                        JObject r = JObject.Parse(data);
                         abrp_mode = Convert.ToInt32(r["abrp_mode"]);
-                        abrp_token = r["abrp_token"];
+                        abrp_token = r["abrp_token"]?.ToString();
                     }
 
                     if (!car.DbHelper.SetABRP(abrp_token, abrp_mode))
@@ -1286,9 +1287,9 @@ DROP TABLE chargingstate_bak";
                     }
                     else
                     {
-                        dynamic r = JsonConvert.DeserializeObject(data);
-                        sucBingo_user = r["sucBingo_user"];
-                        sucBingo_apiKey = r["sucBingo_apiKey"];
+                        JObject r = JObject.Parse(data);
+                        sucBingo_user = r["sucBingo_user"]?.ToString();
+                        sucBingo_apiKey = r["sucBingo_apiKey"]?.ToString();
                     }
 
                     if (!car.DbHelper.SetSucBingo(sucBingo_user, sucBingo_apiKey))
