@@ -108,7 +108,7 @@ namespace TeslaLogger
             // -> only increase to 40 seconds and handle 404 later
 
             // initially sleep 40 seconds to let the cars get from Start to Online
-            Task.Delay(40000).GetAwaiter().GetResult();
+            System.Threading.Thread.Sleep(40000);
 
             try
             {
@@ -155,7 +155,7 @@ namespace TeslaLogger
                 {
                     Work();
                     // sleep 1 second
-                    Task.Delay(1000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(1000);
                 }
             }
             catch (Exception ex)
@@ -300,7 +300,7 @@ namespace TeslaLogger
                         Logfile.Log($"MQTT: CurrentJson Exeption: {ex.Message}");
                         Tools.DebugLog("MQTT: CurrentJson Exception", ex);
                         // ex.ToExceptionless().FirstCarUserID().Submit();
-                        Task.Delay(60000).GetAwaiter().GetResult(); //wait 60 seconds after exception
+                        System.Threading.Thread.Sleep(60000); //wait 60 seconds after exception
                     }
 
                     if (!lastjson.ContainsKey(carId) || temp != lastjson[carId])
@@ -348,14 +348,14 @@ namespace TeslaLogger
                 Logfile.Log($"MQTT: Work JSON parse error: {jsonEx.Message}");
                 Tools.DebugLog("MQTT: Work JSON Exception", jsonEx);
                 jsonEx.ToExceptionless().FirstCarUserID().Submit();
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
             }
             catch (Exception ex)
             {
                 Logfile.Log($"MQTT: Work Exeption: {ex.Message}");
                 Tools.DebugLog("MQTT: Work Exception", ex);
                 ex.ToExceptionless().FirstCarUserID().Submit();
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
             }
         }
 
@@ -423,7 +423,7 @@ namespace TeslaLogger
                     {
                         Logfile.Log($"MQTT: Subcribe exeption: {ex.Message}");
                         Tools.DebugLog("MQTT: PublishReceived Exception", ex);
-                        Task.Delay(20000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(20000);
                     }
                 }
             }
@@ -493,7 +493,7 @@ namespace TeslaLogger
             {
                 Logfile.Log($"MQTT: ConnectionCheck WebExeption: {wex.Message}");
                 connecting = false;
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
 
             }
             catch (Exception cex)
@@ -504,21 +504,21 @@ namespace TeslaLogger
                     {
                         Logfile.Log("MQTT: Connection Error: Connection timed out");
                         connecting = false;
-                        Task.Delay(60000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(60000);
                         return false;
                     }
                     else if (se.ErrorCode == 10061)
                     {
                         Logfile.Log("MQTT: Connection Error: Connection refused");
                         connecting = false;
-                        Task.Delay(60000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(60000);
                         return false;
                     }
                 }
 
                 Logfile.Log($"MQTT: ConnectionCheck Exeption: {cex}");
                 connecting = false;
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
             }
             return false;
         }
@@ -529,19 +529,19 @@ namespace TeslaLogger
             {
                 try
                 {
-                    Task.Delay(1000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(1000);
 
                     ConnectionCheck();
                 }
                 catch (System.Net.WebException wex)
                 {
                     Logfile.Log($"MQTT: MQTTConnectionHandler WebExeption: {wex.Message}");
-                    Task.Delay(60000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(60000);
 
                 }
                 catch (Exception ex)
                 {
-                    Task.Delay(30000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(30000);
                     Logfile.Log($"MQTT: MQTTConnectionHandler Exeption: {ex}");
                 }
             }
@@ -560,7 +560,7 @@ namespace TeslaLogger
             {
                 Logfile.Log($"MQTT: GetAllCars: {ex.Message}");
                 ex.ToExceptionless().FirstCarUserID().Submit();
-                Task.Delay(20000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(20000);
             }
 
 
@@ -591,13 +591,13 @@ namespace TeslaLogger
             {
                 Logfile.Log($"MQTT: Cars JSON parse error: {jsonEx.Message}");
                 jsonEx.ToExceptionless().FirstCarUserID().Submit();
-                Task.Delay(20000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(20000);
             }
             catch (Exception ex)
             {
                 Logfile.Log($"MQTT: HashSet Exception: {ex}");
                 ex.ToExceptionless().FirstCarUserID().Submit();
-                Task.Delay(20000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(20000);
             }
 
             return h;
@@ -759,7 +759,7 @@ namespace TeslaLogger
             {
                 Logfile.Log("MQTT: PublichGPSTracker Exeption: " + ex.Message);
                 ex.ToExceptionless().FirstCarUserID().Submit();
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
 
             }
 
@@ -782,7 +782,7 @@ namespace TeslaLogger
             {
                 Logfile.Log("MQTT: PublishMqttValue Exeption: " + ex.Message);
                 ex.ToExceptionless().FirstCarUserID().Submit();
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
 
             }
         }

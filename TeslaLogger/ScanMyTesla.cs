@@ -85,7 +85,7 @@ namespace TeslaLogger
                         || response.StartsWith("ERROR:", StringComparison.Ordinal)
                         || response.Contains("Resource Limit Is Reached"))
                     {
-                        Task.Delay(5000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(5000);
                     }
                     else
                     {
@@ -97,7 +97,7 @@ namespace TeslaLogger
                     car.CreateExceptionlessClient(ex).Submit();
                     car.Log("Scanmytesla: " + ex.Message);
                     Logfile.WriteException(ex.ToString());
-                    Task.Delay(20000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(20000);
                 }
             }
         }
@@ -310,7 +310,7 @@ namespace TeslaLogger
             {
                 car.CreateExeptionlessLog("ScanMyTesla", "Timeout", Exceptionless.Logging.LogLevel.Warn).Submit();
                 car.Log("Scanmytesla: Timeout");
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
             }
             catch (Newtonsoft.Json.JsonException jsonEx)
             {

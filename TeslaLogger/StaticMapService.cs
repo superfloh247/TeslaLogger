@@ -121,7 +121,7 @@ namespace TeslaLogger
                     }
                     else
                     {
-                        Task.Delay(1000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(1000);
                     }
                 }
             }
@@ -163,7 +163,7 @@ namespace TeslaLogger
                                     }
                                     else
                                     {
-                                        Task.Delay(1000).GetAwaiter().GetResult();
+                                        System.Threading.Thread.Sleep(1000);
                                     }
                                 }
                             }
@@ -194,7 +194,7 @@ namespace TeslaLogger
                             }
                             else
                             {
-                                Task.Delay(1000).GetAwaiter().GetResult();
+                                System.Threading.Thread.Sleep(1000);
                             }
                         }
                     }

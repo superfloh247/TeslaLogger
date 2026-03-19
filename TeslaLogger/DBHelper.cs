@@ -3446,7 +3446,7 @@ VALUES(
                         }
 
                         car.Log("Meter: Not Charging!");
-                        Task.Delay(6000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(6000);
                     }
 
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -3773,7 +3773,7 @@ WHERE
             // wait until all pos altitude values are filled
             while (OpenTopoDataService.GetSingleton().QueueLength > 0)
             {
-                Task.Delay(60000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(60000);
             }
             decimal meters_up = decimal.Zero;
             decimal meters_down = decimal.Zero;
@@ -6752,7 +6752,7 @@ FROM
                 var dt = GetAllChargingstates();
                 foreach (DataRow dr in dt.Rows)
                 {
-                    Task.Delay(10).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(10);
 
                     calculateCountry = "";
                     calculateDate = null;

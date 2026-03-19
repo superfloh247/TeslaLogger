@@ -51,7 +51,7 @@ namespace TeslaLogger
                     }
 
                     // sleep 10 Minutes
-                    Task.Delay(600000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(600000);
                 }
             }
             catch (Exception ex)
@@ -73,7 +73,7 @@ namespace TeslaLogger
 
                 if (car is LucidCar)
                 {
-                    Task.Delay(100).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(100);
                     continue;
                 }    
 

@@ -188,7 +188,7 @@ INSERT IGNORE INTO teslacharging SET
             while (result is not null && ParseJSON(result, car))
             {
                 resultPage++;
-                Task.Delay(2500).GetAwaiter().GetResult(); // wait a bit
+                System.Threading.Thread.Sleep(2500); // wait a bit
                 Tools.DebugLog($"GetChargingHistoryV2Service.LoadAll(#{car.CarInDB}) resultpage {resultPage}");
                 result = car.webhelper.GetChargingHistoryV2(car.Vin, resultPage).Result;
             }

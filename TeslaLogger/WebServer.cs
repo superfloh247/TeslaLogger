@@ -1477,7 +1477,7 @@ DROP TABLE chargingstate_bak";
                         // wait
                         for (int i = 0; i < 30; i++)
                         {
-                            Task.Delay(1000).GetAwaiter().GetResult();
+                            System.Threading.Thread.Sleep(1000);
                             if (File.Exists(path))
                             {
                                 using (FileStream fs = File.OpenRead(path))
@@ -1573,7 +1573,7 @@ DROP TABLE chargingstate_bak";
                     response.ContentType = "image/svg+xml";
                     while (car.Captcha is null)
                     {
-                        Task.Delay(250).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(250);
                     }
 
                     WriteString(response, car.Captcha, "image/svq+xml");
@@ -1760,7 +1760,7 @@ DROP TABLE chargingstate_bak";
                         if (vehicle_config?.Trim()?.StartsWith("{", System.StringComparison.Ordinal) == true)
                             break;
 
-                        Task.Delay(2000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(2000);
                     }
 
                     sb.Append("Vehicle Config:").Append("\r\n").Append(new Tools.JsonFormatter(vehicle_config).Format()).Append("\r\n");
@@ -1772,7 +1772,7 @@ DROP TABLE chargingstate_bak";
                     if (ex is TaskCanceledException)
                     {
                         Logfile.Log("DecodeCar: TaskCanceledException");
-                        Task.Delay(1000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(1000);
                     }
                     else
                     {
