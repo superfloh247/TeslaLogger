@@ -6141,7 +6141,7 @@ WHERE
             return 0;
         }
 
-        public static object DBNullIfEmptyOrZero(object val)
+        public static object? DBNullIfEmptyOrZero(object? val)
         {
             if (val is String s && s.Length == 0)
                 return DBNull.Value;
@@ -6156,7 +6156,7 @@ WHERE
             return val;
         }
 
-        public static object DBNullIfEmpty(object val)
+        public static object? DBNullIfEmpty(object? val)
         {
             if (val is String s && s.Length == 0)
                 return DBNull.Value;
