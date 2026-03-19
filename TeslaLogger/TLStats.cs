@@ -38,11 +38,11 @@ namespace TeslaLogger
                     if (DateTime.Now.Minute % 30 == 0)
                     {
                         Logfile.Log(Dump());
-                        Task.Delay(60000).GetAwaiter().GetResult(); // sleep 60 seconds
+                        System.Threading.Thread.Sleep(60000); // sleep 60 seconds
                     }
                     else
                     {
-                        Task.Delay(30000).GetAwaiter().GetResult(); // sleep 30 seconds
+                        System.Threading.Thread.Sleep(30000); // sleep 30 seconds
                     }
                 }
             }

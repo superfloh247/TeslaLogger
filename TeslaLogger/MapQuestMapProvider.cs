@@ -56,7 +56,7 @@ namespace TeslaLogger
                     Logfile.Log("Create File: " + filename);
                 }
 
-                Task.Delay(500).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(500);
             }
             catch (Exception ex)
             {
@@ -115,7 +115,7 @@ namespace TeslaLogger
                     Logfile.Log("Create File: " + filename);
                 }
 
-                Task.Delay(500).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(500);
             }
             catch (Exception ex)
             {
@@ -221,7 +221,7 @@ namespace TeslaLogger
                 Logfile.Log("Create File: " + filename);
                 
 
-                Task.Delay(1000).GetAwaiter().GetResult();
+                System.Threading.Thread.Sleep(1000);
             }
             catch (Exception ex)
             {

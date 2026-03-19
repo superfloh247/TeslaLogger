@@ -2092,7 +2092,7 @@ WHERE
                             con.Close();
                         }
                     }
-                    Task.Delay(1000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(1000);
                 }
                 using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
                 {
