@@ -143,26 +143,26 @@ namespace TeslaLogger
                             return;
                         }
 
-                        dynamic jsonResult = JsonConvert.DeserializeObject(result);
+                        JObject jsonResult = JObject.Parse(result);
                         if (jsonResult is null)
                         {
                             continue;
                         }
 
-                        dynamic response = jsonResult["response"];
+                        JToken response = jsonResult["response"];
                         if (response is null)
                         {
                             Tools.DebugLog(new Tools.JsonFormatter(result).Format());
                             continue;
                         }
 
-                        dynamic superchargers = response["superchargers"];
+                        JToken superchargers = response["superchargers"];
                         if (superchargers is null)
                         {
                             Tools.DebugLog(new Tools.JsonFormatter(result).Format());
                             continue;
                         }
-                        foreach (dynamic suc in superchargers)
+                        foreach (JToken suc in (JArray)superchargers)
                         {
                             try
                             {
@@ -203,36 +203,36 @@ namespace TeslaLogger
         {
             try
             {
-                dynamic jsonResult = JsonConvert.DeserializeObject(result);
-                if (jsonResult.ContainsKey("response"))
+                JObject jsonResult = JObject.Parse(result);
+                if (jsonResult.HasProperty("response"))
                 {
-                    dynamic response = jsonResult["response"];
-                    if (response.ContainsKey("superchargers"))
+                    JToken response = jsonResult["response"];
+                    if (response.HasProperty("superchargers"))
                     {
-                        foreach (dynamic suc in response["superchargers"])
+                        foreach (JToken suc in (JArray)response["superchargers"])
                         {
                             //Tools.DebugLog(new Tools.JsonFormatter(suc.ToString()).Format());
-                            if (suc.ContainsKey("available_stalls")
-                                && suc.ContainsKey("total_stalls")
-                                && suc.ContainsKey("name")
-                                && suc.ContainsKey("location")
-                                && suc["location"].ContainsKey("lat")
-                                && suc["location"].ContainsKey("long")
+                            if (suc.HasProperty("available_stalls")
+                                && suc.HasProperty("total_stalls")
+                                && suc.HasProperty("name")
+                                && suc.HasProperty("location")
+                                && suc["location"].HasProperty("lat")
+                                && suc["location"].HasProperty("long")
                                 )
                             {
-                                string name = suc["name"].ToString();
+                                string name = suc["name"]?.ToString() ?? "";
                                 name = name.Replace("Tesla Supercharger", "").Trim();
                                 bool SuCfound = GetSuperchargerByName(name, out int sucID);
-                                double lat = suc["location"]["lat"];
-                                double lng = suc["location"]["long"];
+                                double lat = double.Parse(suc["location"]["lat"]?.ToString() ?? "0");
+                                double lng = double.Parse(suc["location"]["long"]?.ToString() ?? "0");
                                 if (!SuCfound)
                                 {
                                     // add new entry to supercharger list in DB
                                     sucID = AddNewSupercharger(name, lat, lng);
                                 }
-                                if (int.TryParse(suc["available_stalls"].ToString(), out int available_stalls))
+                                if (int.TryParse(suc["available_stalls"]?.ToString(), out int available_stalls))
                                 {
-                                    if (int.TryParse(suc["total_stalls"].ToString(), out int total_stalls))
+                                    if (int.TryParse(suc["total_stalls"]?.ToString(), out int total_stalls))
                                     {
                                         {
                                             Tools.DebugLog($"SuC: <{name}> <{available_stalls}> <{total_stalls}>");
@@ -528,18 +528,18 @@ VALUES(
                     {
                         try
                         {
-                            dynamic j = JsonConvert.DeserializeObject(content);
+                            JObject j = JObject.Parse(content);
                         if (j?["data"] is null || j["errors"] != null)
                         {
                             Tools.DebugLog($"Unexpected GuestAPI response: {content}");
                             return a;
                         }
 
-                        dynamic site = j["data"]["chargingNetwork"]["site"];
-                        JArray chargers = site["chargerList"];
+                        JToken site = j["data"]["chargingNetwork"]["site"];
+                        JArray chargers = (JArray)site["chargerList"];
                         //JArray chargerDetails = site["chargersAvailable"]["chargerDetails"];
 
-                        string name = site["name"];
+                        string name = site["name"]?.ToString() ?? "";
 
                         a.total = chargers.Count;
 
@@ -618,18 +618,18 @@ VALUES(
 
                     try
                     {
-                        dynamic j = JsonConvert.DeserializeObject(r);
+                        JObject j = JObject.Parse(r);
                     if (j?["data"] is null || j["errors"] != null)
                     {
                         Tools.DebugLog($"Unexpected GuestAPI response: {r}");
                         return a;
                     }
 
-                    dynamic site = j["data"]["site"];
-                    JArray chargers = site["chargers"];
-                    JArray chargerDetails = site["chargersAvailable"]["chargerDetails"];
+                    JToken site = j["data"]["site"];
+                    JArray chargers = (JArray)site["chargers"];
+                    JArray chargerDetails = (JArray)site["chargersAvailable"]["chargerDetails"];
 
-                    string name = site["name"];
+                    string name = site["name"]?.ToString() ?? "";
 
                     a.total = chargers.Count;
 

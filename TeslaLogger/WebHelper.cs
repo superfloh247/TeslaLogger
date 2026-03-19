@@ -3540,35 +3540,35 @@ namespace TeslaLogger
                     {
                         _ = DBHelper.AddMothershipDataToDBAsync("ReverseGeocoding", start, 0, car.CarInDB);
                     }
-                    dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
+                    JObject jsonResult = JObject.Parse(resultContent);
                     string adresse = "";
 
                     if (!string.IsNullOrEmpty(ApplicationSettings.Default.MapQuestKey))
                     {
-                        dynamic res = jsonResult["results"];
-                        dynamic res0 = res[0];
-                        dynamic loc = res0["locations"];
-                        dynamic loc0 = loc[0];
+                        JToken res = jsonResult["results"];
+                        JToken res0 = (JArray)res == null ? null : ((JArray)res)[0];
+                        JToken loc = res0?["locations"];
+                        JToken loc0 = (JArray)loc == null ? null : ((JArray)loc)[0];
                         string postcode = "";
 
-                        if (loc0.ContainsKey("postalCode"))
-                            postcode = loc0["postalCode"].ToString();
+                        if (loc0.HasProperty("postalCode"))
+                            postcode = loc0["postalCode"]?.ToString() ?? "";
 
                         string country_code = "";
 
-                        if (loc0.ContainsKey("adminArea1") && loc0["adminArea1Type"].ToString() == "Country")
-                            country_code = loc0["adminArea1"].ToString().ToLower();
+                        if (loc0.HasProperty("adminArea1") && loc0["adminArea1Type"]?.ToString() == "Country")
+                            country_code = loc0["adminArea1"]?.ToString().ToLower() ?? "";
 
                         if (country_code.Length > 0 && car is not null)
                         {
                             car.CurrentJSON.current_country_code = country_code;
-                            car.CurrentJSON.current_state = loc0.ContainsKey("adminArea3") ? loc0["adminArea3"].ToString() : "";
+                            car.CurrentJSON.current_state = loc0.HasProperty("adminArea3") ? loc0["adminArea3"]?.ToString() ?? "" : "";
                         }
 
                         string road = "";
-                        if (loc0.ContainsKey("street"))
+                        if (loc0.HasProperty("street"))
                         {
-                            road = loc0["street"].ToString();
+                            road = loc0["street"]?.ToString() ?? "";
 
                             try
                             {
@@ -3584,8 +3584,8 @@ namespace TeslaLogger
 
                         string city = "";
 
-                        if (loc0.ContainsKey("adminArea5"))
-                            city = loc0["adminArea5"].ToString();
+                        if (loc0.HasProperty("adminArea5"))
+                            city = loc0["adminArea5"]?.ToString() ?? "";
 
                         if (country_code != "de")
                         {
@@ -5241,8 +5241,8 @@ WHERE
                     case 3: pl += "="; break;
                 }
                 var payload = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(pl));
-                dynamic d = JsonConvert.DeserializeObject(payload);
-                JArray scp = d["scp"];
+                JObject d = JObject.Parse(payload);
+                JArray scp = (JArray)d["scp"];
 
                 List<string> scopes = scp.ToObject<List<string>>();
 

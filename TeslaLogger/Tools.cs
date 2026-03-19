@@ -2708,6 +2708,60 @@ WHERE
 
             return token;
         }
+
+        /// <summary>
+        /// Extension method to check if a JToken has a non-null property.
+        /// Replaces the dynamic .ContainsKey() pattern for JObject/JToken properties.
+        /// </summary>
+        /// <param name="token">The JToken to check (can be null)</param>
+        /// <param name="propertyName">The property name to check for</param>
+        /// <returns>True if token is not null and contains a non-null property with the given name</returns>
+        public static bool HasProperty(this JToken? token, string propertyName)
+        {
+            if (token is null)
+                return false;
+            
+            var value = token[propertyName];
+            return value is not null && value.Type != JTokenType.Null;
+        }
+
+        /// <summary>
+        /// Get string value from JToken property, handling null safely.
+        /// </summary>
+        public static string? GetStringValue(this JToken? token, string propertyName)
+        {
+            return token?[propertyName]?.ToString();
+        }
+
+        /// <summary>
+        /// Get integer value from JToken property, handling null and type conversion safely.
+        /// </summary>
+        public static int? GetIntValue(this JToken? token, string propertyName)
+        {
+            var value = token?[propertyName];
+            if (value is null || value.Type == JTokenType.Null)
+                return null;
+            
+            if (int.TryParse(value.ToString(), out var result))
+                return result;
+            
+            return null;
+        }
+
+        /// <summary>
+        /// Get decimal value from JToken property, handling null and type conversion safely.
+        /// </summary>
+        public static decimal? GetDecimalValue(this JToken? token, string propertyName)
+        {
+            var value = token?[propertyName];
+            if (value is null || value.Type == JTokenType.Null)
+                return null;
+            
+            if (decimal.TryParse(value.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var result))
+                return result;
+            
+            return null;
+        }
     }
 }
 
