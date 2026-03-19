@@ -132,7 +132,7 @@ namespace TeslaLogger
 
                 string data = GetDataFromRequestInputStream(request);
 
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
                 int id = Convert.ToInt32(r["id"]);
 
@@ -365,9 +365,9 @@ WHERE
             {
                 Logfile.Log("GetCarsFromAccount");
                 string data = GetDataFromRequestInputStream(request);
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
-                string access_token = r["access_token"];
+                string access_token = r["access_token"]?.ToString() ?? "";
                 var car = new Car(-1, "", "", -1, access_token, DateTime.Now, "", "", "", "", "", "", "", 0.0, fleetAPI); // TODO Check
                 car.webhelper.Tesla_token = access_token;
 
@@ -383,9 +383,9 @@ WHERE
                 {
                     if (resultContent?.Contains("error_description") == true)
                     {
-                        dynamic j = JsonConvert.DeserializeObject(resultContent);
-                        string error = j["error"] ?? "NULL";
-                        string error_description = j["error_description"] ?? "NULL";
+                        JObject j = JObject.Parse(resultContent);
+                        string error = j["error"]?.ToString() ?? "NULL";
+                        string error_description = j["error_description"]?.ToString() ?? "NULL";
 
                         responseString = $"ERROR: {error} / Error Description: {error_description}";
 
@@ -463,15 +463,15 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
 
                 string data = GetDataFromRequestInputStream(request);
 
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
                 if (Tools.IsPropertyExist(r, "test"))
                 {
                     Logfile.Log("Test Wallbox");
 
-                    string type = r["type"];
-                    string host = r["host"];
-                    string param = r["param"];
+                    string type = r["type"]?.ToString() ?? "";
+                    string host = r["host"]?.ToString() ?? "";
+                    string param = r["param"]?.ToString() ?? "";
 
                     ElectricityMeterBase e = ElectricityMeterBase.Instance(type, host, param);
 
@@ -496,9 +496,9 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                         using (MySqlCommand cmd = new MySqlCommand("update cars set meter_type=@meter_type, meter_host=@meter_host, meter_parameter=@meter_parameter where id=@carid", con))
                         {
                             cmd.Parameters.AddWithValue("@carid", r["carid"]);
-                            cmd.Parameters.AddWithValue("@meter_type", r["type"]);
-                            cmd.Parameters.AddWithValue("@meter_host", r["host"]);
-                            cmd.Parameters.AddWithValue("@meter_parameter", r["param"]);
+                            cmd.Parameters.AddWithValue("@meter_type", r["type"]?.ToString() ?? "");
+                            cmd.Parameters.AddWithValue("@meter_host", r["host"]?.ToString() ?? "");
+                            cmd.Parameters.AddWithValue("@meter_parameter", r["param"]?.ToString() ?? "");
                             _ = SQLTracer.TraceNQ(cmd, out _);
 
                             WriteString(response, "OK");
@@ -507,7 +507,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 }
                 else if (Tools.IsPropertyExist(r, "load"))
                 {
-                    int carid = r["carid"];
+                    int carid = (int?)r["carid"] ?? 0;
                     var dr = DBHelper.GetCar(carid);
                     var obj = new
                     {
@@ -537,7 +537,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 string data = GetDataFromRequestInputStream(request);
                 string file_htaccess = "/var/www/html/.htaccess";
 
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
                 if (Tools.IsPropertyExist(r, "delete") || request?.QueryString?["delete"] == "1")
                 {
@@ -563,7 +563,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
 
                     File.WriteAllText(file_htaccess, content);
 
-                    string password = r["password"];
+                    string password = r["password"]?.ToString() ?? "";
 #pragma warning disable CA5350 // Keine schwachen kryptografischen Algorithmen verwenden
                     using (SHA1 sha1 = SHA1.Create())
 #pragma warning restore CA5350 // Keine schwachen kryptografischen Algorithmen verwenden
@@ -828,7 +828,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
             }
             else
             {
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
                 id = Convert.ToInt32(r["id"]);
             }
 
@@ -915,18 +915,18 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
                 }
                 else
                 {
-                    string vin = r["carid"].ToString();
-                    string email = r["email"];
-                    string password = r["password"];
-                    bool freesuc = r["freesuc"];
+                    string vin = r["carid"]?.ToString() ?? "";
+                    string email = r["email"]?.ToString() ?? "";
+                    string password = r["password"]?.ToString() ?? "";
+                    bool freesuc = bool.TryParse(r["freesuc"]?.ToString() ?? "false", out bool fs) ? fs : false;
 
-                    string access_token = StringCipher.Encrypt(r["access_token"].ToString());
-                    string refresh_token = StringCipher.Encrypt(r["refresh_token"].ToString());
+                    string access_token = StringCipher.Encrypt(r["access_token"]?.ToString() ?? "");
+                    string refresh_token = StringCipher.Encrypt(r["refresh_token"]?.ToString() ?? "");
 
                     bool FleetAPI = false;
 
                     if (r["fleetAPI"] is not null)
-                         FleetAPI = r["fleetAPI"];
+                         FleetAPI = bool.TryParse(r["fleetAPI"]?.ToString() ?? "false", out bool fa) ? fa : false;
 
                     if (id == -1)
                     {
