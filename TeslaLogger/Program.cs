@@ -252,7 +252,7 @@ namespace TeslaLogger
                 {
                     StartCarThread(r);
                     // small throttle delay
-                    Task.Delay(500).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(500);
                 }
                 dt.Clear();
             } 
@@ -569,7 +569,7 @@ namespace TeslaLogger
                         Logfile.Log($"DBCONNECTION {ex.Message}");
                     }
 
-                    Task.Delay(15000).GetAwaiter().GetResult();
+                    System.Threading.Thread.Sleep(15000);
                 }
             }
         }
