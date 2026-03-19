@@ -850,13 +850,13 @@ PRIMARY KEY(id)
 
         private static void UpdateAllDrivestateDateThread()
         {
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 while (Car.Allcars.Count == 0)
                 {
-                    Task.Delay(1000).GetAwaiter().GetResult();
+                    await Task.Delay(1000).ConfigureAwait(false);
                 }
-                Task.Delay(5000).GetAwaiter().GetResult();
+                await Task.Delay(5000).ConfigureAwait(false);
                 DBHelper.UpdateAllDrivestateData();
             });
         }
@@ -1489,7 +1489,7 @@ PRIMARY KEY(id)
                             break;
                         }
                         Logfile.Log("Git failed. Retry in 30 sec!");
-                        Task.Delay(30000).GetAwaiter().GetResult();
+                        await Task.Delay(30000).ConfigureAwait(false);
                     }
                 }
 
