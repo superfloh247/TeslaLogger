@@ -861,7 +861,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
 
                 string data = GetDataFromRequestInputStream(request);
 
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
                 int id = Convert.ToInt32(r["id"]);
 
@@ -1036,12 +1036,12 @@ FROM
 
                 string data = GetDataFromRequestInputStream(request);
 
-                dynamic r = JsonConvert.DeserializeObject(data);
+                JObject r = JObject.Parse(data);
 
                 int id = Convert.ToInt32(r["id"]);                
-                string login = r["login"];
-                string password = r["password"];
-                string carname = r["carname"];
+                string login = r["login"]?.ToString() ?? "";
+                string password = r["password"]?.ToString() ?? "";
+                string carname = r["carname"]?.ToString() ?? "";
 
                 if (id == -1)
                 {
