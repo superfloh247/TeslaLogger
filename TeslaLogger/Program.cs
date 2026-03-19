@@ -109,7 +109,9 @@ namespace TeslaLogger
                         Logfile.Log("Startup doesn't sucessfully run DownloadUpdateAndInstall() - retry now!");
                         ExceptionlessClient.Default.SubmitLog("Program", "Startup doesn't sucessfully run DownloadUpdateAndInstall() - retry now!");
 
-                        UpdateTeslalogger.DownloadUpdateAndInstall();
+                        #pragma warning disable CS4014
+                        UpdateTeslalogger.DownloadUpdateAndInstallAsync();
+                        #pragma warning restore CS4014
                     }
                     catch (Exception ex)
                     {
@@ -153,7 +155,7 @@ namespace TeslaLogger
                         p.StartInfo.UseShellExecute = false;
                         p.Start();
 
-                        Task.Delay(5000).GetAwaiter().GetResult();
+                        System.Threading.Thread.Sleep(5000);
 
                         Environment.Exit(0);
                     }
@@ -534,7 +536,9 @@ namespace TeslaLogger
         {
             WaitForDB();
 
+            #pragma warning disable CS4014
             UpdateTeslalogger.Start();
+            #pragma warning restore CS4014
             _ = Task.Factory.StartNew(() =>
             {
                 UpdateTeslalogger.UpdateGrafana();

@@ -44,18 +44,18 @@ namespace UnitTestsTeslalogger
         }
 
         [TestMethod]
-        public void UlmBeimTuermle()
+        public async Task UlmBeimTuermle()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 48.4053267, 9.9547932, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 48.4053267, 9.9547932, true).ConfigureAwait(false);
             Assert.AreEqual("89075 Ulm, Beim Türmle 23", temp);
             Assert.AreEqual("de", c.CurrentJSON.current_country_code);
             Assert.AreEqual("Baden-Württemberg", c.CurrentJSON.current_state);
         }
 
         [TestMethod]
-        public void SulzbacherStr()
+        public async Task SulzbacherStr()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 48.96092, 9.43113, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 48.96092, 9.43113, true).ConfigureAwait(false);
             Assert.AreEqual("71522 Backnang, Sulzbacher Straße ", temp);
             Assert.AreEqual("de", c.CurrentJSON.current_country_code);
             Assert.AreEqual("Baden-Württemberg", c.CurrentJSON.current_state);
@@ -63,54 +63,54 @@ namespace UnitTestsTeslalogger
 
 
         [TestMethod]
-        public void NewJerseyNorthBergen()
+        public async Task NewJerseyNorthBergen()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 40.773667, -74.039867, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 40.773667, -74.039867, true).ConfigureAwait(false);
             Assert.AreEqual("us-07047 North Bergen, Jane Street ", temp);
             Assert.AreEqual("us", c.CurrentJSON.current_country_code);
             Assert.AreEqual("New Jersey", c.CurrentJSON.current_state);
         }
 
         [TestMethod]
-        public void UlmBeringerbruecke()
+        public async Task UlmBeringerbruecke()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 48.400892, 9.970095, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 48.400892, 9.970095, true).ConfigureAwait(false);
             Assert.AreEqual("89077 Ulm, Blaubeurer Straße ", temp);
             Assert.AreEqual("de", c.CurrentJSON.current_country_code);
             Assert.AreEqual("Baden-Württemberg", c.CurrentJSON.current_state);
         }
 
         [TestMethod]
-        public void Japan()
+        public async Task Japan()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 35.677121, 139.751033, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 35.677121, 139.751033, true).ConfigureAwait(false);
             Assert.AreEqual("jp-100-0013 千代田区, 内堀通り ", temp);
             Assert.AreEqual("jp", c.CurrentJSON.current_country_code);
             Assert.AreEqual("", c.CurrentJSON.current_state);
         }
 
         [TestMethod]
-        public void MietingenMehrzweckhalle()
+        public async Task MietingenMehrzweckhalle()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 48.1850756, 9.9016996, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 48.1850756, 9.9016996, true).ConfigureAwait(false);
             Assert.AreEqual("88487 Mietingen, Tulpenweg 20", temp); // should be "88487 Mietingen, Tulpenweg 20" but nominatim doesn't provide Mietingen as village
             Assert.AreEqual("de", c.CurrentJSON.current_country_code);
             Assert.AreEqual("Baden-Württemberg", c.CurrentJSON.current_state);
         }
 
         [TestMethod]
-        public void ApothekeWiblingen()
+        public async Task ApothekeWiblingen()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 48.360601, 9.984227, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 48.360601, 9.984227, true).ConfigureAwait(false);
             Assert.AreEqual("89079 Ulm, Donautalstraße 46", temp); 
             Assert.AreEqual("de", c.CurrentJSON.current_country_code);
             Assert.AreEqual("Baden-Württemberg", c.CurrentJSON.current_state);
         }
 
         [TestMethod]
-        public void Lat0Lng0()
+        public async Task Lat0Lng0()
         {
-            string temp = WebHelper.ReverseGecocodingAsync(c, 0, 0, true).Result;
+            string temp = await WebHelper.ReverseGecocodingAsync(c, 0, 0, true).ConfigureAwait(false);
             Assert.AreEqual("", temp);
         }
 

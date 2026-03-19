@@ -59,7 +59,7 @@ namespace TeslaLogger
             }
         }
 
-        public static void Start()
+        public static async Task Start()
         {
             // update may take quite a while, especially if we ALTER TABLEs
             // start a thread that puts comforting messages into the log
@@ -307,7 +307,7 @@ namespace TeslaLogger
 
             try
             {
-                DownloadUpdateAndInstall();
+                await DownloadUpdateAndInstallAsync();
             }
             catch (Exception ex)
             {
@@ -696,13 +696,13 @@ PRIMARY KEY(id)
                 AssertAlterDB();
                 DBHelper.ExecuteSQLQuery("ALTER TABLE pos ADD COLUMN AP TINYINT(1) NULL", 300);
 
-                Task.Run(() =>
+                Task.Run(async () =>
                 {
                     while (Car.Allcars.Count == 0)
                     {
-                        Task.Delay(1000).GetAwaiter().GetResult();
+                        await Task.Delay(1000).ConfigureAwait(false);
                     }
-                    Task.Delay(5000).GetAwaiter().GetResult();
+                    await Task.Delay(5000).ConfigureAwait(false);
                     for (int x=0; x<Car.Allcars.Count; x++)
                     {
                         Car c = Car.Allcars[x];
@@ -1267,7 +1267,7 @@ PRIMARY KEY(id)
             return temp;
         }
 
-        public static async void DownloadUpdateAndInstall()
+        public static async Task DownloadUpdateAndInstallAsync()
         {
             DownloadUpdateAndInstallStarted = true;
             CheckNET8Installed();
@@ -1288,7 +1288,10 @@ PRIMARY KEY(id)
                     try
                     {
                         comfortingMessagesCTS.Cancel();
-                        ComfortingMessages.Wait();
+                        if (ComfortingMessages != null)
+                        {
+                            await ComfortingMessages.ConfigureAwait(false);
+                        }
                     }
                     catch (Exception) { }
                 }
@@ -1306,7 +1309,7 @@ PRIMARY KEY(id)
                 {
                     HttpClient client = new HttpClient();
                     client.DefaultRequestHeaders.Add("Authorization", "Bearer teslalogger");
-                    client.GetAsync("http://watchtower:8080/v1/update").Wait();
+                    await client.GetAsync("http://watchtower:8080/v1/update").ConfigureAwait(false);
                 }
                 catch (System.Net.Http.HttpRequestException ex)
                 {

@@ -20,7 +20,9 @@ namespace UnitTestsTeslalogger
             Car c = new Car(0, "", "", 0, "", DateTime.Now, "", "", "", "", "", "", "", null, false);
             c.Log("Update DBSchema!");
 
+            #pragma warning disable CS4014
             UpdateTeslalogger.Start();
+            #pragma warning restore CS4014
 
             while (UpdateTeslalogger.done.IsCancellationRequested == false)
             {
