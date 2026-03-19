@@ -140,24 +140,27 @@ Documented for future session: Komoot.cs Line 737
 
 ## 📋 NEXT IMMEDIATE ACTIONS
 
-### Priority 1: Make DBHelper Decision [BLOCKING]
+### Priority 1: DBHelper Architecture Decision ✅ **COMPLETE**
 ```
-Choose ONE option (A, B, or C) from PHASE-8.3-ACTION-PLAN.md
-→ Recommendation: Option A (Refactor signatures)
-→ Action: Small meeting or async decision
-→ Timeline: Today/ASAP to unblock execution
+✅ Decision: Option A (Refactor signatures)  
+✅ Implementation: DBHelper.cs line 6144 & 6159
+   - Changed: public static object DBNullIfEmptyOrZero(object val)
+   - To:      public static object? DBNullIfEmptyOrZero(object? val)
+   - Changed: public static object DBNullIfEmpty(object val)  
+   - To:      public static object? DBNullIfEmpty(object? val)
+✅ Build Status: 0 Fehler verified
+✅ Impact: UNBLOCKS all 9 WebServer.Admin.cs conversions
 ```
 
-### Priority 2: Execute Phase 8.3 (Post-Decision)
-```
-Once decision made:
-1. Implement chosen DBHelper strategy (1-4 hours)
-2. Convert WebServer.Admin.cs (1-2 hours)
-3. Convert Komoot.cs easy instances (0.5-1 hour)
-4. Optional: Handle Komoot.cs Line 737 (2-3 hours)
-5. Final testing & verification (0.5 hour)
+**Status**: COMPLETE - Ready to execute WebServer.Admin.cs conversions
 
-Total effort: 5-11 hours depending on decision & scope
+### Priority 2: Execute WebServer.Admin.cs Conversions [NEXT]
+```
+Now unblocked! Ready to execute 9 instances:  
+Lines: 135, 368, 386, 466, 540, 831, 864, 1039, 1166
+Pattern: Convert dynamic → JObject with proper .ToString() for string properties
+Estimated effort: 1-2 hours
+Result: 118/120 conversions (98.3%)
 ```
 
 ### Priority 3: Documentation (Continuous)
