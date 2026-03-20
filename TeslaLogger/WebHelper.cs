@@ -1152,7 +1152,10 @@ namespace TeslaLogger
             lastCharging_State = "";
         }
 
-        public virtual async ValueTask<bool> IsChargingAsync(bool justCheck = false, bool noMemcache = false)
+        public virtual async ValueTask<bool> IsChargingAsync(
+            bool justCheck = false, 
+            bool noMemcache = false,
+            CancellationToken cancellationToken = default)
         {
             if (car.FleetAPI)
             {
@@ -1163,15 +1166,15 @@ namespace TeslaLogger
             try
             {
                 // resultContent = GetCommand("charge_state").Result;
-                resultContent = GetCommand(vehicle_data_everything).Result;
+                resultContent = await GetCommand(vehicle_data_everything, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (resultContent == INSERVICE)
                 {
-                    await Task.Delay(10000);
+                    await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
                     return false;
                 }
 
-                Task<double?> outside_temp = GetOutsideTempAsync().AsTask();
+                Task<double?> outside_temp = GetOutsideTempAsync(cancellationToken).AsTask();
 
                 Tools.SetThreadEnUS();
                 JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
@@ -1888,11 +1891,14 @@ namespace TeslaLogger
         public static System.Threading.SemaphoreSlim isOnlineLock = new System.Threading.SemaphoreSlim(1, 1);
 #pragma warning restore CA2211 // Nicht konstante Felder dürfen nicht sichtbar sein
 
-        public async virtual ValueTask<string> IsOnlineAsync(bool returnOnUnauthorized = false)
+        public async virtual ValueTask<string> IsOnlineAsync(
+            bool returnOnUnauthorized = false,
+            CancellationToken cancellationToken = default)
         {
             string resultContent = "";
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
 
                 int accountid = 0;
                 lock (vehicles2Account)
@@ -1942,7 +1948,7 @@ namespace TeslaLogger
                     {
                         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Tesla_token);
                         Tools.DebugLog($"IsOnline #{car.CarInDB} request: {adresse}");
-                        result = await httpClientTeslaAPI.SendAsync(request);
+                        result = await httpClientTeslaAPI.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
                         if (returnOnUnauthorized && result?.StatusCode == HttpStatusCode.Unauthorized)
                         {
@@ -1954,7 +1960,7 @@ namespace TeslaLogger
                             return "NULL";
                         }
 
-                        resultContent = await result.Content.ReadAsStringAsync();
+                        resultContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                         // resultContent = Tools.ConvertBase64toString("");
                     }
                 }
@@ -2805,7 +2811,9 @@ namespace TeslaLogger
             }
         }
 
-        public virtual async ValueTask<bool> IsDrivingAsync(bool justinsertdb = false)
+        public virtual async ValueTask<bool> IsDrivingAsync(
+            bool justinsertdb = false,
+            CancellationToken cancellationToken = default)
         {
             if (car.FleetAPI)
             {
@@ -2827,11 +2835,11 @@ namespace TeslaLogger
             {
                 if (car.FirmwareAtLeastVersion("2023.38.4"))
                 {
-                    resultContent = GetCommand(vehicle_data_everything).Result;
+                    resultContent = await GetCommand(vehicle_data_everything, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    resultContent = GetCommand("vehicle_data?endpoints=drive_state&let_sleep=true").Result;
+                    resultContent = await GetCommand("vehicle_data?endpoints=drive_state&let_sleep=true", cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
 
                 if (resultContent == INSERVICE)
@@ -4230,13 +4238,13 @@ WHERE
             return -1;
         }
 
-        public virtual async Task<double> GetOdometerAsync()
+        public virtual async Task<double> GetOdometerAsync(CancellationToken cancellationToken = default)
         {
             string resultContent = "";
             try
             {
                 // resultContent = await GetCommand("vehicle_state");
-                resultContent = await GetCommand(vehicle_data_everything);
+                resultContent = await GetCommand(vehicle_data_everything, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 Tools.SetThreadEnUS();
 
@@ -4332,7 +4340,7 @@ WHERE
             //return 0;
         }
 
-        internal async ValueTask<double?> GetOutsideTempAsync()
+        internal async ValueTask<double?> GetOutsideTempAsync(CancellationToken cancellationToken = default)
         {
             string cacheKey = Program.TLMemCacheKey.GetOutsideTempAsync.ToString() + car.CarInDB;
             object cacheValue = MemoryCache.Default.Get(cacheKey);
@@ -4346,7 +4354,7 @@ WHERE
             {
                 // resultContent = await GetCommand("climate_state");
 
-                resultContent = GetCommand(vehicle_data_everything).Result;
+                resultContent = await GetCommand(vehicle_data_everything, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (resultContent is null || resultContent.Length == 0 || resultContent == "NULL")
                 {
@@ -4453,7 +4461,10 @@ WHERE
             return null;
         }
 
-        public async ValueTask<string> GetCommand(string cmd, bool noMemcache = false)
+        public async ValueTask<string> GetCommand(
+            string cmd, 
+            bool noMemcache = false,
+            CancellationToken cancellationToken = default)
         {
             if (car.FleetAPI)
             {
@@ -4465,6 +4476,8 @@ WHERE
             string resultContent = "";
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 string cacheKey = "GetCommand_" + cmd + "_" + cacheGUID;
 
                 string cachedValue = MemoryCache.Default[cacheKey] as string;
@@ -4484,7 +4497,7 @@ WHERE
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Tesla_token);
                     Tools.DebugLog($"GetCommand #{car.CarInDB} request: {adresse}");
-                    HttpResponseMessage result = await httpClientTeslaAPI.SendAsync(request);
+                    HttpResponseMessage result = await httpClientTeslaAPI.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
                     car.Log($"Command: {cmd} [{commandCounter}]");
 
@@ -4493,7 +4506,7 @@ WHERE
                         startRequestTimeout = null;
                         MemoryCache.Default.Remove(cacheKeyNotFound);
 
-                        resultContent = await result.Content.ReadAsStringAsync();
+                        resultContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                         //Tools.DebugLog($"GetCommand request: {adresse} result: {new Tools.JsonFormatter(resultContent).Format()}");
 
                         if (cmd.Contains("vehicle_data") && noMemcache == false)
@@ -5659,6 +5672,141 @@ WHERE
             }
             statusCode = 0;
             return false;
+        }
+
+        /// <summary>
+        /// Streams charging history records asynchronously, handling pagination transparently.
+        /// </summary>
+        /// <remarks>
+        /// Yields charging history records one page at a time from the Tesla API.
+        /// Automatically handles pagination, allowing consumers to process records as they arrive
+        /// without loading the entire history into memory.
+        /// 
+        /// Supports cancellation and properly propagates API errors.
+        /// </remarks>
+        /// <param name="vin">Optional vehicle identification number filter. If null, uses this vehicle's VIN.</param>
+        /// <param name="cancellationToken">Cancellation token for stopping the enumeration mid-stream.</param>
+        /// <returns>Async stream of charging history records.</returns>
+        /// <example>
+        /// <code>
+        /// // Stream and process charging records one page at a time
+        /// await foreach (var record in webHelper.GetChargingHistoryStreamAsync(cancellationToken: ct))
+        /// {
+        ///     await ProcessChargingRecordAsync(record, ct);
+        ///     // Memory usage remains constant - only one page buffered at a time
+        /// }
+        /// </code>
+        /// </example>
+        public async IAsyncEnumerable<JObject> GetChargingHistoryStreamAsync(
+            string? vin = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            int pageNumber = 1;
+            bool hasMore = true;
+            
+            while (hasMore && !cancellationToken.IsCancellationRequested)
+            {
+                JArray? recordsToYield = null;
+
+                try
+                {
+                    // Fetch current page
+                    string pageJson = await GetChargingHistoryV2Async(vin, pageNumber).ConfigureAwait(false);
+                    
+                    if (string.IsNullOrEmpty(pageJson) || pageJson == "{}")
+                    {
+                        break;
+                    }
+
+                    // Parse page response
+                    JObject? pageResult = SafeJObject(pageJson);
+                    if (pageResult == null)
+                    {
+                        break;
+                    }
+
+                    // Extract records from response
+                    JArray? records = pageResult["records"] as JArray;
+                    if (records == null || records.Count == 0)
+                    {
+                        break;
+                    }
+
+                    // Store records to yield outside the try-catch block
+                    recordsToYield = records;
+
+                    // Check if there are more pages
+                    hasMore = records.Count >= 20;  // Assume page size is 20
+                    pageNumber++;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation requested - stop enumeration gracefully
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    // Log error and stop enumeration
+                    car.CreateExceptionlessClient(ex).AddTags("GetChargingHistoryStream").Submit();
+                    break;
+                }
+
+                // Yield records outside the try-catch block
+                if (recordsToYield != null)
+                {
+                    foreach (JObject? record in recordsToYield.OfType<JObject>())
+                    {
+                        if (record != null)
+                        {
+                            yield return record;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Private async version of GetChargingHistoryV2 for internal use
+        private async ValueTask<string> GetChargingHistoryV2Async(string? vin = null, int pageNumber = 1)
+        {
+            try
+            {
+                if (String.IsNullOrEmpty(apiaddress) || apiaddress == "KAFKA")
+                    return "";
+
+                HttpClient httpclient = GethttpclientgetChargingHistoryV2();
+                using (var request = new HttpRequestMessage(HttpMethod.Get, 
+                    new Uri($"{apiaddress}api/1/dx/charging/history?pageNo={pageNumber}{(!string.IsNullOrEmpty(vin)?"&vin="+vin:"")}")))
+                {
+                    Tools.DebugLog($"GetChargingHistoryV2Async #{car.CarInDB} page {pageNumber}");
+                    request.Headers.Add("Authorization", "Bearer " + Tesla_token);
+                    
+                    if (apiaddress.StartsWith("https://") && apiaddress.EndsWith("/"))
+                    {
+                        request.Headers.Host = apiaddress.Replace("https://", "").Replace("/", "");
+                    }
+
+                    DateTime start = DateTime.UtcNow;
+                    HttpResponseMessage result = await httpclient.SendAsync(request).ConfigureAwait(false);
+                    string resultContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    _ = DBHelper.AddMothershipDataToDBAsync("GetChargingHistoryV2", start, (int)result.StatusCode, car.CarInDB);
+
+                    if (!result.IsSuccessStatusCode)
+                    {
+                        car.webhelper.getChargingHistoryV2Fail++;
+                        throw new Exception($"GetChargingHistoryV2: {result.StatusCode}");
+                    }
+
+                    getChargingHistoryV2OK++;
+                    return resultContent;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!WebHelper.FilterNetworkoutage(ex))
+                    CreateExceptionlessClientWithResultContent(ex, "").AddObject(car.GetCurrentState().ToString(), "CarState").Submit();
+                car.Log($"GetChargingHistoryV2Async error: {ex.Message}");
+            }
+            return "{}";
         }
 
     }

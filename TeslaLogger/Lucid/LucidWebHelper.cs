@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TeslaLogger;
 
@@ -72,7 +73,7 @@ namespace TeslaLoggerNET8.Lucid
             return "";
         }
 
-        public override async ValueTask<string> IsOnlineAsync(bool returnOnUnauthorized = false)
+        public override async ValueTask<string> IsOnlineAsync(bool returnOnUnauthorized = false, CancellationToken cancellationToken = default)
         {
             GetNewData();
 
@@ -91,7 +92,7 @@ namespace TeslaLoggerNET8.Lucid
             return "online";
         }
 
-        public override async ValueTask<bool> IsDrivingAsync(bool justinsertdb = false)
+        public override async ValueTask<bool> IsDrivingAsync(bool justinsertdb = false, CancellationToken cancellationToken = default)
         {
             GetNewData();
             bool isDriving = power == "POWER_STATE_DRIVE" || gear_position == "GEAR_DRIVE" || gear_position == "GEAR_REVERSE";
@@ -110,7 +111,7 @@ namespace TeslaLoggerNET8.Lucid
             return isDriving;
         }
 
-        public override async ValueTask<bool> IsChargingAsync(bool justCheck = false, bool noMemcache = false)
+        public override async ValueTask<bool> IsChargingAsync(bool justCheck = false, bool noMemcache = false, CancellationToken cancellationToken = default)
         {
             GetNewData();
             var charging = charge_state == "CHARGE_STATE_CHARGING";
@@ -131,7 +132,7 @@ namespace TeslaLoggerNET8.Lucid
             return charging;
         }
 
-        public override async Task<double> GetOdometerAsync()
+        public override async Task<double> GetOdometerAsync(CancellationToken cancellationToken = default)
         {
             GetNewData();
 
