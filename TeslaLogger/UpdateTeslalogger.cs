@@ -49,7 +49,18 @@ namespace TeslaLogger
                 else if (ComfortingMessages is not null)
                 {
                     comfortingMessagesCTS.Cancel();
-                    ComfortingMessages.Wait();
+                    try
+                    {
+                        ComfortingMessages.Wait();
+                    }
+                    catch (AggregateException ae)
+                    {
+                        // Expected: OperationCanceledException will be wrapped in AggregateException when task is cancelled
+                        if (!ae.InnerExceptions.All(e => e is OperationCanceledException))
+                        {
+                            throw;
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -1911,7 +1922,7 @@ PRIMARY KEY(id)
             return filename;
         }
 
-        public static void UpdateGrafana()
+        public static async Task UpdateGrafanaAsync()
         {
             try
             {
@@ -2547,7 +2558,7 @@ PRIMARY KEY(id)
                         Tools.ExecMono("grafana-cli", "admin data-migration encrypt-datasource-passwords");
                     }
 
-                    Tools.RestartGrafanaServer().Wait();
+                    await Tools.RestartGrafanaServer().ConfigureAwait(false);
 
                     CopyLanguageFileToTimelinePanel(language);
 

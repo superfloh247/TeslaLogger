@@ -80,7 +80,7 @@ namespace TeslaLogger
                         }
                     }
 
-                    response = GetDataFromWebservice().Result;
+                    response = await GetDataFromWebservice().ConfigureAwait(false);
                     if (response.StartsWith("not found", StringComparison.Ordinal)
                         || response.StartsWith("ERROR:", StringComparison.Ordinal)
                         || response.Contains("Resource Limit Is Reached"))
@@ -119,7 +119,7 @@ namespace TeslaLogger
                 {
 
                     DateTime start = DateTime.UtcNow;
-                    HttpResponseMessage result = await httpclient_teslalogger_de.PostAsync(new Uri("http://teslalogger.de/get_scanmytesla.php"), content).ConfigureAwait(true);
+                    HttpResponseMessage result = await httpclient_teslalogger_de.PostAsync(new Uri("http://teslalogger.de/get_scanmytesla.php"), content).ConfigureAwait(false);
 
                     if (result.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                     {
@@ -129,7 +129,7 @@ namespace TeslaLogger
                         return "ERROR: 503";
                     }
 
-                    resultContent = await result.Content.ReadAsStringAsync().ConfigureAwait(true);
+                    resultContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                     await DBHelper.AddMothershipDataToDBAsync("teslalogger.de/get_scanmytesla.php", start, (int)result.StatusCode, car.CarInDB);
 

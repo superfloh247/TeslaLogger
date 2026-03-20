@@ -842,7 +842,7 @@ Logfile.Log($"Found {vehicles.Count} Vehicles");
         private static void Admin_UpdateGrafana(HttpListenerRequest request, HttpListenerResponse response)
         {
             Tools.lastGrafanaSettings = DateTime.UtcNow.AddDays(-1);
-            _ = Task.Run(() => { UpdateTeslalogger.UpdateGrafana(); });
+            _ = Task.Run(async () => { await UpdateTeslalogger.UpdateGrafanaAsync().ConfigureAwait(false); });
             Tools._StreamingPos = null;
             WriteString(response, @"OK");
         }

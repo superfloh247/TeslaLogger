@@ -645,9 +645,9 @@ namespace TeslaLogger
             #pragma warning disable CS4014
             UpdateTeslalogger.Start();
             #pragma warning restore CS4014
-            _ = Task.Factory.StartNew(() =>
+            _ = Task.Factory.StartNew(async () =>
             {
-                UpdateTeslalogger.UpdateGrafana();
+                await UpdateTeslalogger.UpdateGrafanaAsync().ConfigureAwait(false);
             }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
