@@ -13,26 +13,132 @@ using TeslaLoggerNET8.Kafka;
 
 namespace TeslaLogger
 {
+    /// <summary>
+    /// Main entry point and initialization orchestrator for the TeslaLogger application.
+    /// </summary>
+    /// <remarks>
+    /// The Program class manages application startup, configuration, and initialization:
+    /// - Framework version checking (.NET 8 verification)
+    /// - Logging subsystem initialization
+    /// - Database connection establishment
+    /// - External service setup (MQTT, ABRP, Komoot, Nearb SuC)
+    /// - Web server initialization  
+    /// - Vehicle authentication and data collection start
+    /// - Main event loop management
+    /// 
+    /// Initialization order is critical; see Main() for execution sequence.
+    /// All static fields represent application-wide configuration.
+    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     internal class Program
     {
+        /// <summary>
+        /// Global flag for verbose debug output.
+        /// </summary>
+        /// <remarks>
+        /// When true, enables detailed logging of internal operations.
+        /// Defaults to false for normal operation.
+        /// </remarks>
         public static bool VERBOSE; // defaults to false
+        
+        /// <summary>
+        /// Global flag for SQL debugging (logs SQL commands executed).
+        /// </summary>
+        /// <remarks>
+        /// When true, logs all SQL commands to debug output.
+        /// Defaults to false; enable for database troubleshooting.
+        /// </remarks>
         public static bool SQLTRACE; // defaults to false
+        
+        /// <summary>
+        /// Global flag for full SQL debugging (logs detailed SQL execution).
+        /// </summary>
+        /// <remarks>
+        /// When true, logs complete SQL with parameter values and results.
+        /// Defaults to false; very verbose, use only for detailed debugging.
+        /// </remarks>
         public static bool SQLFULLTRACE; // defaults to false
+        
+        /// <summary>
+        /// Maximum number of characters to log per SQL command for debugging.
+        /// </summary>
+        /// <remarks>
+        /// Prevents excessively large log entries from batched SQL operations.
+        /// Default: 250 characters.
+        /// </remarks>
         public static int SQLTRACELIMIT = 250;
+        
+        /// <summary>
+        /// Minutes to keep the vehicle online after last usage (prevents sleep).
+        /// </summary>
+        /// <remarks>
+        /// After the vehicle stops being used, keep it awake for this duration.
+        /// Default: 5 minutes.
+        /// </remarks>
         public static int KeepOnlineMinAfterUsage = 5;
+        
+        /// <summary>
+        /// Minutes to suspend making API calls to the Tesla API.
+        /// </summary>
+        /// <remarks>
+        /// Used to respect rate limits and reduce API pressure.
+        /// Default: 30 minutes.
+        /// </remarks>
         public static int SuspendAPIMinutes = 30;
+        
+        /// <summary>
+        /// The timestamp when the application was started.
+        /// </summary>
+        /// <remarks>
+        /// Used for calculating application uptime and logging.
+        /// </remarks>
         public static DateTime uptime = DateTime.Now;
 
+        /// <summary>
+        /// Memory cache keys for the application-level cache.
+        /// </summary>
         public enum TLMemCacheKey
         {
+            /// <summary>
+            /// Cached value for GetOutsideTempAsync method.
+            /// </summary>
             GetOutsideTempAsync,
+            /// <summary>
+            /// Cached value for housekeeping operations.
+            /// </summary>
             Housekeeping
         }
 
         private static WebServer webServer;
+        
+        /// <summary>
+        /// Indicates whether the OVMS (Open Vehicle Monitoring System) has been started.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to false; set to true only if OVMS module is necessary.
+        /// </remarks>
         private static bool OVMSStarted; // defaults to false;
 
+        /// <summary>
+        /// Main application entry point orchestrating the complete startup sequence.
+        /// </summary>
+        /// <param name="args">Command-line arguments (currently unused).</param>
+        /// <remarks>
+        /// Execution sequence:
+        /// 1. Initialize error reporting (Exceptionless)
+        /// 2. Check .NET 8 framework version
+        /// 3. Setup logging subsystem
+        /// 4. Perform stage 1 initialization (basic setup)
+        /// 5. Check Docker environment
+        /// 6. Perform stage 2 initialization (advanced setup)
+        /// 7. Connect to database
+        /// 8. Initialize web server
+        /// 9. Setup external services (TopoData, Maps, MQTT, etc.)
+        /// 10. Update vehicle list and start collection
+        /// 11. Enter main event loop
+        /// 
+        /// All exceptions are caught and logged; application does not terminate on errors.
+        /// </remarks>
         private static void Main(string[] _)
         {
             try

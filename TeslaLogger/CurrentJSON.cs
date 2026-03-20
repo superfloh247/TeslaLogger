@@ -6,56 +6,416 @@ using System.Runtime.Caching;
 
 namespace TeslaLogger
 {
+    /// <summary>
+    /// Represents the current state and telemetry values of a Tesla vehicle at a point in time.
+    /// </summary>
+    /// <remarks>
+    /// CurrentJSON encapsulates all vehicle state information retrieved from the Tesla API:
+    /// 
+    /// State properties:
+    /// - Charging status (current_charging, plugged_in)
+    /// - Driving status (current_driving, current_speed)
+    /// - Sleep state (current_online, current_sleeping, current_falling_asleep)
+    /// - Power information (current_power, current_charger_power)
+    /// 
+    /// Battery/Range properties:
+    /// - Battery level (current_battery_level)
+    /// - Estimated range (current_battery_range_km, current_ideal_battery_range_km)
+    /// - Odometer (current_odometer)
+    /// 
+    /// Charging properties:
+    /// - Voltage/Current (current_charger_voltage, current_charger_actual_current)
+    /// - Charge rate and time to full (current_charge_rate_km, current_time_to_full_charge)
+    /// - Charger type and location (current_charger_brand)
+    /// 
+    /// Trip properties:
+    /// - Trip timestamps, duration, and distances
+    /// - Max speed/power during trip
+    /// - Range change during trip
+    /// 
+    /// This class serves as the source of truth for vehicle state snapshots.
+    /// All fields default to 0/false/empty unless explicitly set.
+    /// Thread-safe: Uses ConcurrentDictionary for shared state tracking.
+    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Sichtbare Instanzfelder nicht deklarieren", Justification = "<Pending>")]
     public class CurrentJSON
     {
+        /// <summary>
+        /// Global cache holding JSON state representations indexed by car ID.
+        /// </summary>
+        /// <remarks>
+        /// Thread-safe dictionary maintaining current state for all configured vehicles.
+        /// Used for quick state lookups without database queries.
+        /// </remarks>
         public static readonly ConcurrentDictionary<int, string> jsonStringHolder = new ConcurrentDictionary<int, string>();
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle is currently charging.
+        /// </summary>
+        /// <remarks>
+        /// True if an active charging session is in progress.
+        /// Defaults to false for non-charging state.
+        /// </remarks>
         public bool current_charging; // defaults to false
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle is currently driving.
+        /// </summary>
+        /// <remarks>
+        /// True if wheels are in motion (speed > threshold).
+        /// Defaults to false.
+        /// </remarks>
         public bool current_driving; // defaults to false
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle is online and connected to the network.
+        /// </summary>
+        /// <remarks>
+        /// True if the vehicle can be reached by API calls.
+        /// Defaults to false when vehicle is sleeping or offline.
+        /// </remarks>
         public bool current_online; // defaults to false
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle is in sleep mode.
+        /// </summary>
+        /// <remarks>
+        /// True when the vehicle is dormant to conserve battery.
+        /// Defaults to false during normal operation.
+        /// </remarks>
         public bool current_sleeping; // defaults to false
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle is transitioning to sleep.
+        /// </summary>
+        /// <remarks>
+        /// True during the grace period before entering sleep mode.
+        /// Defaults to false.
+        /// </remarks>
         public bool current_falling_asleep; // defaults to false
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle is plugged into a charger.
+        /// </summary>
+        /// <remarks>
+        /// True when physically connected to a charging cable (regardless of active charging).
+        /// Defaults to false when not plugged in.
+        /// </remarks>
         public bool current_plugged_in; // defaults to false
+        
+        /// <summary>
+        /// Gets or sets the timestamp when this state snapshot was captured.
+        /// </summary>
+        /// <remarks>
+        /// Unix timestamp (seconds since epoch) of the API call that retrieved this state.
+        /// Defaults to 0 (epoch) if not set.
+        /// </remarks>
         private long timestamp; // defaults to 0
 
+        /// <summary>
+        /// Gets or sets the current vehicle speed in km/h.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to 0 when stationary.
+        /// Retrieved from drive_state in Tesla API.
+        /// </remarks>
         public int current_speed; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the current power output/consumption in kilowatts.
+        /// </summary>
+        /// <remarks>
+        /// Positive value during acceleration, negative during regenerative braking.
+        /// Defaults to 0 at idle.
+        /// </remarks>
         public int current_power; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the current odometer reading in kilometers.
+        /// </summary>
+        /// <remarks>
+        /// Total distance traveled by the vehicle.
+        /// Defaults to 0; populated from vehicle_state via API.
+        /// </remarks>
         public double current_odometer; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the calculated ideal battery range in kilometers.
+        /// </summary>
+        /// <remarks>
+        /// Theoretical maximum range based on battery capacity and efficiency.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_ideal_battery_range_km; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the estimated battery range in kilometers.
+        /// </summary>
+        /// <remarks>
+        /// Real-world estimated range considering driving patterns.
+        /// Defaults to 0; calculated based on battery level and efficiency.
+        /// </remarks>
         public double current_battery_range_km; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the outside ambient temperature in Celsius.
+        /// </summary>
+        /// <remarks>
+        /// Retrieved from climate_state API endpoint.
+        /// Defaults to 0; temperature can be negative in cold climates.
+        /// </remarks>
         public double current_outside_temperature; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the current battery state of charge (SoC) percentage.
+        /// </summary>
+        /// <remarks>
+        /// Range: 0-100 representing battery fullness.
+        /// Defaults to 0; retrieved from charge_state API.
+        /// </remarks>
         public double current_battery_level; // defaults to 0
 
+        /// <summary>
+        /// Gets or sets the charger AC voltage in volts.
+        /// </summary>
+        /// <remarks>
+        /// Typical values: 120V (US 1-phase), 240V (US 2-phase), 400V (3-phase European).
+        /// Defaults to 0 when not charging.
+        /// </remarks>
         public int current_charger_voltage; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the number of active charging phases.
+        /// </summary>
+        /// <remarks>
+        /// 1 = single-phase, 3 = three-phase charging (more power).
+        /// Defaults to 0 when not charging.
+        /// </remarks>
         public int current_charger_phases; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the calculated number of charging phases.
+        /// </summary>
+        /// <remarks>
+        /// Computed value based on voltage and current.
+        /// Defaults to 0.
+        /// </remarks>
         public int current_charger_phases_calc; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the actual charging current in amperes.
+        /// </summary>
+        /// <remarks>
+        /// Current delivered to the battery during charging.
+        /// Defaults to 0 when not charging.
+        /// </remarks>
         public int current_charger_actual_current; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the calculated charging current based on power/voltage.
+        /// </summary>
+        /// <remarks>
+        /// Derived value: Power / Voltage.
+        /// Defaults to 0.
+        /// </remarks>
         public int current_charger_actual_current_calc; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the requested charging current in amperes.
+        /// </summary>
+        /// <remarks>
+        /// User-configured or vehicle-determined target charging current.
+        /// Actual may differ based on charger capability.
+        /// </remarks>
         public int current_charge_current_request; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the total energy added to the battery in this charging session (kWh).
+        /// </summary>
+        /// <remarks>
+        /// Resets when charging session ends.
+        /// Defaults to 0 when not charging.
+        /// </remarks>
         public double current_charge_energy_added; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the current charger power delivery in kilowatts.
+        /// </summary>
+        /// <remarks>
+        /// Calculated as Voltage × Current / 1000.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_charger_power; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the calculated charger power in watts.
+        /// </summary>
+        /// <remarks>
+        /// High-precision power delivery calculation.
+        /// Defaults to 0 when not charging.
+        /// </remarks>
         public int current_charger_power_calc_w; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the charging rate in kilometers per hour of charging.
+        /// </summary>
+        /// <remarks>
+        /// Indicates how quickly the battery range increases during charging.
+        /// Defaults to 0 when not charging.
+        /// </remarks>
         public double current_charge_rate_km; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets the estimated time until fully charged in hours.
+        /// </summary>
+        /// <remarks>
+        /// Calculated based on current charge rate and remaining capacity.
+        /// Defaults to 0; can be shown to user for charge time estimation.
+        /// </remarks>
         public double current_time_to_full_charge; // defaults to 0
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the charge door is open.
+        /// </summary>
+        /// <remarks>
+        /// Indicates if the charge port access panel is open.
+        /// Defaults to false.
+        /// </remarks>
         public bool current_charge_port_door_open; // defaults to false
+        
+        /// <summary>
+        /// Gets or sets the brand/type of charger being used.
+        /// </summary>
+        /// <remarks>
+        /// Examples: "Tesla", "ChargePoint", "Electrify America".
+        /// Empty string if not charging or unknown.
+        /// </remarks>
         public string current_charger_brand = "";
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether a fast charger (DC) is present.
+        /// </summary>
+        /// <remarks>
+        /// True if connected to a DC fast charging station.
+        /// Defaults to false for standard AC Level 2 charging.
+        /// </remarks>
         public bool current_fast_charger_present; // defaults to false
 
+        /// <summary>
+        /// Gets or sets the current vehicle firmware version.
+        /// </summary>
+        /// <remarks>
+        /// Retrieved from vehicle_config API endpoint.
+        /// Empty string if not retrieved yet.
+        /// </remarks>
         public string current_car_version = "";
+        
+        /// <summary>
+        /// Gets or sets the software update status.
+        /// </summary>
+        /// <remarks>
+        /// Examples: "scheduled", "available", "installing", empty if not updating.
+        /// Defaults to empty string.
+        /// </remarks>
         public string software_update_status = ""; // defaults to null;
+        
+        /// <summary>
+        /// Gets or sets the available software version for update.
+        /// </summary>
+        /// <remarks>
+        /// Empty if no update is available.
+        /// </remarks>
         public string software_update_version = ""; // defaults to null;
 
+        /// <summary>
+        /// Gets or sets the start timestamp of the current trip.
+        /// </summary>
+        /// <remarks>
+        /// Initialized when driving begins.
+        /// Defaults to DateTime.MinValue when not on a trip.
+        /// </remarks>
         public DateTime current_trip_start = DateTime.MinValue;
+        
+        /// <summary>
+        /// Gets or sets the end timestamp of the current trip.
+        /// </summary>
+        /// <remarks>
+        /// Set when driving ends.
+        /// Defaults to DateTime.MinValue if trip hasn't ended.
+        /// </remarks>
         public DateTime current_trip_end = DateTime.MinValue;
+        
+        /// <summary>
+        /// Gets or sets the odometer reading at the start of the trip.
+        /// </summary>
+        /// <remarks>
+        /// Captured when trip begins.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_trip_km_start; // defaults to 0;
+        
+        /// <summary>
+        /// Gets or sets the odometer reading at the end of the trip.
+        /// </summary>
+        /// <remarks>
+        /// captured when trip completes.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_trip_km_end; // defaults to 0;
+        
+        /// <summary>
+        /// Gets or sets the maximum speed reached during the current trip.
+        /// </summary>
+        /// <remarks>
+        /// Tracked throughout the trip.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_trip_max_speed; // defaults to 0;
+        
+        /// <summary>
+        /// Gets or sets the maximum power output during the current trip.
+        /// </summary>
+        /// <remarks>
+        /// Peak power during acceleration.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_trip_max_power; // defaults to 0;
+        
+        /// <summary>
+        /// Gets or sets the range estimate at trip start.
+        /// </summary>
+        /// <remarks>
+        /// Captures starting range for trip energy analysis.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_trip_start_range; // defaults to 0;
+        
+        /// <summary>
+        /// Gets or sets the range estimate at trip end.
+        /// </summary>
+        /// <remarks>
+        /// Captures ending range for trip energy consumption calculation.
+        /// Defaults to 0.
+        /// </remarks>
         public double current_trip_end_range; // defaults to 0;
+        
+        /// <summary>
+        /// Gets or sets the Wh per kilometer efficiency ratio for the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Used for energy consumption and range calculations.
+        /// Defaults to 0.19 (typical Model 3 efficiency).
+        /// </remarks>
         public double Wh_TR = 0.19;
 
+        /// <summary>
+        /// Gets or sets the trip duration in seconds.
+        /// </summary>
+        /// <remarks>
+        /// Total time spent driving in current trip.
+        /// Defaults to 0.
+        /// </remarks>
         public int current_trip_duration_sec; // defaults to 0;
 
         private double latitude; // defaults to 0;

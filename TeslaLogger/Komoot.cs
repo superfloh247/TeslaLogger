@@ -15,6 +15,26 @@ using Newtonsoft.Json;
 
 namespace TeslaLogger
 {
+    /// <summary>
+    /// Manages integration with Komoot tour and journey services for the Tesla vehicle.
+    /// </summary>
+    /// <remarks>
+    /// Komoot provides integration with the Komoot journey tracking and tour planning service:
+    /// - User authentication with Komoot credentials
+    /// - Tour and journey data retrieval and caching
+    /// - Geographic track information management
+    /// - Database persistence of journey metadata
+    /// - Type-safe JSON parsing with KomootJsonHelper for robust data handling
+    /// 
+    /// Implementation notes:
+    /// - Uses type-safe JObject navigation (no dynamic keyword)
+    /// - Includes error handling for API failures and network issues
+    /// - Respects rate limiting and authentication timeouts
+    /// - Stores tour positions and metrics in database for historical analysis
+    /// 
+    /// Security: Passwords are not stored in memory beyond authentication attempt.
+    /// Thread safety: Not thread-safe; intended for single-threaded vehicle update loop.
+    /// </remarks>
     public class Komoot
     {
         private class KomootLoginInfo
