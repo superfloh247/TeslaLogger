@@ -14,6 +14,21 @@ using TeslaLoggerNET8.Lucid;
 
 namespace TeslaLogger
 {
+    /// <summary>
+    /// Represents a Tesla vehicle with state management, API interaction, and telemetry collection.
+    /// </summary>
+    /// <remarks>
+    /// The Car class encapsulates all vehicle-specific functionality including:
+    /// - State management (battery, location, charging status)
+    /// - Tesla API communication and token handling
+    /// - Telemetry data collection and parsing
+    /// - Database persistence of vehicle data
+    /// - MQTT and external service integration
+    /// 
+    /// Thread safety: Partially thread-safe with locks for critical sections.
+    /// Implements: IDisposable (via WebHelper and connections)
+    /// Key dependencies: WebHelper (HTTP client), DBHelper (persistence), TelemetryConnection, TelemetryParser
+    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     internal partial class Car
     {
@@ -108,6 +123,14 @@ namespace TeslaLogger
 
         protected int SleepInStateSleep = 10000;
 
+        /// <summary>
+        /// Gets or sets the energy efficiency ratio (Wh/km) for the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Default value: 0.190052356 Wh/km (typical for Tesla Model 3).
+        /// This value is used to calculate energy consumption estimates.
+        /// Also updates the current JSON state when set.
+        /// </remarks>
         public double WhTR
         {
             get => _wh_TR;
@@ -118,46 +141,371 @@ namespace TeslaLogger
             }
         }
 
+        /// <summary>
+        /// Gets or sets the last geographic address name where the charge limit was set.
+        /// </summary>
+        /// <remarks>
+        /// Used for tracking charging behavior by location.
+        /// Defaults to empty string if not set.
+        /// </remarks>
         public string LastSetChargeLimitAddressName { get => lastSetChargeLimitAddressName; set => lastSetChargeLimitAddressName = value; }
+        
+        /// <summary>
+        /// Gets or sets the last geographic address name where the charging amps were set.
+        /// </summary>
+        /// <remarks>
+        /// Used for tracking manual charging configuration changes.
+        /// Nullable value indicating address context when available.
+        /// </remarks>
         public string? LastSetChargingAmpsAddressName { get; internal set; }
+        
+        /// <summary>
+        /// Gets or sets the model name of the Tesla vehicle (e.g., "Model 3", "Model S").
+        /// </summary>
+        /// <remarks>
+        /// Retrieved from vehicle configuration via Tesla API.
+        /// Used for UI display and logging purposes.
+        /// </remarks>
         public string? ModelName { get => modelName; set => modelName = value; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle has the Raven or Hexa steering wheel.
+        /// </summary>
+        /// <remarks>
+        /// True for newer vehicle designs with updated steering.
+        /// Defaults to false for standard vehicles.
+        /// </remarks>
         public bool Raven { get => raven; set => raven = value; }
+        
+        /// <summary>
+        /// Gets or sets the energy efficiency (Wh/km) value from the database.
+        /// </summary>
+        /// <remarks>
+        /// This is the database-stored value for historical reference.
+        /// Compare with WhTR for current session efficiency.
+        /// </remarks>
         public double DBWhTR { get => dB_Wh_TR; set => dB_Wh_TR = value; }
+        
+        /// <summary>
+        /// Gets or sets the count of efficiency measurements stored in the database.
+        /// </summary>
+        /// <remarks>
+        /// Used to calculate rolling averages for energy consumption.
+        /// Incremented each time a new efficiency reading is recorded.
+        /// </remarks>
         public int DBWhTRcount { get => dB_Wh_TR_count; set => dB_Wh_TR_count = value; }
+        
+        /// <summary>
+        /// Gets or sets the vehicle type code (e.g., "ModelS", "Model3", "ModelX").
+        /// </summary>
+        /// <remarks>
+        /// Retrieved from Tesla API vehicle configuration.
+        /// Used for model-specific logic and UI rendering.
+        /// </remarks>
         public string CarType { get => car_type; set => car_type = value; }
+        
+        /// <summary>
+        /// Gets or sets the special type designation for the vehicle (e.g., "Plaid", "Performance").
+        /// </summary>
+        /// <remarks>
+        /// Optional vehicle variant information from API.
+        /// Used for advanced feature detection and logging.
+        /// </remarks>
         public string CarSpecialType { get => car_special_type; set => car_special_type = value; }
+        
+        /// <summary>
+        /// Gets or sets the wheel/trim badging information.
+        /// </summary>
+        /// <remarks>
+        /// Example: "18 Inch Überturbine", "20 Inch Airflow"
+        /// Retrieved from vehicle configuration.
+        /// </remarks>
         public string TrimBadging { get => trim_badging; set => trim_badging = value; }
+        
+        /// <summary>
+        /// Gets or sets the full model name and variant description.
+        /// </summary>
+        /// <remarks>
+        /// Example: "Model 3 Standard Range Plus"
+        /// Used for detailed vehicle identification.
+        /// </remarks>
         public string Model { get => model; set => model = value; }
+        
+        /// <summary>
+        /// Gets or sets the battery name/variant designation.
+        /// </summary>
+        /// <remarks>
+        /// Example: "Standard Range", "Long Range", "Performance"
+        /// Retrieved from vehicle configuration.
+        /// </remarks>
         public string Battery { get => battery; set => battery = value; }
+        
+        /// <summary>
+        /// Gets or sets the user-friendly display name for the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Set by the user in configuration.
+        /// Used throughout the UI for identification.
+        /// Example: "My Tesla Model 3"
+        /// </remarks>
         public string DisplayName { get => display_name; set => display_name = value; }
+        
+        /// <summary>
+        /// Gets or sets the unique hash for Tasker application integration.
+        /// </summary>
+        /// <remarks>
+        /// Used for external task automation triggers.
+        /// Generated during initial setup if Tasker integration is enabled.
+        /// </remarks>
         public string TaskerHash { get => taskerHash; set => taskerHash = value; }
+        
+        /// <summary>
+        /// Gets or sets the Vehicle Identification Number (VIN) for the car.
+        /// </summary>
+        /// <remarks>
+        /// Unique identifier for the vehicle.
+        /// Retrieved from Tesla API during initial authentication.
+        /// Used for data integrity and cross-referencing.
+        /// </remarks>
         public string Vin { get => vin; set => vin = value; }
+        
+        /// <summary>
+        /// Gets or sets the custom name for the car in the system.
+        /// </summary>
+        /// <remarks>
+        /// Name stored in database, can be changed by user.
+        /// Used for internal tracking and logging.
+        /// </remarks>
         public string CarName { get => car_name; set => car_name = value; }
+        
+        /// <summary>
+        /// Gets or sets the ABRP (A Better Route Planner) API token.
+        /// </summary>
+        /// <remarks>
+        /// Used for integration with ABRP charging route optimization.
+        /// Optional integration for advanced trip planning.
+        /// </remarks>
         public string ABRPToken { get => aBRP_token; set => aBRP_token = value; }
+        
+        /// <summary>
+        /// Gets or sets the ABRP integration mode (0 = disabled, 1 = enabled).
+        /// </summary>
+        /// <remarks>
+        /// Controls whether the vehicle participates in ABRP data sharing.
+        /// </remarks>
         public int ABRPMode { get => aBRP_mode; set => aBRP_mode = value; }
+        
+        /// <summary>
+        /// Gets or sets the SuC Bingo user identifier for charging network tracking.
+        /// </summary>
+        /// <remarks>
+        /// Used for Supercharger scheduling and occupancy tracking.
+        /// Optional integration for visibility into charging infrastructure.
+        /// </remarks>
         public string SuCBingoUser { get => sucBingo_user; set => sucBingo_user = value; }
+        
+        /// <summary>
+        /// Gets or sets the SuC Bingo API key for authentication.
+        /// </summary>
+        /// <remarks>
+        /// Credentials for SuC Bingo service access.
+        /// </remarks>
         public string SuCBingoApiKey { get => sucBingo_apiKey; set => sucBingo_apiKey = value; }
+        
+        /// <summary>
+        /// Gets or sets the current state of the vehicle (battery, location, charging status, etc.).
+        /// </summary>
+        /// <remarks>
+        /// Contains the most recent telemetry snapshot from the vehicle.
+        /// Nullable - may be null if no data has been retrieved yet.
+        /// Updated on each successful API call.
+        /// </remarks>
         public CurrentJSON? CurrentJSON { get => currentJSON; set => currentJSON = value; }
+        
+        /// <summary>
+        /// Gets the static collection of all known Car instances in the system.
+        /// </summary>
+        /// <remarks>
+        /// Contains all vehicles configured in the TeslaLogger instance.
+        /// Read-only collection maintained throughout application lifetime.
+        /// </remarks>
         public static List<Car> Allcars { get => allcars; }
+        
+        /// <summary>
+        /// Gets or sets the database helper instance for this vehicle's data persistence.
+        /// </summary>
+        /// <remarks>
+        /// Provides database connectivity and query methods for vehicle-specific data.
+        /// Nullable for testing scenarios.
+        /// </remarks>
         public DBHelper? DbHelper { get => dbHelper; set => dbHelper = value; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether to use Tasker authentication tokens.
+        /// </summary>
+        /// <remarks>
+        /// When true, uses Tasker-generated tokens for authentication.
+        /// Defaults to true for Tasker-enabled vehicles.
+        /// </remarks>
         public bool UseTaskerToken { get => useTaskerToken; set => useTaskerToken = value; }
+        
+        /// <summary>
+        /// Gets or sets the multi-factor authentication code entered by the user.
+        /// </summary>
+        /// <remarks>
+        /// Temporary storage for MFA codes during login flow.
+        /// Should be cleared after successful authentication.
+        /// </remarks>
         public string? MFACode { get => mFA_Code; set => mFA_Code = value; }
+        
+        /// <summary>
+        /// Gets or sets the CAPTCHA token (if required by Tesla API).
+        /// </summary>
+        /// <remarks>
+        /// Temporary storage for CAPTCHA solution during authentication.
+        /// </remarks>
         public string? Captcha { get => captcha; set => captcha = value; }
+        
+        /// <summary>
+        /// Gets or sets the CAPTCHA string challenge (for display to user).
+        /// </summary>
+        /// <remarks>
+        /// Visual representation of CAPTCHA if needed for authentication.
+        /// </remarks>
         public string? CaptchaString { get => captcha_String; set => captcha_String = value; }
+        
+        /// <summary>
+        /// Gets or sets the reCAPTCHA token for implicit verification.
+        /// </summary>
+        /// <remarks>
+        /// Google reCAPTCHA solution if required during login.
+        /// </remarks>
         public string? ReCaptchaCode { get => reCaptcha_Code; set => reCaptcha_Code = value; }
+        
+        /// <summary>
+        /// Gets or sets the average kilometers per efficiency unit (km/Wh).
+        /// </summary>
+        /// <remarks>
+        /// Calculated from historical driving data.
+        /// Defaults to 0 and populated from database.
+        /// </remarks>
         public double Avgkm { get => avgkm; set => avgkm = value; }
+        
+        /// <summary>
+        /// Gets or sets the average consumption in kWh per 100 kilometers.
+        /// </summary>
+        /// <remarks>
+        /// Standard metric for European efficiency reporting.
+        /// Calculated from historical usage data.
+        /// </remarks>
         public double Kwh100km { get => kwh100km; set => kwh100km = value; }
+        
+        /// <summary>
+        /// Gets or sets the average state of charge (SoC) difference per trip.
+        /// </summary>
+        /// <remarks>
+        /// Measures typical battery usage per trip.
+        /// Used for trip duration and energy consumption estimates.
+        /// </remarks>
         public double Avgsocdiff { get => avgsocdiff; set => avgsocdiff = value; }
+        
+        /// <summary>
+        /// Gets or sets the maximum estimated range for the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Adjusted value based on actual driving efficiency.
+        /// Defaults to 0 and populated from historical data.
+        /// </remarks>
         public double Maxkm { get => maxkm; set => maxkm = value; }
+        
+        /// <summary>
+        /// Gets or sets the voltage measurement at 50% state of charge.
+        /// </summary>
+        /// <remarks>
+        /// Technical specification for battery health assessment.
+        /// Defaults to 0.
+        /// </remarks>
         public double CarVoltageAt50SOC { get => carVoltageAt50SOC; set => carVoltageAt50SOC = value; }
+        
+        /// <summary>
+        /// Gets or sets the password information summary for debugging.
+        /// </summary>
+        /// <remarks>
+        /// Contains diagnostic information about authentication attempts.
+        /// Uses StringBuilder for efficient accumulation of messages.
+        /// </remarks>
         public StringBuilder Passwortinfo { get => passwortinfo; set => passwortinfo = value; }
+        
+        /// <summary>
+        /// Gets or sets the model year of the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Extracted from VIN or API configuration data.
+        /// Used for feature availability determination.
+        /// </remarks>
         public int Year { get => year; set => year = value; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle has all-wheel drive (AWD).
+        /// </summary>
+        /// <remarks>
+        /// Retrieved from vehicle configuration.
+        /// Used for model-specific calculations and display.
+        /// </remarks>
         public bool AWD { get => aWD; set => aWD = value; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle has a motor inverter configuration.
+        /// </summary>
+        /// <remarks>
+        /// Technical motor specification for advanced analysis.
+        /// Defaults to false.
+        /// </remarks>
         public bool MIC { get => mIC; set => mIC = value; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle has integrated power electronics.
+        /// </summary>
+        /// <remarks>
+        /// Technical configuration flag for power delivery analysis.
+        /// Defaults to false.
+        /// </remarks>
         public bool MIG { get => mIG; set => mIG = value; }
+        
+        /// <summary>
+        /// Gets or sets the motor specification/type for the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Example: "AC Induction", "Permanent Magnet"
+        /// Retrieved from vehicle configuration.
+        /// </remarks>
         public string Motor { get => motor; set => motor = value; }
+        
+        /// <summary>
+        /// Gets or sets the semaphore lock for initializing vehicle credentials.
+        /// </summary>
+        /// <remarks>
+        /// Thread synchronization primitive for credential initialization.
+        /// Prevents race conditions during multi-vehicle startup.
+        /// </remarks>
         public static System.Threading.SemaphoreSlim InitCredentialsLock { get => initCredentialsLock; set => initCredentialsLock = value; }
+        
+        /// <summary>
+        /// Gets or sets the total kilometers recorded for the vehicle.
+        /// </summary>
+        /// <remarks>
+        /// Running total of all trip odometer changes.
+        /// Defaults to 0 and populated from database.
+        /// </remarks>
         public double Sumkm { get => sumkm; set => sumkm = value; }
+        
+        /// <summary>
+        /// Gets or sets the access type for the vehicle (e.g., "driver", "owner").
+        /// </summary>
+        /// <remarks>
+        /// Determines permission level and API endpoint availability.
+        /// Automatically updates database when changed.
+        /// </remarks>
         internal string Access_type
         {
             get => _access_type;
@@ -171,6 +519,13 @@ namespace TeslaLogger
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the vehicle supports virtual key (digital key).
+        /// </summary>
+        /// <remarks>
+        /// True if the vehicle has NFC virtual key capability.
+        /// Automatically updates database when changed.
+        /// </remarks>
         public bool Virtual_key
         {
             get => _virtual_key;

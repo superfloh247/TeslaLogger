@@ -30,10 +30,43 @@ using static TeslaLogger.NullSafetyHelpers;
 
 namespace TeslaLogger
 {
+    /// <summary>
+    /// Provides HTTP communication with the Tesla API and external services.
+    /// </summary>
+    /// <remarks>
+    /// WebHelper encapsulates all network operations including:
+    /// - Tesla API authentication and token management
+    /// - Vehicle state queries and status updates
+    /// - Streaming telemetry data reception
+    /// - Geographic location services (MapQuest, Nominatim, OpenTopoData)
+    /// - Retry logic and rate limiting
+    /// - Token refresh and session management
+    /// 
+    /// Thread safety: Partially thread-safe with locks for token operations.
+    /// Implements: IDisposable (for HttpClient resource cleanup)
+    /// Key dependencies: Car, Logfile, Exceptionless for error reporting
+    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     public class WebHelper : IDisposable
     {
+        /// <summary>
+        /// Tesla API endpoint for comprehensive vehicle data with location and climate information.
+        /// </summary>
+        /// <remarks>
+        /// Includes: drive_state, location_data, climate_state, vehicle_state, charge_state, vehicle_config.
+        /// Uses let_sleep=true parameter to avoid waking the vehicle.
+        /// </remarks>
         public const string vehicle_data_everything = "vehicle_data?endpoints=drive_state%3Blocation_data%3Bclimate_state%3Bvehicle_state%3Bcharge_state%3Bvehicle_config&let_sleep=true";
+        
+        /// <summary>
+        /// Gets the appropriate Tesla API address based on vehicle configuration.
+        /// </summary>
+        /// <remarks>
+        /// Returns different endpoints based on:
+        /// - Fleet API enabled: Returns fleet-specific or region-specific address
+        /// - China vehicle: Returns Chinese API endpoint
+        /// - Standard: Returns standard Tesla Motors API endpoint
+        /// </remarks>
         public string apiaddress
         {
             get
