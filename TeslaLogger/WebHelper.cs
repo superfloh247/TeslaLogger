@@ -1152,7 +1152,7 @@ namespace TeslaLogger
             lastCharging_State = "";
         }
 
-        public virtual async Task<bool> IsChargingAsync(bool justCheck = false, bool noMemcache = false)
+        public virtual async ValueTask<bool> IsChargingAsync(bool justCheck = false, bool noMemcache = false)
         {
             if (car.FleetAPI)
             {
@@ -1171,7 +1171,7 @@ namespace TeslaLogger
                     return false;
                 }
 
-                Task<double?> outside_temp = GetOutsideTempAsync();
+                Task<double?> outside_temp = GetOutsideTempAsync().AsTask();
 
                 Tools.SetThreadEnUS();
                 JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
@@ -1888,7 +1888,7 @@ namespace TeslaLogger
         public static System.Threading.SemaphoreSlim isOnlineLock = new System.Threading.SemaphoreSlim(1, 1);
 #pragma warning restore CA2211 // Nicht konstante Felder dürfen nicht sichtbar sein
 
-        public async virtual Task<string> IsOnlineAsync(bool returnOnUnauthorized = false)
+        public async virtual ValueTask<string> IsOnlineAsync(bool returnOnUnauthorized = false)
         {
             string resultContent = "";
             try
@@ -2805,7 +2805,7 @@ namespace TeslaLogger
             }
         }
 
-        public virtual async Task<bool> IsDrivingAsync(bool justinsertdb = false)
+        public virtual async ValueTask<bool> IsDrivingAsync(bool justinsertdb = false)
         {
             if (car.FleetAPI)
             {
@@ -2964,11 +2964,11 @@ namespace TeslaLogger
                     Task<double> odometer = GetOdometerAsync();
                     double? inside_temp = null;
                     double? outside_temp = null;
-                    Task<double?> t_outside_temp = null;
+                    Task<double?>? t_outside_temp = null;
 
                     if (!Geofence.GetInstance().RacingMode)
                     {
-                        t_outside_temp = GetOutsideTempAsync();
+                        t_outside_temp = GetOutsideTempAsync().AsTask();
                     }
 
                     TimeSpan tsElevation = DateTime.Now - elevation_time;
@@ -4332,7 +4332,7 @@ WHERE
             //return 0;
         }
 
-        internal async Task<double?> GetOutsideTempAsync()
+        internal async ValueTask<double?> GetOutsideTempAsync()
         {
             string cacheKey = Program.TLMemCacheKey.GetOutsideTempAsync.ToString() + car.CarInDB;
             object cacheValue = MemoryCache.Default.Get(cacheKey);
@@ -4453,7 +4453,7 @@ WHERE
             return null;
         }
 
-        public async Task<string> GetCommand(string cmd, bool noMemcache = false)
+        public async ValueTask<string> GetCommand(string cmd, bool noMemcache = false)
         {
             if (car.FleetAPI)
             {
