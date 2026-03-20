@@ -27,13 +27,44 @@ using static TeslaLogger.NullSafetyHelpers;
 
 namespace TeslaLogger
 {
+    /// <summary>
+    /// Provides universal utility functions and static helpers for the TeslaLogger system.
+    /// </summary>
+    /// <remarks>
+    /// Tools encompasses:
+    /// - Logging and debugging utilities (DebugLog, ExternalLog)
+    /// - Localization and culture-specific formatting
+    /// - Unit conversion and configuration management
+    /// - System information and environment detection
+    /// - Time conversion and timestamp operations
+    /// - Data transformation and validation
+    /// - File system and path operations
+    /// 
+    /// Thread safety: Partially thread-safe with static locks for critical sections.
+    /// All methods are static and reusable throughout the application.
+    /// Key dependencies: Exceptionless, Logfile, ApplicationSettings
+    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Literale nicht als lokalisierte Parameter übergeben", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     public static class Tools
     {
 
+        /// <summary>
+        /// The invariant culture for English-US formatting and calculations.
+        /// </summary>
+        /// <remarks>
+        /// Used for consistent numeric and date/time formatting across the system.
+        /// </remarks>
         public static readonly System.Globalization.CultureInfo ciEnUS = new System.Globalization.CultureInfo("en-US");
+        
+        /// <summary>
+        /// The German culture (de-DE) for localized formatting.
+        /// </summary>
+        /// <remarks>
+        /// Used for German language UI and German-standard number/date formatting.
+        /// </remarks>
         public static readonly System.Globalization.CultureInfo ciDeDE = new System.Globalization.CultureInfo("de-DE");
+        
         private static int _startSleepingHour = -1;
         private static int _startSleepingMinutes = -1;
         private static string _power = "hp";
@@ -46,10 +77,37 @@ namespace TeslaLogger
         private static string _Range = "IR";
         private static string _defaultcar = "";
         private static string _defaultcarid = "";
+        
+        /// <summary>
+        /// The timestamp of the last Grafana settings update.
+        /// </summary>
+        /// <remarks>
+        /// Used to cache Grafana configuration for performance.
+        /// Defaults to yesterday's UTC time to force initial refresh.
+        /// </remarks>
         internal static DateTime lastGrafanaSettings = DateTime.UtcNow.AddDays(-1);
+        
+        /// <summary>
+        /// The timestamp of the last sleeping hour/minutes configuration update.
+        /// </summary>
+        /// <remarks>
+        /// Used to cache sleep schedule settings.
+        /// </remarks>
         internal static DateTime lastSleepingHourMinutsUpdated = DateTime.UtcNow.AddDays(-1);
+        
+        /// <summary>
+        /// Indicates whether the vehicle position streaming is enabled.
+        /// </summary>
+        /// <remarks>
+        /// Nullable to represent uninitialized state.
+        /// True = streaming enabled, False = streaming disabled, Null = unknown.
+        /// </remarks>
         internal static bool? _StreamingPos; // defaults to null;
 
+        /// <summary>
+        /// Determines whether to use the nearby Supercharger location service.
+        /// </summary>
+        /// <returns>True if data sharing is enabled, which enables SuC services; otherwise false.</returns>
         internal static bool UseNearbySuCService()
         {
             return Tools.IsShareData();
@@ -57,21 +115,66 @@ namespace TeslaLogger
 
         private static string _OSVersion = string.Empty;
 
+        /// <summary>
+        /// Enumeration of available software update types.
+        /// </summary>
         public enum UpdateType { all, stable, none };
 
+        /// <summary>
+        /// Thread-safe buffer of debug log messages with timestamps.
+        /// </summary>
+        /// <remarks>
+        /// Stores debug messages in a concurrent queue for later retrieval.
+        /// Used for troubleshooting and diagnostic information gathering.
+        /// </remarks>
         internal static ConcurrentQueue<Tuple<DateTime, string>> debugBuffer = new ConcurrentQueue<Tuple<DateTime, string>>();
+        
+        /// <summary>
+        /// Indicates whether the application is running on .NET 8.
+        /// </summary>
+        /// <remarks>
+        /// Used for feature detection and version-specific logic.
+        /// </remarks>
         internal static bool dotnet8;
 
+        /// <summary>
+        /// Sets the current thread's culture to English-US for consistent formatting.
+        /// </summary>
+        /// <remarks>
+        /// Ensures numeric and date formatting follows US conventions.
+        /// Useful for API calls and data serialization requiring consistent formatting.
+        /// </remarks>
         public static void SetThreadEnUS()
         {
             Thread.CurrentThread.CurrentCulture = ciEnUS;
         }
 
+        /// <summary>
+        /// Converts a DateTime to Unix timestamp (seconds since 1970-01-01 UTC).
+        /// </summary>
+        /// <param name="dateTime">The DateTime to convert.</param>
+        /// <returns>The number of seconds elapsed since Unix epoch (1970-01-01 00:00:00 UTC).</returns>
+        /// <remarks>
+        /// Used for API calls and database operations expecting Unix timestamps.
+        /// Throws ArgumentException if dateTime is less than Unix epoch.
+        /// </remarks>
         public static long ToUnixTime(DateTime dateTime)
         {
             return (long)(dateTime - new DateTime(1970, 1, 1)).TotalSeconds;
         }
 
+        /// <summary>
+        /// Logs a SQL command (with parameters interpolated) for debugging purposes.
+        /// </summary>
+        /// <param name="cmd">The MySqlCommand to log.</param>
+        /// <param name="prefix">Optional prefix for the log message.</param>
+        /// <param name="callerFilePath">The source file path (auto-supplied by compiler).</param>
+        /// <param name="callerLineNumber">The source code line number (auto-supplied by compiler).</param>
+        /// <param name="callerMemberName">The method name (auto-supplied by compiler).</param>
+        /// <remarks>
+        /// Expands SQL command with parameter values for easier debugging.
+        /// Logs exceptions to Exceptionless for tracking.
+        /// </remarks>
         public static void DebugLog(MySqlCommand cmd, string prefix = "", [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string? callerMemberName = null)
         {
             try
@@ -86,6 +189,17 @@ namespace TeslaLogger
             }
         }
 
+        /// <summary>
+        /// Logs data from a MySqlDataReader for debugging purposes.
+        /// </summary>
+        /// <param name="dr">The MySqlDataReader to log.</param>
+        /// <param name="callerFilePath">The source file path (auto-supplied by compiler).</param>
+        /// <param name="callerLineNumber">The source code line number (auto-supplied by compiler).</param>
+        /// <param name="callerMemberName">The method name (auto-supplied by compiler).</param>
+        /// <remarks>
+        /// Outputs all column names and values in the current data reader row.
+        /// Useful for validating query results and SQL debugging.
+        /// </remarks>
         public static void DebugLog(MySqlDataReader dr, [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0, [CallerMemberName] string? callerMemberName = null)
         {
             if (dr is not null)
