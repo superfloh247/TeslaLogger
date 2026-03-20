@@ -734,26 +734,42 @@ WHERE
 }
 }
              */
-            dynamic jsonResult = JsonConvert.DeserializeObject(tour.json);
-            // check JSON contents
-            if (jsonResult.ContainsKey("_embedded") && jsonResult["_embedded"].ContainsKey("coordinates") && jsonResult["_embedded"]["coordinates"].ContainsKey("items"))
+            Newtonsoft.Json.Linq.JObject jsonResult = KomootJsonHelper.TryParseJson(tour.json, 
+                errorMsg => Logfile.Log($"#{kli.carID} Komoot: ParseTourJSON({tourid}) failed to parse JSON: {errorMsg}"));
+            
+            if (jsonResult == null)
             {
-                // JSON OK
+                Logfile.Log($"#{kli.carID} Komoot: parsing tours error - could not parse JSON contents");
+                return;
+            }
+
+            // check JSON contents using type-safe helper
+            if (KomootJsonHelper.ValidateTourCoordinatesStructure(jsonResult))
+            {
+                // JSON OK - parse coordinates with proper type safety
                 Dictionary<int, Tuple<double, double, double>> positions = new();
-                Logfile.Log($"#{kli.carID} Komoot: ParseTourJSON({tourid}) parsing {jsonResult["_embedded"]["coordinates"]["items"].Count} coordinates ...");
-                foreach (dynamic pos in jsonResult["_embedded"]["coordinates"]["items"])
+                int coordinateCount = KomootJsonHelper.GetArrayCount(jsonResult, "_embedded.coordinates.items");
+                Logfile.Log($"#{kli.carID} Komoot: ParseTourJSON({tourid}) parsing {coordinateCount} coordinates ...");
+
+                IEnumerable<Newtonsoft.Json.Linq.JObject> coordinates = KomootJsonHelper.GetArray(jsonResult, "_embedded.coordinates.items");
+                foreach (Newtonsoft.Json.Linq.JObject pos in coordinates)
                 {
-                    if (pos.ContainsKey("lat") && pos.ContainsKey("lng") && pos.ContainsKey("alt") && pos.ContainsKey("t"))
+                    if (KomootJsonHelper.ValidateCoordinateProperties(pos))
                     {
-                        if (double.TryParse(pos["lat"].ToString(), out double lat) && double.TryParse(pos["lng"].ToString(), out double _) && double.TryParse(pos["alt"].ToString(), out double _) && int.TryParse(pos["t"].ToString(), out int _))
+                        double lat = KomootJsonHelper.GetDouble(pos, "lat");
+                        double lng = KomootJsonHelper.GetDouble(pos, "lng");
+                        double alt = KomootJsonHelper.GetDouble(pos, "alt");
+                        int deltaT = KomootJsonHelper.GetInt(pos, "t");
+
+                        if (!double.IsNaN(lat) && !double.IsNaN(lng) && !double.IsNaN(alt) && deltaT >= 0)
                         {
                             // generate pseudopositions?
                             if (positions.Count > 0)
                             {
                                 var lastpos = positions.OrderByDescending(kvp => kvp.Key).First();
-                                if (int.Parse(pos["t"].ToString()) - lastpos.Key > 11000)
+                                if (deltaT - lastpos.Key > 11000)
                                 {
-                                    int timediff = int.Parse(pos["t"].ToString()) - lastpos.Key;
+                                    int timediff = deltaT - lastpos.Key;
                                     int pseudopositions = (int)Math.Floor((timediff - 2000) / 2000.0);
                                     int step = (timediff - 2000) / pseudopositions;
                                     Tools.DebugLog($"pos delta {timediff} -> insert pseudo positions: {pseudopositions}");
@@ -763,23 +779,23 @@ WHERE
                                         Tools.DebugLog($"add pseudopos {i} at delta_t {lastpos.Key + step * i} {Tuple.Create(lastpos.Value.Item1, lastpos.Value.Item2, lastpos.Value.Item3)}");
                                         positions[lastpos.Key + step * i] = Tuple.Create(lastpos.Value.Item1, lastpos.Value.Item2, lastpos.Value.Item3);
                                     }
-                                    Tools.DebugLog($"currpos delta_t: {pos["t"].ToString()}");
+                                    Tools.DebugLog($"currpos delta_t: {deltaT}");
                                 }
                             }
-                            positions[int.Parse(pos["t"].ToString())] = Tuple.Create(lat, double.Parse(pos["lng"].ToString()), double.Parse(pos["alt"].ToString()));
+                            positions[deltaT] = Tuple.Create(lat, lng, alt);
                         }
                         else
                         {
                             StringBuilder sb = new StringBuilder();
                             sb.AppendLine();
                             sb.Append("lat:");
-                            sb.AppendLine(pos["lat"]);
+                            sb.AppendLine(lat.ToString());
                             sb.Append("lng:");
-                            sb.AppendLine(pos["lng"]);
+                            sb.AppendLine(lng.ToString());
                             sb.Append("alt:");
-                            sb.AppendLine(pos["alt"]);
+                            sb.AppendLine(alt.ToString());
                             sb.Append("t:");
-                            sb.AppendLine(pos["t"]);
+                            sb.AppendLine(deltaT.ToString());
                             Logfile.Log($"#{kli.carID} Komoot: ParseTourJSON({tourid}) parsing tours.pos error - error parsing JSON contents" + sb.ToString());
                         }
                     }
@@ -788,13 +804,13 @@ WHERE
                         StringBuilder sb = new StringBuilder();
                         sb.AppendLine();
                         sb.Append("lat:");
-                        sb.AppendLine(jsonResult.ContainsKey("lat"));
+                        sb.AppendLine(KomootJsonHelper.HasProperty(pos, "lat").ToString());
                         sb.Append("lng:");
-                        sb.AppendLine(jsonResult.ContainsKey("lng"));
+                        sb.AppendLine(KomootJsonHelper.HasProperty(pos, "lng").ToString());
                         sb.Append("alt:");
-                        sb.AppendLine(jsonResult.ContainsKey("alt"));
+                        sb.AppendLine(KomootJsonHelper.HasProperty(pos, "alt").ToString());
                         sb.Append("t:");
-                        sb.AppendLine(jsonResult.ContainsKey("t"));
+                        sb.AppendLine(KomootJsonHelper.HasProperty(pos, "t").ToString());
                         Logfile.Log($"#{kli.carID} Komoot: ParseTourJSON({tourid}) parsing tours.pos error - missing JSON contents" + sb.ToString());
                     }
                 }
@@ -810,17 +826,17 @@ WHERE
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine();
                 sb.Append("date:");
-                sb.AppendLine(jsonResult.ContainsKey("date"));
+                sb.AppendLine(KomootJsonHelper.HasProperty(jsonResult, "date").ToString());
                 sb.Append("_embedded:");
-                sb.AppendLine(jsonResult.ContainsKey("_embedded"));
-                if (jsonResult.ContainsKey("_embedded"))
+                sb.AppendLine(KomootJsonHelper.HasProperty(jsonResult, "_embedded").ToString());
+                if (KomootJsonHelper.HasProperty(jsonResult, "_embedded"))
                 {
                     sb.Append("_embedded.coordinates:");
-                    sb.AppendLine(jsonResult["_embedded"].ContainsKey("coordinates"));
-                    if (jsonResult["_embedded"].ContainsKey("coordinates"))
+                    sb.AppendLine(KomootJsonHelper.HasProperty(jsonResult, "_embedded.coordinates").ToString());
+                    if (KomootJsonHelper.HasProperty(jsonResult, "_embedded.coordinates"))
                     {
                         sb.Append("_embedded.coordinates.items:");
-                        sb.AppendLine(jsonResult["_embedded"]["coordinates"].ContainsKey("items"));
+                        sb.AppendLine(KomootJsonHelper.HasProperty(jsonResult, "_embedded.coordinates.items").ToString());
                     }
                 }
                 sb.AppendLine();
@@ -1249,64 +1265,78 @@ VALUES (
     }
 }
 							 */
-                            dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                            if (jsonResult.ContainsKey("_links") && jsonResult["_links"].ContainsKey("next") && jsonResult["_links"]["next"].ContainsKey("href"))
+                            Newtonsoft.Json.Linq.JObject jsonResult = KomootJsonHelper.TryParseJson(resultContent, 
+                                errorMsg => Logfile.Log($"#{kli.carID} Komoot: Failed to parse tour list JSON: {errorMsg}"));
+
+                            if (jsonResult == null)
                             {
-                                url = jsonResult["_links"]["next"]["href"];
+                                Logfile.Log($"#{kli.carID} Komoot: error: could not parse tours response JSON");
+                                nextPage = false;
+                                continue;
+                            }
+
+                            // Check for pagination link to next page
+                            if (KomootJsonHelper.HasProperty(jsonResult, "_links.next.href"))
+                            {
+                                url = KomootJsonHelper.GetString(jsonResult, "_links.next.href");
                             }
                             else
                             {
                                 nextPage = false;
                             }
-                            if (jsonResult.ContainsKey("_embedded") && jsonResult["_embedded"].ContainsKey("tours"))
+
+                            // Parse tour list
+                            if (KomootJsonHelper.ValidateTourListStructure(jsonResult))
                             {
-                                dynamic jtours = jsonResult["_embedded"]["tours"];
-                                Logfile.Log($"#{kli.carID} Komoot: found {jsonResult["_embedded"]["tours"].Count} tours ...");
-                                foreach (dynamic tour in jtours)
+                                int tourCount = KomootJsonHelper.GetArrayCount(jsonResult, "_embedded.tours");
+                                Logfile.Log($"#{kli.carID} Komoot: found {tourCount} tours ...");
+
+                                IEnumerable<Newtonsoft.Json.Linq.JObject> tours = KomootJsonHelper.GetArray(jsonResult, "_embedded.tours");
+                                foreach (Newtonsoft.Json.Linq.JObject tour in tours)
                                 {
-                                    // build tour info
-                                    if (tour.ContainsKey("id"))
-                                    {
-                                        sb.Append($"Tour id:{tour["id"]}");
-                                    }
-                                    if (tour.ContainsKey("type"))
-                                    {
-                                        sb.Append($" type:{tour["type"]}");
-                                    }
-                                    if (tour.ContainsKey("sport"))
-                                    {
-                                        sb.Append($" sport:{tour["sport"]}");
-                                    }
-                                    if (tour.ContainsKey("date"))
-                                    {
-                                        sb.Append($" date:{tour["date"]}");
-                                    }
+                                    // build tour info for logging
+                                    long tourId = KomootJsonHelper.GetLong(tour, "id");
+                                    string tourType = KomootJsonHelper.GetString(tour, "type");
+                                    string sport = KomootJsonHelper.GetString(tour, "sport");
+                                    string date = KomootJsonHelper.GetString(tour, "date");
+
+                                    sb.Append($"Tour id:{tourId}");
+                                    if (!string.IsNullOrEmpty(tourType))
+                                        sb.Append($" type:{tourType}");
+                                    if (!string.IsNullOrEmpty(sport))
+                                        sb.Append($" sport:{sport}");
+                                    if (!string.IsNullOrEmpty(date))
+                                        sb.Append($" date:{date}");
                                     sb.AppendLine();
-                                    if (tour.ContainsKey("id") && tour.ContainsKey("sport") && tour.ContainsKey("date") && tour.ContainsKey("type") && tour["type"].ToString().Equals("tour_recorded"))
+
+                                    // Check if this is a recorded tour (not planned, etc.)
+                                    if (tourId > 0 && !string.IsNullOrEmpty(sport) && !string.IsNullOrEmpty(date) && 
+                                        !string.IsNullOrEmpty(tourType) && tourType.Equals("tour_recorded"))
                                     {
-                                        if (Int64.TryParse(tour["id"].ToString(), out long tourid) && DateTime.TryParse(tour["date"].ToString(), out DateTime _))
+                                        if (DateTime.TryParse(date, out DateTime tourDate))
                                         {
-                                            KomootTour newTour = new KomootTour(kli.carID, tourid, tour["type"].ToString(), tour["sport"].ToString(), DateTime.Parse(tour["date"].ToString()).ToLocalTime());
-                                            if (tour.ContainsKey("id") && double.TryParse(tour["distance"].ToString(), out double _))
+                                            KomootTour newTour = new KomootTour(kli.carID, tourId, tourType, sport, tourDate.ToLocalTime());
+                                            double distance = KomootJsonHelper.GetDouble(tour, "distance");
+                                            if (!double.IsNaN(distance))
                                             {
-                                                newTour.distance_m = double.Parse(tour["distance"].ToString());
+                                                newTour.distance_m = distance;
                                             }
-                                            komootTours.TryAdd(tourid, newTour);
+                                            komootTours.TryAdd(tourId, newTour);
                                         }
                                         else
                                         {
-                                            Logfile.Log($"#{kli.carID} Komoot: error parsing tour ID {tour["id"]}");
+                                            Logfile.Log($"#{kli.carID} Komoot: error parsing tour date {date}");
                                         }
                                     }
-                                    else if (tour.ContainsKey("id") && tour.ContainsKey("type"))
+                                    else if (tourId > 0 && !string.IsNullOrEmpty(tourType))
                                     {
-                                        Logfile.Log($"#{kli.carID} Komoot: tour {tour["id"]} skipped, type: {tour["type"]} ...");
+                                        Logfile.Log($"#{kli.carID} Komoot: tour {tourId} skipped, type: {tourType} ...");
                                     }
                                 }
                             }
                             else
                             {
-                                Logfile.Log($"#{kli.carID} Komoot: error: tours does not contain _embedded.tours");
+                                Logfile.Log($"#{kli.carID} Komoot: error: response does not contain _embedded.tours");
                             }
                             // komoot responds with the newest tour as first tour
                             // check if we already have this and skip next pages
@@ -1423,20 +1453,26 @@ WHERE
     "password": "asdfasdfasdf"
 }
 						 */
-                            dynamic jsonResult = JsonConvert.DeserializeObject(resultContent);
-                            if (jsonResult.ContainsKey("user"))
+                            Newtonsoft.Json.Linq.JObject jsonResult = KomootJsonHelper.TryParseJson(resultContent,
+                                errorMsg => Logfile.Log($"#{kli.carID} Komoot: Failed to parse login response JSON: {errorMsg}"));
+
+                            if (jsonResult != null && KomootJsonHelper.HasProperty(jsonResult, "user"))
                             {
-                                dynamic jsonUser = jsonResult["user"];
-                                if (jsonUser.ContainsKey("displayname") && jsonResult.ContainsKey("username") && jsonResult.ContainsKey("password"))
+                                Newtonsoft.Json.Linq.JObject jsonUser = KomootJsonHelper.AsObject(jsonResult["user"]);
+                                if (jsonUser != null && 
+                                    !string.IsNullOrEmpty(KomootJsonHelper.GetString(jsonUser, "displayname")) &&
+                                    !string.IsNullOrEmpty(KomootJsonHelper.GetString(jsonResult, "username")) &&
+                                    !string.IsNullOrEmpty(KomootJsonHelper.GetString(jsonResult, "password")))
                                 {
-                                    kli.user_id = jsonResult["username"];
-                                    kli.token = jsonResult["password"];
+                                    kli.user_id = KomootJsonHelper.GetString(jsonResult, "username");
+                                    kli.token = KomootJsonHelper.GetString(jsonResult, "password");
                                     kli.loginSuccessful = true;
-                                    Logfile.Log($"#{kli.carID} Komoot: logged in as {jsonUser["displayname"]}");
+                                    string displayName = KomootJsonHelper.GetString(jsonUser, "displayname");
+                                    Logfile.Log($"#{kli.carID} Komoot: logged in as {displayName}");
                                 }
                                 else
                                 {
-                                    Logfile.Log($"#{kli.carID} Komoot: login failed - user JSON does not contain displayname");
+                                    Logfile.Log($"#{kli.carID} Komoot: login failed - user JSON does not contain displayname or username/password");
                                 }
                             }
                             else
