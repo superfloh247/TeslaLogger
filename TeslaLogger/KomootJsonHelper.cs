@@ -229,7 +229,7 @@ namespace TeslaLogger
         /// <param name="json">The JSON string to parse.</param>
         /// <param name="onError">Optional action to call if parsing fails.</param>
         /// <returns>The parsed JObject, or null if parsing fails.</returns>
-        internal static JObject TryParseJson(string json, Action<string> onError = null)
+        internal static JObject? TryParseJson(string json, Action<string>? onError = null)
         {
             if (string.IsNullOrEmpty(json)) return null;
             

@@ -193,7 +193,7 @@ namespace TeslaLogger
             car.Log($"*** FT: {message}");
         }
 
-        public async Task handleMessageAsync(string resultContent)
+        public async Task handleMessageAsync(string resultContent, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -223,7 +223,7 @@ namespace TeslaLogger
                         await InsertBatteryTableAsync(jData, d, resultContent);
                         await InsertCruiseStateTableAsync(jData, d, resultContent);
                         await handleStatemachineAsync(jData, d, resultContent);
-                        await InsertLocationAsync(jData, d, resultContent);
+                        await InsertLocationAsync(jData, d, resultContent, false, cancellationToken).ConfigureAwait(false);
                         await InsertChargingAsync(jData, d, resultContent);
                         await InsertStatesAsync(jData, d, resultContent);
                     }
@@ -1179,7 +1179,7 @@ namespace TeslaLogger
             Log($"Insert Charging TR: {lastIdealBatteryRange}km");
         }
 
-        public async Task InsertLocationAsync(dynamic j, DateTime d, string resultContent, bool force = false)
+        public async Task InsertLocationAsync(dynamic j, DateTime d, string resultContent, bool force = false, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1303,7 +1303,7 @@ namespace TeslaLogger
 
                     Log("Insert Location" + (force ? " Force" : ""));
 
-                    await InsertLastLocationAsync(d, false);
+                    await InsertLastLocationAsync(d, false, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -1318,7 +1318,7 @@ namespace TeslaLogger
             return (long)(d.ToUniversalTime().Subtract(new DateTime(1970, 1, 1))).TotalSeconds * 1000;
         }
 
-        async Task InsertLastLocationAsync(DateTime d, bool loggingPosId = true)
+        async Task InsertLastLocationAsync(DateTime d, bool loggingPosId = true, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1336,7 +1336,7 @@ namespace TeslaLogger
                     else
                         await car.webhelper.SendDataToAbetterrouteplannerAsync(ts, lastSoc, (double)speed, false, (double)(power ?? 0), (double)latitude, (double)longitude);
 
-                    lastposid = await car.DbHelper.InsertPosAsync(ts.ToString(), lastLatitude, lastLongitude, (int)speed.Value, power, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastInsideTemp, lastOutsideTemp, "");
+                    lastposid = await car.DbHelper.InsertPosAsync(ts.ToString(), lastLatitude, lastLongitude, (int)speed.Value, power, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastInsideTemp, lastOutsideTemp, "", cancellationToken).ConfigureAwait(false);
 
                     if (loggingPosId)
                     {
@@ -2074,14 +2074,14 @@ namespace TeslaLogger
 
         }
 
-        private async Task InsertFirstPosAsync(DateTime date, int speed)
+        private async Task InsertFirstPosAsync(DateTime date, int speed, CancellationToken cancellationToken = default)
         {
             long ts = DateTimeToUTC_UnixTimestamp(date);
 
             var power = PrintPS();
 
             if (databaseCalls)
-                lastposid = await car.DbHelper.InsertPosAsync(ts.ToString(), lastLatitude, lastLongitude, speed, power, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastInsideTemp, lastOutsideTemp, "");
+                lastposid = await car.DbHelper.InsertPosAsync(ts.ToString(), lastLatitude, lastLongitude, speed, power, lastOdometer, lastIdealBatteryRange, lastRatedRange, lastSoc, lastInsideTemp, lastOutsideTemp, "", cancellationToken).ConfigureAwait(false);
 
             Log($"InsertFirstPos {date} ID: {lastposid}");
         }

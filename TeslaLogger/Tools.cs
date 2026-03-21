@@ -497,7 +497,7 @@ namespace TeslaLogger
             return GetMonoRuntimeVersion() != "NULL";
         }
 
-        public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target, string excludeFile = null, bool writeToLogfile = true)
+        public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target, string? excludeFile = null, bool writeToLogfile = true)
         {
             if (source is not null && target is not null)
             {

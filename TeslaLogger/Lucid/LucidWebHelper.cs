@@ -101,7 +101,7 @@ namespace TeslaLoggerNET8.Lucid
             {
                 var ts = Tools.ToUnixTime(DateTime.UtcNow) * 1000;
                 await SendDataToAbetterrouteplannerAsync(ts, battery_level, speed, false, PS, latitude, longitude);
-                int id = await car.DbHelper.InsertPosAsync(ts.ToString(), latitude, longitude, (int)Math.Round(speed), (decimal)PS, car.CurrentJSON.current_odometer, ideal_battery_range, ideal_battery_range, battery_level, car.CurrentJSON.current_inside_temperature, car.CurrentJSON.current_outside_temperature, elevation);
+                int id = await car.DbHelper.InsertPosAsync(ts.ToString(), latitude, longitude, (int)Math.Round(speed), (decimal)PS, car.CurrentJSON.current_odometer, ideal_battery_range, ideal_battery_range, battery_level, car.CurrentJSON.current_inside_temperature, car.CurrentJSON.current_outside_temperature, elevation, cancellationToken).ConfigureAwait(false);
                 car.Log("Insert Pos " + id);
             }
             
@@ -566,8 +566,9 @@ namespace TeslaLoggerNET8.Lucid
             return "LUCID";
         }
 
-        protected override void StartStream()
+        protected override async Task StartStream()
         {
+            await Task.CompletedTask.ConfigureAwait(false);
         }
     }
 }

@@ -844,7 +844,7 @@ namespace TeslaLogger
                     CreateExeptionlessFeature("FleetAPI").Submit();
                 }
 
-                var countryCode = DbHelper.UpdateCountryCodeAsync();
+                var countryCode = await DbHelper.UpdateCountryCodeAsync(cts.Token).ConfigureAwait(false);
                 DbHelper.GetAvgConsumption(out this.sumkm, out this.avgkm, out this.kwh100km, out this.avgsocdiff, out this.maxkm);
 
                 if (!webhelper.RestoreToken())
@@ -876,10 +876,7 @@ namespace TeslaLogger
                 }
 
                 DbHelper.GetEconomy_Wh_km(webhelper);
-                lock (WebHelper.isOnlineLock)
-                {
-                    string online = webhelper.IsOnlineAsync().Result;
-                }
+                string online = await webhelper.IsOnlineAsync(cancellationToken: cts.Token).ConfigureAwait(false);
                 Log($"Streamingtoken: {Tools.ObfuscateString(webhelper.Tesla_Streamingtoken)}");
 
                 if (DbHelper.GetMaxPosid(false) == 0)
@@ -888,7 +885,7 @@ namespace TeslaLogger
                     await webhelper.IsDrivingAsync(true);
                 }
 
-                Log($"Country Code: {countryCode.Result}");
+                Log($"Country Code: {countryCode}");
                 CarVoltageAt50SOC = DbHelper.GetVoltageAt50PercentSOC(out DateTime startdate, out DateTime ende);
                 Log($"Voltage at 50% SOC:{CarVoltageAt50SOC}V Date:{startdate.ToString(Tools.ciEnUS)}");
 
@@ -1039,7 +1036,7 @@ namespace TeslaLogger
         private async Task<Address> HandleState_DriveAsync(Address lastRacingPoint)
         {
             int t = Environment.TickCount;
-            if (await webhelper.IsDrivingAsync())
+            if (await webhelper.IsDrivingAsync(cancellationToken: cts.Token).ConfigureAwait(false))
             {
                 lastCarUsed = DateTime.Now;
                 int SleepPosition = ApplicationSettings.Default.SleepPosition;
@@ -1073,7 +1070,7 @@ namespace TeslaLogger
                 }
                 else
                 {
-                    if (await webhelper.IsChargingAsync(true))
+                    if (await webhelper.IsChargingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false))
                     {
                         Log("Charging during Drive -> Finish Trip!!!");
                         DriveFinished();
@@ -1110,7 +1107,7 @@ namespace TeslaLogger
             }
             else
             {
-                await webhelper.IsDrivingAsync(true); // insert a last position. Maybe the last one is too old
+                await webhelper.IsDrivingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false); // insert a last position. Maybe the last one is too old
 
                 DriveFinished();
 
@@ -1128,18 +1125,14 @@ namespace TeslaLogger
         // else sleep 10000
         private async Task HandleState_SleepAsync()
         {
-            string res = "";
-            lock (WebHelper.isOnlineLock)
-            {
-                res = webhelper.IsOnlineAsync().Result;
-            }
+            string res = await webhelper.IsOnlineAsync(cancellationToken: cts.Token).ConfigureAwait(false);
 
             if (res == "online")
             {
                 //Log(res);
                 SetCurrentState(TeslaState.Start);
 
-                await webhelper.IsDrivingAsync(true); // Positionsmeldung in DB für Wechsel
+                await webhelper.IsDrivingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false); // Positionsmeldung in DB für Wechsel
             }
             else
             {
@@ -1163,10 +1156,10 @@ namespace TeslaLogger
         private async Task HandleState_ChargeAsync()
         {
             {
-                if (!await webhelper.IsChargingAsync(false, IsHighFrequenceLoggingEnabled()))
+                if (!await webhelper.IsChargingAsync(false, IsHighFrequenceLoggingEnabled(), cancellationToken: cts.Token).ConfigureAwait(false))
                 {
                     SetCurrentState(TeslaState.Start);
-                    await webhelper.IsDrivingAsync(true);
+                    await webhelper.IsDrivingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false);
                 }
                 else
                 {
@@ -1219,7 +1212,7 @@ namespace TeslaLogger
         {
             {
                 //if (webhelper.IsDriving() && DBHelper.currentJSON.current_speed > 0)
-                if (await webhelper.IsDrivingAsync()
+                if (await webhelper.IsDrivingAsync(cancellationToken: cts.Token).ConfigureAwait(false)
                     && (webhelper.GetLastShiftState().Equals("R", StringComparison.Ordinal)
                         || webhelper.GetLastShiftState().Equals("N", StringComparison.Ordinal)
                         || webhelper.GetLastShiftState().Equals("D", StringComparison.Ordinal)
@@ -1258,7 +1251,7 @@ namespace TeslaLogger
                     _ = Task.Run(() => webhelper.DeleteWakeupFile());
                     return;
                 }
-                else if (await webhelper.IsChargingAsync(true))
+                else if (await webhelper.IsChargingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false))
                 {
                     lastCarUsed = DateTime.Now;
                     Log("Charging");
@@ -1267,8 +1260,8 @@ namespace TeslaLogger
                         webhelper.scanMyTesla.FastMode(true);
                     }
 
-                    await webhelper.IsDrivingAsync(true);
-                    await DbHelper.StartChargingStateAsync(webhelper);
+                    await webhelper.IsDrivingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false);
+                    await DbHelper.StartChargingStateAsync(webhelper, cts.Token).ConfigureAwait(false);
                     SetCurrentState(TeslaState.Charge);
 
                     webhelper.DeleteWakeupFile();
@@ -1282,7 +1275,7 @@ namespace TeslaLogger
                     if (!FleetAPI)
                     {
                         // check sentry mode state
-                        _ = webhelper.GetOdometerAsync().Result;
+                        _ = await webhelper.GetOdometerAsync(cts.Token).ConfigureAwait(false);
                     }
 
                     Tools.StartSleeping(out int startSleepHour, out int startSleepMinute);
@@ -1304,11 +1297,7 @@ namespace TeslaLogger
                     {
                         // Log("API not suspended!");
                         await Task.Delay(1000, cts.Token);
-                        string res = "";
-                        lock (WebHelper.isOnlineLock)
-                        {
-                            res = webhelper.IsOnlineAsync().Result;
-                        }
+                        string res = await webhelper.IsOnlineAsync(cancellationToken: cts.Token).ConfigureAwait(false);
                         if (res == "asleep")
                         {
                             SetCurrentState(TeslaState.Start);
@@ -1333,7 +1322,7 @@ namespace TeslaLogger
                             Log("Car is sleeping because of 408");
                             SetCurrentState(TeslaState.Sleep);
                             lastCarUsed = DateTime.Now;
-                            await DbHelper.StartStateAsync("asleep");
+                            await DbHelper.StartStateAsync("asleep", cts.Token).ConfigureAwait(false);
                         }
 
                         // wenn er 15 min online war und nicht geladen oder gefahren ist, dann muss man ihn die möglichkeit geben offline zu gehen
@@ -1342,7 +1331,7 @@ namespace TeslaLogger
                         {
                             SetCurrentState(TeslaState.Start);
 
-                            await webhelper.IsDrivingAsync(true); // kurz bevor er schlafen geht, eine Positionsmeldung speichern und schauen ob standheizung / standklima / sentry läuft.
+                            await webhelper.IsDrivingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false); // kurz bevor er schlafen geht, eine Positionsmeldung speichern und schauen ob standheizung / standklima / sentry läuft.
                             Address addr = Geofence.GetInstance().GetPOI(CurrentJSON.Latitude, CurrentJSON.Longitude, false);
                             if (!CanFallAsleep(out string reason))
                             {
@@ -1590,18 +1579,14 @@ namespace TeslaLogger
             {
                 if (ex.ErrorCode == -2147467259) // {"Duplicate entry 'xxx' for key 'ix_endpos'"}
                 {
-                    await webhelper.IsDrivingAsync(true);
+                    await webhelper.IsDrivingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false);
                     Log(ex.Message);
                 }
 
                 SendException2Exceptionless(ex);
             }
 
-            string res = "";
-            lock (WebHelper.isOnlineLock)
-            {
-                res = webhelper.IsOnlineAsync().Result;
-            }
+            string res = await webhelper.IsOnlineAsync(cancellationToken: cts.Token).ConfigureAwait(false);
 
             lastCarUsed = DateTime.Now;
             if (res == "online")
@@ -1611,9 +1596,9 @@ namespace TeslaLogger
                 if (FleetAPI && String.IsNullOrEmpty(FleetApiAddress))
                     webhelper.GetRegion();
 
-                await webhelper.IsDrivingAsync(true);
+                await webhelper.IsDrivingAsync(true, cancellationToken: cts.Token).ConfigureAwait(false);
                 webhelper.ResetLastChargingState();
-                await DbHelper.StartStateAsync(res);
+                await DbHelper.StartStateAsync(res, cts.Token).ConfigureAwait(false);
                 DbHelper.CleanPasswort();
                 return;
             }
@@ -1621,14 +1606,14 @@ namespace TeslaLogger
             {
                 //Log(res);
                 SetCurrentState(TeslaState.Sleep);
-                await DbHelper.StartStateAsync(res);
+                await DbHelper.StartStateAsync(res, cts.Token).ConfigureAwait(false);
                 webhelper.ResetLastChargingState();
                 CurrentJSON.CreateCurrentJSON();
             }
             else if (res == "offline")
             {
                 //Log(res);
-                await DbHelper.StartStateAsync(res);
+                await DbHelper.StartStateAsync(res, cts.Token).ConfigureAwait(false);
                 CurrentJSON.CreateCurrentJSON();
 
                 while (true)
@@ -2047,7 +2032,7 @@ namespace TeslaLogger
             {
                 telemetry?.StartConnection();
                 if (!FleetAPI)
-                    _ = webhelper.GetOdometerAsync();
+                    _ = Task.Run(async () => await webhelper.GetOdometerAsync(cts.Token).ConfigureAwait(false));
 
                 Tools.DebugLog($"#{CarInDB}:Start -> Online SendDataToAbetterrouteplannerAsync(utc:{Tools.ToUnixTime(DateTime.UtcNow) * 1000}, soc:{CurrentJSON.current_battery_level}, speed:0, charging:false, power:0, lat:{CurrentJSON.Latitude}, lon:{CurrentJSON.Longitude})");
                 _ = webhelper.SendDataToAbetterrouteplannerAsync(Tools.ToUnixTime(DateTime.UtcNow) * 1000, CurrentJSON.current_battery_level, 0, false, 0, CurrentJSON.Latitude, CurrentJSON.Longitude);

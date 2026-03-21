@@ -90,7 +90,7 @@ namespace TeslaLogger
     public class AddressByLatLng : IComparer<Address>
     {
 
-        public int Compare(Address x, Address y)
+        public int Compare(Address? x, Address? y)
         {
             if (x is not null && y is not null && x.lat < y.lat)
             {
@@ -501,9 +501,9 @@ namespace TeslaLogger
             }
         }
 
-        public Address GetPOI(double lat, double lng, bool logDistance = true, string brand = null, int maxPower = 0)
+        public Address? GetPOI(double lat, double lng, bool logDistance = true, string? brand = null, int maxPower = 0)
         {
-            Address ret = null;
+            Address? ret = null;
             double retDistance = 0;
             int found = 0;
 

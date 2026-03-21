@@ -2989,7 +2989,7 @@ namespace TeslaLogger
 
                     if (t_outside_temp is not null)
                     {
-                        outside_temp = t_outside_temp.Result;
+                        outside_temp = await t_outside_temp.ConfigureAwait(false);
                     }
 
                     _ = SendDataToAbetterrouteplannerAsync(ts, battery_level, speed, false, power, (double)dLatitude, (double)dLongitude);
@@ -3002,7 +3002,8 @@ namespace TeslaLogger
 
                     inside_temp = car.CurrentJSON.current_inside_temperature;
 
-                    await car.DbHelper.InsertPosAsync(ts.ToString(), latitude, longitude, speed, power, odometer.Result, ideal_battery_range_km, battery_range_km, battery_level, inside_temp, outside_temp, elevation);
+                    double odometerVal = await odometer.ConfigureAwait(false);
+                    await car.DbHelper.InsertPosAsync(ts.ToString(), latitude, longitude, speed, power, odometerVal, ideal_battery_range_km, battery_range_km, battery_level, inside_temp, outside_temp, elevation, car.cts.Token).ConfigureAwait(false);
 
                     if (shift_state == "D" || shift_state == "R" || shift_state == "N")
                     {
@@ -3099,13 +3100,15 @@ namespace TeslaLogger
 
             if (streamThread is null)
             {
-                streamThread = new System.Threading.Thread(() => StartStream());
-                streamThread.Name = "StreamAPIThread_" + car.CarInDB;
+                streamThread = new System.Threading.Thread(async () => await StartStream())
+                {
+                    Name = "StreamAPIThread_" + car.CarInDB
+                };
                 streamThread.Start();
             }
         }
 
-        protected virtual void StartStream()
+        protected virtual async Task StartStream()
         {
             string resultContent = null;
             byte[] buffer = new byte[1024];
@@ -3277,7 +3280,7 @@ namespace TeslaLogger
                                         break;
                                     case "data:update":
                                         string value = j.GetSafeString("value", "");
-                                        StreamDataUpdate(value);
+                                        await StreamDataUpdate(value).ConfigureAwait(false);
                                         break;
                                     default:
                                         car.Log($"unhandled: {resultContent}");
@@ -3387,7 +3390,7 @@ namespace TeslaLogger
         int vehicleDisconnectedCounter; // defaults to 0;
 
 
-        private void StreamDataUpdate(string data)
+        private async Task StreamDataUpdate(string data)
         {
             lastStreamingAPIData = DateTime.UtcNow;
 
@@ -3454,7 +3457,7 @@ namespace TeslaLogger
                     last_power_streaming = dpower;
 
                     //Tools.DebugLog($"Stream: InsertPos({v[0]}, {latitude}, {longitude}, {ispeed}, {dpower}, {dodometer_km}, {ideal_battery_range_km}, {battery_range_km}, {isoc}, {outside_temp}, String.Empty)");
-                    car.DbHelper.InsertPosAsync(v[0], latitude, longitude, ispeed, dpower, dodometer_km, ideal_battery_range_km, battery_range_km, isoc, inside_temp, outside_temp, String.Empty).Wait();
+                    await car.DbHelper.InsertPosAsync(v[0], latitude, longitude, ispeed, dpower, dodometer_km, ideal_battery_range_km, battery_range_km, isoc, inside_temp, outside_temp, String.Empty, car.cts.Token).ConfigureAwait(false);
                 }
             }
             if (int.TryParse(heading, out int iheading)) {  // heading in degrees

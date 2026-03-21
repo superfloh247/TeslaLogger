@@ -64,11 +64,11 @@ VALUES(@id, @text)", con))
             }
         }
 
-        public async Task CloseStateAsync(int maxPosid)
+        public async Task CloseStateAsync(int maxPosid, CancellationToken cancellationToken = default)
         {
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
-                await con.OpenAsync();
+                await con.OpenAsync(cancellationToken).ConfigureAwait(false);
                 using (MySqlCommand cmd = new MySqlCommand(@"
 UPDATE
     state
@@ -82,14 +82,14 @@ WHERE
                     cmd.Parameters.AddWithValue("@enddate", DateTime.Now);
                     cmd.Parameters.AddWithValue("@EndPos", maxPosid);
                     cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                    await cmd.ExecuteNonQueryAsync();
+                    await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
 
             car.CurrentJSON.CreateCurrentJSON();
         }
 
-        public async Task StartStateAsync(string? state)
+        public async Task StartStateAsync(string? state, CancellationToken cancellationToken = default)
         {
             if (state is not null)
             {
@@ -114,7 +114,7 @@ WHERE
 
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
-                con.Open();
+                await con.OpenAsync(cancellationToken).ConfigureAwait(false);
 
                 using (MySqlCommand cmd1 = new MySqlCommand(@"
 SELECT
@@ -137,7 +137,7 @@ WHERE
                     dr.Close();
 
                     int MaxPosid = GetMaxPosid();
-                    await CloseStateAsync(MaxPosid);
+                    await CloseStateAsync(MaxPosid, cancellationToken).ConfigureAwait(false);
 
                     car.Log($"state: {state}");
 
@@ -160,13 +160,13 @@ VALUES(
                         cmd.Parameters.AddWithValue("@state", state);
                         cmd.Parameters.AddWithValue("@StartPos", MaxPosid);
                         cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        await cmd.ExecuteNonQueryAsync();
+                        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
         }
 
-        public static async Task AddMothershipDataToDBAsync(string? command, DateTime start, int httpcode, int carid)
+        public static async Task AddMothershipDataToDBAsync(string? command, DateTime start, int httpcode, int carid, CancellationToken cancellationToken = default)
         {
             if (mothershipEnabled == false)
             {
@@ -176,10 +176,10 @@ VALUES(
             DateTime end = DateTime.UtcNow;
             TimeSpan ts = end - start;
             double duration = ts.TotalSeconds;
-            await AddMothershipDataToDBAsync(command, duration, httpcode, carid);
+            await AddMothershipDataToDBAsync(command, duration, httpcode, carid, cancellationToken).ConfigureAwait(false);
         }
 
-        public static async Task AddMothershipDataToDBAsync(string? command, double duration, int httpcode, int carid)
+        public static async Task AddMothershipDataToDBAsync(string? command, double duration, int httpcode, int carid, CancellationToken cancellationToken = default)
         {
             if (command.Contains(WebHelper.vehicle_data_everything))
                 command = command.Replace(WebHelper.vehicle_data_everything, "vehicle_data_everything");
@@ -191,7 +191,7 @@ VALUES(
             }
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
-                await con.OpenAsync();
+                await con.OpenAsync(cancellationToken).ConfigureAwait(false);
                 using (MySqlCommand cmd = new MySqlCommand(@"
 INSERT
     mothership(
@@ -217,7 +217,7 @@ VALUES(
                         cmd.Parameters.AddWithValue("@carid", DBNull.Value);
                     else
                         cmd.Parameters.AddWithValue("@carid", carid);
-                    await cmd.ExecuteNonQueryAsync();
+                    await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -3336,7 +3336,7 @@ LIMIT 1", con)
             }
         }
 
-        public async Task StartChargingStateAsync(WebHelper wh)
+        public async Task StartChargingStateAsync(WebHelper wh, CancellationToken cancellationToken = default)
         {
             object meter_vehicle_kwh_start = DBNull.Value;
             object meter_utility_kwh_start = DBNull.Value;
@@ -3367,7 +3367,7 @@ LIMIT 1", con)
 
             if (car.FleetAPI)
             {
-                await car.webhelper.IsChargingAsync(); // insert a charging row in DB
+                await car.webhelper.IsChargingAsync(cancellationToken: cancellationToken).ConfigureAwait(false); // insert a charging row in DB
                 UpdatePosFromCurrentJSON(posid);
             }
 
@@ -3381,7 +3381,7 @@ LIMIT 1", con)
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
-                    con.Open();
+                    await con.OpenAsync(cancellationToken).ConfigureAwait(false);
                     using (MySqlCommand cmd = new MySqlCommand(@"
 INSERT
     chargingstate(
@@ -4623,13 +4623,13 @@ WHERE
 
         int last_active_route_energy_at_arrival = int.MinValue;
 
-        public async Task<int> InsertPosAsync(string? timestamp, double latitude, double longitude, int speed, decimal? power, double? odometer, double idealBatteryRangeKm, double batteryRangeKm, double batteryLevel, double? insideTemp, double? outsideTemp, string? altitude)
+        public async Task<int> InsertPosAsync(string? timestamp, double latitude, double longitude, int speed, decimal? power, double? odometer, double idealBatteryRangeKm, double batteryRangeKm, double batteryLevel, double? insideTemp, double? outsideTemp, string? altitude, CancellationToken cancellationToken = default)
         {
             int posid = 0;
             //double? inside_temp = car.CurrentJSON.current_inside_temperature;
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
             {
-                await con.OpenAsync();
+                await con.OpenAsync(cancellationToken).ConfigureAwait(false);
 
                 using (MySqlCommand cmd = new MySqlCommand(@"
 INSERT
@@ -4747,7 +4747,7 @@ VALUES(
 
                     using (MySqlCommand cmdid = new MySqlCommand("SELECT LAST_INSERT_ID()", con))
                     {
-                        posid = Convert.ToInt32(await cmdid.ExecuteScalarAsync());
+                        posid = Convert.ToInt32(await cmdid.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
                     }
 
                     try
@@ -5491,20 +5491,20 @@ WHERE
         }
 
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
-        public static async Task<int> ExecuteSQLQueryAsync(string? sql, int timeout = 30)
+        public static async Task<int> ExecuteSQLQueryAsync(string? sql, int timeout = 30, CancellationToken cancellationToken = default)
         {
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
-                    await con.OpenAsync();
+                    await con.OpenAsync(cancellationToken).ConfigureAwait(false);
                     using (MySqlCommand cmd = new MySqlCommand(sql, con))
                     {
                         if (timeout != 30)
                         {
                             cmd.CommandTimeout = timeout;
                         }
-                        return await cmd.ExecuteNonQueryAsync();
+                        return await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -5804,13 +5804,13 @@ WHERE
             return 0;
         }
 
-        virtual public async Task<string?> UpdateCountryCodeAsync()
+        virtual public async Task<string?> UpdateCountryCodeAsync(CancellationToken cancellationToken = default)
         {
             try
             {
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
-                    con.Open();
+                    await con.OpenAsync(cancellationToken).ConfigureAwait(false);
                     using (MySqlCommand cmd = new MySqlCommand(@"
 SELECT
     lat,
@@ -5828,8 +5828,8 @@ WHERE
     )", con))
                     {
                         cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        var dr = await cmd.ExecuteReaderAsync();
-                        if (await dr.ReadAsync())
+                        var dr = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                        if (await dr.ReadAsync(cancellationToken).ConfigureAwait(false))
                         {
                             double lat = Convert.ToDouble(dr[0], Tools.ciEnUS);
                             double lng = Convert.ToDouble(dr[1], Tools.ciEnUS);

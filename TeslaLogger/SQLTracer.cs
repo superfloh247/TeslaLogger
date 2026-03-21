@@ -12,7 +12,7 @@ namespace TeslaLogger
     {
         private static int ID;
 
-        internal static MySqlDataReader TraceDR(MySqlCommand cmd, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
+        internal static MySqlDataReader TraceDR(MySqlCommand cmd, [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
         {
             string prefix = "(SQL" + ++ID + ") ";
             if (Program.SQLTRACE == false)
@@ -45,7 +45,7 @@ namespace TeslaLogger
             }
         }
 
-        internal static int TraceNQ(MySqlCommand cmd, out long lastInsertedId, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
+        internal static int TraceNQ(MySqlCommand cmd, out long lastInsertedId, [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
         {
             string prefix = "(SQL" + ++ID + ") ";
             if (Program.SQLTRACE == false)
@@ -81,7 +81,7 @@ namespace TeslaLogger
             }
         }
 
-        internal static object TraceSc(MySqlCommand cmd, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
+        internal static object TraceSc(MySqlCommand cmd, [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
         {
             string prefix = "(SQL" + ++ID + ") ";
             if (Program.SQLTRACE == false)
@@ -114,7 +114,7 @@ namespace TeslaLogger
             }
         }
 
-        internal static int TraceDA(DataTable dt, MySqlDataAdapter da, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
+        internal static int TraceDA(DataTable dt, MySqlDataAdapter da, [CallerFilePath] string? callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
         {
             string prefix = "(SQL" + ++ID + ") ";
             if (Program.SQLTRACE == false)

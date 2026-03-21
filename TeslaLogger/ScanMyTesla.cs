@@ -80,7 +80,7 @@ namespace TeslaLogger
                         }
                     }
 
-                    response = await GetDataFromWebservice().ConfigureAwait(false);
+                    response = await GetDataFromWebservice(cancellationTokenSource.Token).ConfigureAwait(false);
                     if (response.StartsWith("not found", StringComparison.Ordinal)
                         || response.StartsWith("ERROR:", StringComparison.Ordinal)
                         || response.Contains("Resource Limit Is Reached"))
@@ -107,7 +107,7 @@ namespace TeslaLogger
             car.Log("ScanMyTesla: " + response);
         }
 
-        public async Task<string> GetDataFromWebservice()
+        public async Task<string> GetDataFromWebservice(CancellationToken cancellationToken = default)
         {
             string resultContent = "";
             try
@@ -119,19 +119,19 @@ namespace TeslaLogger
                 {
 
                     DateTime start = DateTime.UtcNow;
-                    HttpResponseMessage result = await httpclient_teslalogger_de.PostAsync(new Uri("http://teslalogger.de/get_scanmytesla.php"), content).ConfigureAwait(false);
+                    HttpResponseMessage result = await httpclient_teslalogger_de.PostAsync(new Uri("http://teslalogger.de/get_scanmytesla.php"), content, cancellationToken).ConfigureAwait(false);
 
                     if (result.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                     {
                         car.CreateExeptionlessLog("ScanMyTesla", "GetDataFromWebservice Error Service Unavailable (503)", Exceptionless.Logging.LogLevel.Warn).Submit();
                         car.Log("SMT: Error Service Unavailable (503)");                        
-                        await Task.Delay(25000);
+                        await Task.Delay(25000, cancellationToken);
                         return "ERROR: 503";
                     }
 
                     resultContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    await DBHelper.AddMothershipDataToDBAsync("teslalogger.de/get_scanmytesla.php", start, (int)result.StatusCode, car.CarInDB);
+                    await DBHelper.AddMothershipDataToDBAsync("teslalogger.de/get_scanmytesla.php", start, (int)result.StatusCode, car.CarInDB, cancellationToken).ConfigureAwait(false);
 
                     if (resultContent == "not found")
                     {
@@ -143,7 +143,7 @@ namespace TeslaLogger
                         car.CreateExeptionlessLog("ScanMyTesla", "Too many connections", Exceptionless.Logging.LogLevel.Warn).Submit();
 
                         car.Log("SMT: Too many connections");
-                        await Task.Delay(25000);
+                        await Task.Delay(25000, cancellationToken);
                         return "Resource Limit Is Reached";
                     }
 
@@ -152,7 +152,7 @@ namespace TeslaLogger
                         car.CreateExeptionlessLog("ScanMyTesla", "Resource Limit Is Reached", Exceptionless.Logging.LogLevel.Warn).Submit();
 
                         car.Log("SMT: Resource Limit Is Reached");
-                        await Task.Delay(25000);
+                        await Task.Delay(25000, cancellationToken);
                         return "Resource Limit Is Reached";
                     }
 

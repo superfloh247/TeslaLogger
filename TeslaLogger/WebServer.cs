@@ -2127,7 +2127,7 @@ DROP TABLE chargingstate_bak";
 
 
 
-        internal static void WriteString(HttpListenerResponse response, string responseString, string contentType=null)
+        internal static void WriteString(HttpListenerResponse response, string responseString, string? contentType=null)
         {
             response.ContentEncoding = Encoding.UTF8;
             var buffer = Encoding.UTF8.GetBytes(responseString);
