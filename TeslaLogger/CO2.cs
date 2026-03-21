@@ -232,7 +232,9 @@ namespace TeslaLogger
                 if (File.Exists(path))
                     content = File.ReadAllText(path);
                 else
-                    content = GetEnergyChartDataAsync(country, filename, writeCache).Result;
+                // OPTIMIZATION: Energy chart data fetch with ConfigureAwait(false) for Raspberry Pi
+                content = GetEnergyChartDataAsync(country, filename, writeCache)
+                    .ConfigureAwait(false).GetAwaiter().GetResult();
 
                 JArray j = JArray.Parse(content);
 

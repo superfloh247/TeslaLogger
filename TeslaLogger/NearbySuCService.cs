@@ -88,7 +88,9 @@ namespace TeslaLogger
                         string result = string.Empty;
                         try
                         {
-                            result = car.webhelper.GetCommand("nearby_charging_sites?detail=true", true).Result;
+                            // OPTIMIZATION: ConfigureAwait(false) for Raspberry Pi
+                            result = car.webhelper.GetCommand("nearby_charging_sites?detail=true", true)
+                                .ConfigureAwait(false).GetAwaiter().GetResult();
                             if (result.Equals("NULL"))
                             {
                                 continue;
@@ -292,8 +294,11 @@ namespace TeslaLogger
                         if (nextsuc)
                             suffix = "?nextsuc=1";
 
-                        HttpResponseMessage result = client.PostAsync(new Uri("http://teslalogger.de/share_supercharger2.php" + suffix), content).Result    ;
-                        string r = result.Content.ReadAsStringAsync().Result;
+                        // OPTIMIZATION: ConfigureAwait(false) reduces context switching
+                        HttpResponseMessage result = client.PostAsync(new Uri("http://teslalogger.de/share_supercharger2.php" + suffix), content)
+                            .ConfigureAwait(false).GetAwaiter().GetResult();
+                        string r = result.Content.ReadAsStringAsync()
+                            .ConfigureAwait(false).GetAwaiter().GetResult();
                         _ = DBHelper.AddMothershipDataToDBAsync("teslalogger.de/share_supercharger.php", start, (int)result.StatusCode, 0);
 
                         Tools.DebugLog("ShareSuc: " + Environment.NewLine + r);
@@ -488,8 +493,11 @@ VALUES(
                     Car c = Car.Allcars[0];
                     HttpClient client = c.webhelper.httpclient_teslalogger_de;
 
-                    HttpResponseMessage result = client.GetAsync("https://teslalogger.de:8089/GetNextSuperchargerToCalculate").Result;
-                    var resultContent = result.Content.ReadAsStringAsync().Result;
+                    // OPTIMIZATION: Supercharger query with ConfigureAwait(false)
+                    HttpResponseMessage result = client.GetAsync("https://teslalogger.de:8089/GetNextSuperchargerToCalculate")
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    var resultContent = result.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
 
                     if (int.TryParse(resultContent, out int trid))
                     {
@@ -522,8 +530,11 @@ VALUES(
             {
                 using (var scontent = new StringContent(payload, Encoding.UTF8, "application/json"))
                 {
-                    var response = client.PostAsync("https://www.tesla.com/charging/guest/api/graphql?operationName=GetSiteDetails", scontent).Result;
-                    string content = response.Content.ReadAsStringAsync().Result;
+                    // OPTIMIZATION: Tesla GraphQL API with ConfigureAwait(false)
+                    var response = client.PostAsync("https://www.tesla.com/charging/guest/api/graphql?operationName=GetSiteDetails", scontent)
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    string content = response.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
                     if (response.IsSuccessStatusCode)
                     {
                         try
@@ -613,8 +624,11 @@ VALUES(
             {
                 using (var scontent = new StringContent(content, Encoding.UTF8, "application/json"))
                 {
-                    var result = client.PostAsync("https://www.tesla.com/de_DE/charging/guest/api/graphql?operationName=getGuestChargingSiteDetails", scontent).Result;
-                    string r = result.Content.ReadAsStringAsync().Result;
+                    // OPTIMIZATION: German Tesla portal query with ConfigureAwait(false)
+                    var result = client.PostAsync("https://www.tesla.com/de_DE/charging/guest/api/graphql?operationName=getGuestChargingSiteDetails", scontent)
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    string r = result.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
 
                     try
                     {
