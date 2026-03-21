@@ -7,6 +7,7 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -58,7 +59,9 @@ namespace TeslaLogger
             Size = 16,
             Edging = SKFontEdging.Antialias
         };
-        static SKPaint drawFont12b = new SKPaint(SanSerifBold12){ 
+        static SKPaint drawFont12b = new SKPaint { 
+            Typeface = SanSerifBold12.Typeface,
+            TextSize = SanSerifBold12.Size,
             StrokeWidth = 1, 
             Color = SKColors.White
         };
@@ -765,11 +768,15 @@ namespace TeslaLogger
                     if (debug) Console.WriteLine("Download:" + url);
                     try
                     {
-                        using (var wc = new WebClient())
+                        using (var httpClient = new HttpClient())
                         {
-                            wc.Headers["User-Agent"] = "TeslaLogger.OSMMapGenerator";
-                            wc.DownloadFile(url, localMapCacheFilePath);
-                            wc.Dispose();
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", "TeslaLogger.OSMMapGenerator");
+                            var response = httpClient.GetAsync(url).Result;
+                            if (response.IsSuccessStatusCode)
+                            {
+                                var content = response.Content.ReadAsByteArrayAsync().Result;
+                                File.WriteAllBytes(localMapCacheFilePath, content);
+                            }
                         }
                     }
                     catch (Exception)
@@ -955,7 +962,7 @@ namespace TeslaLogger
                 {
                     
                     string text = icon == MapIcon.Park ? "P" : "C";
-                    float size = drawFont12b.MeasureText(text);
+                    float size = SanSerifBold12.MeasureText(text);
                     // ccc g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
                     //g.DrawText(text, x - size / 2, y - 6 * scale - size / 2, drawFont12b);
                     g.DrawText(text, x - size / 2, y - scale - rect.Height / 2 , drawFont12b);

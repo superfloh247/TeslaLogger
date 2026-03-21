@@ -11,7 +11,7 @@ namespace TeslaLoggerNET8
 {
     internal class TelemetryConnectionKafka : TelemetryConnection
     {
-        static TelemetryConnectionKafka instance = null;
+        static TelemetryConnectionKafka? instance = null;
         static System.Collections.Concurrent.BlockingCollection<(string vin, string msg)> queue = new ();
         static System.Collections.Concurrent.ConcurrentDictionary<string, TelemetryParser> parserDict = new ();
         static HashSet<string> vins = new ();

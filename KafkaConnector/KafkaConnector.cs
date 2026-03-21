@@ -12,11 +12,11 @@ namespace KafkaConnector
     public class KafkaConnector
     {
         readonly CancellationTokenSource ct = new();
-        IConsumer<string, byte[]> consumer;
+        IConsumer<string, byte[]> consumer = null!;
         readonly string bootstrapServers = "";
         string groupID = "";
-        static System.Collections.Concurrent.BlockingCollection<(string vin, string msg)> queue;
-        static HashSet<string> vins;
+        static System.Collections.Concurrent.BlockingCollection<(string vin, string msg)> queue = null!;
+        static HashSet<string> vins = null!;
 
         public KafkaConnector(ref System.Collections.Concurrent.BlockingCollection<(string vin, string msg)> queue,
             ref HashSet<string> vins) {
@@ -111,14 +111,16 @@ namespace KafkaConnector
                     if (!vins.Contains(vin))
                         continue;
 
+#pragma warning disable CS8618
                     if (txtype == "V")
                     {
-                        Payload pl = null;
+                        Payload pl = null!;
                         pl = Payload.Parser.ParseFrom(r.Message.Value);
                         string str = pl.ToString();
                         
                         queue.Add((vin, str));
                     }
+#pragma warning restore CS8618
                 }
                 catch (OperationCanceledException ex2)
                 {
