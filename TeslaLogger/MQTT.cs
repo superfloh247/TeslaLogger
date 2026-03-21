@@ -831,7 +831,34 @@ namespace TeslaLogger
 
         private MqttClientWrapper() { }
 
+        /// <summary>
+        /// Synchronous wrapper for MQTT broker connection.
+        /// USE: For backward compatibility only. Prefer ConnectAsync() for new code.
+        /// </summary>
+        /// <remarks>
+        /// This method uses sync-over-async pattern for API compatibility.
+        /// If called from async context, use ConnectAsync() instead to avoid thread pool blocking.
+        /// </remarks>
         public byte Connect(string clientId, string username, string password, bool willRetain, byte willQosLevel, bool willFlag, string willTopic, string willMessage, bool cleanSession, ushort keepAlivePeriod)
+        {
+            try
+            {
+                return ConnectAsync(clientId, username, password, willRetain, willQosLevel, willFlag, willTopic, willMessage, cleanSession, keepAlivePeriod).GetAwaiter().GetResult();
+            }
+            catch (Exception)
+            {
+                return 1; // Error code
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously connects to MQTT broker with proper async/await pattern.
+        /// RECOMMENDED method for .NET 8 modern async code.
+        /// </summary>
+        /// <remarks>
+        /// Use this method in async contexts to avoid blocking thread pool threads.
+        /// </remarks>
+        public async Task<byte> ConnectAsync(string clientId, string username, string password, bool willRetain, byte willQosLevel, bool willFlag, string willTopic, string willMessage, bool cleanSession, ushort keepAlivePeriod, CancellationToken ct = default)
         {
             var builder = new MqttClientOptionsBuilder()
                 .WithClientId(clientId)
@@ -842,11 +869,31 @@ namespace TeslaLogger
             builder.WithKeepAlivePeriod(TimeSpan.FromSeconds(keepAlivePeriod));
 
             var options = builder.Build();
-            _client.ConnectAsync(options).GetAwaiter().GetResult();
+            await _client.ConnectAsync(options, ct).ConfigureAwait(false);
             return 0;
         }
 
+        /// <summary>
+        /// Synchronous wrapper for MQTT message publishing.
+        /// USE: For backward compatibility only. Prefer PublishAsync() for new code.
+        /// </summary>
         public ushort Publish(string topic, byte[] message, byte qosLevel, bool retain)
+        {
+            try
+            {
+                return PublishAsync(topic, message, qosLevel, retain).GetAwaiter().GetResult();
+            }
+            catch (Exception)
+            {
+                return 1; // Error code
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously publishes message to MQTT broker.
+        /// RECOMMENDED method for .NET 8 modern async code.
+        /// </summary>
+        public async Task<ushort> PublishAsync(string topic, byte[] message, byte qosLevel, bool retain, CancellationToken ct = default)
         {
             var appMsg = new MqttApplicationMessageBuilder()
                 .WithTopic(topic)
@@ -854,11 +901,31 @@ namespace TeslaLogger
                 .WithQualityOfServiceLevel((MqttQualityOfServiceLevel)qosLevel)
                 .WithRetainFlag(retain)
                 .Build();
-            _client.PublishAsync(appMsg).GetAwaiter().GetResult();
+            await _client.PublishAsync(appMsg, ct).ConfigureAwait(false);
             return 0;
         }
 
+        /// <summary>
+        /// Synchronous wrapper for MQTT topic subscription.
+        /// USE: For backward compatibility only. Prefer SubscribeAsync() for new code.
+        /// </summary>
         public ushort Subscribe(string[] topics, byte[] qosLevels)
+        {
+            try
+            {
+                return SubscribeAsync(topics, qosLevels).GetAwaiter().GetResult();
+            }
+            catch (Exception)
+            {
+                return 1; // Error code
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously subscribes to MQTT topics.
+        /// RECOMMENDED method for .NET 8 modern async code.
+        /// </summary>
+        public async Task<ushort> SubscribeAsync(string[] topics, byte[] qosLevels, CancellationToken ct = default)
         {
             List<MQTTnet.Packets.MqttTopicFilter> filters = new();
             for (int i = 0; i < topics.Length; i++)
@@ -868,13 +935,33 @@ namespace TeslaLogger
                     .WithQualityOfServiceLevel((MqttQualityOfServiceLevel)qosLevels[i])
                     .Build());
             }
-            _client.SubscribeAsync(new MQTTnet.Client.MqttClientSubscribeOptions() { TopicFilters = filters }).GetAwaiter().GetResult();
+            await _client.SubscribeAsync(new MQTTnet.Client.MqttClientSubscribeOptions() { TopicFilters = filters }, ct).ConfigureAwait(false);
             return 0;
         }
 
+        /// <summary>
+        /// Synchronous wrapper for MQTT topic unsubscription.
+        /// USE: For backward compatibility only. Prefer UnsubscribeAsync() for new code.
+        /// </summary>
         public ushort Unsubscribe(string[] topics)
         {
-            _client.UnsubscribeAsync(new MQTTnet.Client.MqttClientUnsubscribeOptions() { TopicFilters = topics.ToList() }).GetAwaiter().GetResult();
+            try
+            {
+                return UnsubscribeAsync(topics).GetAwaiter().GetResult();
+            }
+            catch (Exception)
+            {
+                return 1; // Error code
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously unsubscribes from MQTT topics.
+        /// RECOMMENDED method for .NET 8 modern async code.
+        /// </summary>
+        public async Task<ushort> UnsubscribeAsync(string[] topics, CancellationToken ct = default)
+        {
+            await _client.UnsubscribeAsync(new MQTTnet.Client.MqttClientUnsubscribeOptions() { TopicFilters = topics.ToList() }, ct).ConfigureAwait(false);
             return 0;
         }
     }
