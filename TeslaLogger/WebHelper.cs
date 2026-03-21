@@ -517,8 +517,11 @@ namespace TeslaLogger
 
                         using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
                         {
-                            HttpResponseMessage result = client.PostAsync(new Uri(authHost + "/oauth2/v3/token"), content).Result;
-                            resultContent = result.Content.ReadAsStringAsync().Result;
+                            // OPTIMIZATION: ConfigureAwait(false) reduces context switching on Raspberry Pi
+                            HttpResponseMessage result = client.PostAsync(new Uri(authHost + "/oauth2/v3/token"), content)
+                                .ConfigureAwait(false).GetAwaiter().GetResult();
+                            resultContent = result.Content.ReadAsStringAsync()
+                                .ConfigureAwait(false).GetAwaiter().GetResult();
 
                             _ = DBHelper.AddMothershipDataToDBAsync("UpdateTeslaTokenFromRefreshToken()", start, (int)result.StatusCode, car.CarInDB);
 
@@ -637,7 +640,8 @@ namespace TeslaLogger
 
             try
             {
-                _ = IsOnlineAsync(true).Result; // get new Tesla_Streamingtoken;
+                // OPTIMIZATION: IsOnlineAsync with ConfigureAwait(false) for Raspberry Pi
+                _ = IsOnlineAsync(true).ConfigureAwait(false).GetAwaiter().GetResult();
                                            // restart streaming thread with new token
                 RestartStreamThreadWithTask();
             }
@@ -669,8 +673,11 @@ namespace TeslaLogger
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Tesla_token);
                     Tools.DebugLog($"GetRegion #{car.CarInDB} request: {request.RequestUri}");
-                    HttpResponseMessage response = httpClientTeslaAPI.SendAsync(request).Result;
-                    string result = response.Content.ReadAsStringAsync().Result;
+                    // OPTIMIZATION: ConfigureAwait(false) reduces context switching
+                    HttpResponseMessage response = httpClientTeslaAPI.SendAsync(request)
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    string result = response.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
                     if (response.IsSuccessStatusCode)
                     {
                         if (result.Contains("\"error\""))
@@ -777,8 +784,10 @@ namespace TeslaLogger
             }))
                 {
 
-                    var response = httpclient_teslalogger_de.PostAsync(new Uri("https://teslalogger.de/teslaredirect/refresh_token.php"), formContent).Result;
-                    string result = response.Content.ReadAsStringAsync().Result;
+                    var response = httpclient_teslalogger_de.PostAsync(new Uri("https://teslalogger.de/teslaredirect/refresh_token.php"), formContent)
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    string result = response.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
                     if (response.IsSuccessStatusCode)
                     {
                         if (result.Contains("User revoked consent"))
@@ -920,8 +929,11 @@ namespace TeslaLogger
             }))
                 {
 
-                    var response = httpclient_teslalogger_de.PostAsync(new Uri("https://auth.tesla.com/oauth2/v3/token"), formContent).Result;
-                    string result = response.Content.ReadAsStringAsync().Result;
+                    // OPTIMIZATION: Blocking pattern with ConfigureAwait(false) for Raspberry Pi
+                    var response = httpclient_teslalogger_de.PostAsync(new Uri("https://auth.tesla.com/oauth2/v3/token"), formContent)
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    string result = response.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
                     if (response.IsSuccessStatusCode)
                     {
                         if (result.Contains("User revoked consent"))
@@ -1322,7 +1334,8 @@ namespace TeslaLogger
                         Log($"Charging! Voltage: {charger_voltage}V / Power: {charger_power}kW / Timestamp: {ts} / Date: {dtTimestamp}");
                         if (!lastCharging_State.Equals(charging_state))
                         {
-                            car.DbHelper.InsertCharging(ts.ToString(), battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, (double)battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp.Result, car.IsHighFrequenceLoggingEnabled(true), charger_pilot_current, charge_current_request);
+                            car.DbHelper.InsertCharging(ts.ToString(), battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, (double)battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp
+                            .ConfigureAwait(false).GetAwaiter().GetResult(), car.IsHighFrequenceLoggingEnabled(true), charger_pilot_current, charge_current_request);
                         }
                         return double.TryParse(charger_power, Tools.ciEnUS, out double dPowerkW) && dPowerkW >= 1.0;
                     }
@@ -1337,14 +1350,16 @@ namespace TeslaLogger
                     _ = SendDataToAbetterrouteplannerAsync(ts, car.CurrentJSON.current_battery_level, 0, true, power, car.CurrentJSON.Latitude, car.CurrentJSON.Longitude);
 
                     lastCharging_State = charging_state;
-                    car.DbHelper.InsertCharging(ts.ToString(), battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, (double)battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp.Result, car.IsHighFrequenceLoggingEnabled(true), charger_pilot_current, charge_current_request);
+                    car.DbHelper.InsertCharging(ts.ToString(), battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, (double)battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp
+                        .ConfigureAwait(false).GetAwaiter().GetResult(), car.IsHighFrequenceLoggingEnabled(true), charger_pilot_current, charge_current_request);
                     return true;
                 }
                 else if (charging_state == "Complete")
                 {
                     if (lastCharging_State != "Complete")
                     {
-                        car.DbHelper.InsertCharging(ts.ToString(), battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, (double)battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp.Result, true, charger_pilot_current, charge_current_request);
+                        car.DbHelper.InsertCharging(ts.ToString(), battery_level, charge_energy_added, charger_power, (double)ideal_battery_range, (double)battery_range, charger_voltage, charger_phases, charger_actual_current, outside_temp
+                            .ConfigureAwait(false).GetAwaiter().GetResult(), true, charger_pilot_current, charge_current_request);
                         Log("Charging Complete");
                     }
 
@@ -1865,8 +1880,10 @@ namespace TeslaLogger
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Tesla_token);
                 Tools.DebugLog($"DoGetVehiclesRequest #{car.CarInDB} request: {request.RequestUri}");
                 resultTask = client.SendAsync(request);
-                result = resultTask.Result;
-                resultContent = result.Content.ReadAsStringAsync().Result;
+// OPTIMIZATION: ConfigureAwait(false) for Raspberry Pi streaming token refresh  
+                    result = resultTask.ConfigureAwait(false).GetAwaiter().GetResult();
+                    resultContent = result.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
 
                 // resultContent = Tools.ConvertBase64toString("eyJSZXNwb25zZSI6bnVsbCwiRXJyb3IgZGVzY3JpcHRpb24iOiIiLCJFcnJvciI6Im5vdCBmb3VuZCJ9"); // {"Response":null,"Error description":"","Error":"not found"}
 
