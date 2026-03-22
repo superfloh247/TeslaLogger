@@ -392,8 +392,11 @@ namespace TeslaLogger
                     _ = debugBuffer.TryDequeue(out _);
                 }
             }
-            // ignore failed inserts
-            catch (Exception) { }
+            // Log failed inserts but continue operation
+            catch (Exception ex)
+            {
+                DebugLog($"Warning: Failed to write debug buffer: {ex.Message}");
+            }
         }
 
         // source: https://stackoverflow.com/questions/6994852

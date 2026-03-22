@@ -19,7 +19,11 @@ namespace TeslaLogger
                 {
                     version = ret?.GetVersion();
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    Logfile.Log($"Warning: Failed to get electricity meter version: {ex.Message}");
+                    // Continue with empty version - meter initialization may still succeed
+                }
 
                 if (!String.IsNullOrEmpty(version))
                 {

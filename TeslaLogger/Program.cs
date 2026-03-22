@@ -545,7 +545,11 @@ namespace TeslaLogger
                     ExceptionlessClient.Default.Configuration.DefaultData.Add("dotnet", Environment.Version?.ToString());
                     ExceptionlessClient.Default.CreateFeatureUsage("USE_DOTNET8").FirstCarUserID().AddObject(Environment.Version.ToString(), "DOTNET8").Submit();
                 }
-            } catch (Exception) { }
+            }
+            catch (Exception ex)
+            {
+                Logfile.Log($"Warning: Failed to report .NET version: {ex.Message}");
+            }
 
             Logfile.Log($"DBConnectionstring: {DBHelper.GetDBConnectionstring(true)}");
 

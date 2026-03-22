@@ -101,17 +101,17 @@ namespace TeslaLogger
 
                 if (d["name"] is JObject nameObj && nameObj.ContainsKey("en") && nameObj.ContainsKey("de"))
                 {
-                    name = nameObj["en"].ToString();
-                    namede = nameObj["de"].ToString();
+                    name = nameObj?["en"]?.ToString() ?? "Unknown";
+                    namede = nameObj?["de"]?.ToString() ?? "Unknown";
                 }
-                else if (d["name"] is JArray nameArray)
+                else if (d["name"] is JArray nameArray && nameArray.Count > 0)
                 {
-                    name = nameArray[0]["en"].ToString();
-                    namede = nameArray[0]["de"].ToString();
+                    name = nameArray?[0]?["en"]?.ToString() ?? "Unknown";
+                    namede = nameArray?[0]?["de"]?.ToString() ?? "Unknown";
                 }
                 else 
                 {
-                    Logfile.Log("Not Handled: (missing name)" + d["name"].ToString());
+                    Logfile.Log("Not Handled: (missing name)" + d["name"]?.ToString() ?? "[null]");
                     continue;
                 }
 
@@ -259,8 +259,8 @@ namespace TeslaLogger
             foreach (JToken jd in (JArray)j)
             {
                 JObject d = (JObject)jd;
-                string name = d["name"][0]["en"].ToString();
-                string namede = d["name"][0]["de"].ToString();
+                string name = d["name"]?[0]?["en"]?.ToString() ?? "Unknown";
+                string namede = d["name"]?[0]?["de"]?.ToString() ?? "Unknown";
                 if (name== "sum")
                     continue;
 

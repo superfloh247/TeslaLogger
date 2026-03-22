@@ -46,7 +46,10 @@ namespace TeslaLogger
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Logfile.Log($"Warning: Statistics thread error: {ex.Message}");
+            }
         }
 
         internal static string Dump()
@@ -90,7 +93,11 @@ DESC", con))
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Logfile.Log($"Warning: Failed to collect process statistics: {ex.Message}");
+                // Continue with partial stats - this is not critical
+            }
             return sb.ToString();
         }
 

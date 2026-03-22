@@ -129,7 +129,7 @@ WHERE
                     MySqlDataReader dr = SQLTracer.TraceDR(cmd1);
                     if (dr.Read())
                     {
-                        if (dr[0].ToString() == state)
+                        if (dr.GetStringOrDefault(0, "") == state)
                         {
                             return;
                         }
@@ -348,10 +348,10 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         if (dr.Read())
                         {
-                            string refresh_token = dr[0].ToString();
+                            string refresh_token = dr.GetStringOrNull(0) ?? "";
                             refresh_token = StringCipher.Decrypt(refresh_token);
 
-                            tesla_token = dr[1].ToString();
+                            tesla_token = dr.GetStringOrNull(1) ?? "";
                             tesla_token = StringCipher.Decrypt(tesla_token);
 
                             return refresh_token;
@@ -387,7 +387,7 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         if (dr.Read())
                         {
-                            string refresh_token = dr[0].ToString();
+                            string refresh_token = dr.GetStringOrNull(0) ?? "";
                             return refresh_token;
                         }
                     }
@@ -592,20 +592,23 @@ ORDER BY id", con))
                         int lastID = 0;
                         if (dr.Read())
                         {
-                            lastID = (int)dr[0];
+                            lastID = dr.GetInt32OrDefault(0, 0);
                             maxGapID = Math.Max(lastID, maxGapID);
                         }
                         while (dr.Read())
                         {
-                            if ((int)dr[0] - lastID > 1)
+                            int currentID = dr.GetInt32OrDefault(0, 0);
+                            if (currentID <= 0) continue;
+                            
+                            if (currentID - lastID > 1)
                             {
-                                if (!recalculate.Contains((int)dr[0]))
+                                if (!recalculate.Contains(currentID))
                                 {
-                                    recalculate.Add((int)dr[0]);
-                                    Tools.DebugLog($"AnalyzeChargingStates_{car.CarInDB}: ID gap found:{dr[0]}");
+                                    recalculate.Add(currentID);
+                                    Tools.DebugLog($"AnalyzeChargingStates_{car.CarInDB}: ID gap found:{currentID}");
                                 }
                             }
-                            lastID = (int)dr[0];
+                            lastID = currentID;
                             maxGapID = Math.Max(lastID, maxGapID);
                         }
                     }
@@ -649,22 +652,25 @@ ORDER BY
                         double lastCEA = 0.0;
                         if (dr.Read())
                         {
-                            lastID = (int)dr[0];
+                            lastID = dr.GetInt32OrDefault(0, 0);
                             maxDropID = Math.Max(lastID, maxDropID);
-                            lastCEA = (double)dr[1];
+                            lastCEA = dr.GetDoubleOrDefault(1, 0.0);
                         }
                         while (dr.Read())
                         {
-                            if ((int)dr[0] == lastID && (double)dr[1] < lastCEA)
+                            int currentID = dr.GetInt32OrDefault(0, 0);
+                            double currentCEA = dr.GetDoubleOrDefault(1, 0.0);
+                            
+                            if (currentID == lastID && currentCEA < lastCEA)
                             {
-                                if (!recalculate.Contains((int)dr[0]))
+                                if (!recalculate.Contains(currentID))
                                 {
-                                    recalculate.Add((int)dr[0]);
-                                    Tools.DebugLog($"AnalyzeChargingStates_{car.CarInDB}: drop during charging found:{dr[0]}");
+                                    recalculate.Add(currentID);
+                                    Tools.DebugLog($"AnalyzeChargingStates_{car.CarInDB}: drop during charging found:{currentID}");
                                 }
                             }
-                            lastID = (int)dr[0];
-                            lastCEA = (double)dr[1];
+                            lastID = currentID;
+                            lastCEA = currentCEA;
                             maxDropID = Math.Max(lastID, maxDropID);
                         }
                     }
@@ -1991,7 +1997,7 @@ WHERE
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                         if (dr.Read() && dr[0] != DBNull.Value && dr[1] != DBNull.Value)
                         {
-                            if (dr[0].ToString().Equals("Tesla", StringComparison.Ordinal) && (dr[1].ToString().Equals("Tesla", StringComparison.Ordinal) || dr[1].ToString().Equals("Combo", StringComparison.Ordinal)))
+                            if (dr.GetStringOrDefault(0, "").Equals("Tesla", StringComparison.OrdinalIgnoreCase) && (dr.GetStringOrDefault(1, "").Equals("Tesla", StringComparison.OrdinalIgnoreCase) || dr.GetStringOrDefault(1, "").Equals("Combo", StringComparison.OrdinalIgnoreCase)))
                             {
                                 Tools.DebugLog("ChargingStateLocationIsSuC: true");
                                 return true;
