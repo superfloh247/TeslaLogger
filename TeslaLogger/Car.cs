@@ -822,7 +822,8 @@ namespace TeslaLogger
 
         internal virtual bool SupportedByFleetTelemetry()
         {
-            string vindecoder = Tools.VINDecoder(vin, out int y, out string carType, out _, out _, out _, out _, out _).ToString();
+            var vindecodeResult = Tools.VINDecoder(vin, out int y, out string carType, out _, out _, out _, out _, out _);
+            string vindecoder = vindecodeResult?.ToString() ?? "Unknown";
             if (y >= 2021) // all cars from 2021 are supported
                 return true;
 
@@ -889,7 +890,8 @@ namespace TeslaLogger
                 CarVoltageAt50SOC = DbHelper.GetVoltageAt50PercentSOC(out DateTime startdate, out DateTime ende);
                 Log($"Voltage at 50% SOC:{CarVoltageAt50SOC}V Date:{startdate.ToString(Tools.ciEnUS)}");
 
-                string vindecoder = Tools.VINDecoder(Vin, out year, out _, out aWD, out mIC, out _, out motor, out mIG).ToString();
+                var vindecodeResult = Tools.VINDecoder(Vin, out year, out _, out aWD, out mIC, out _, out motor, out mIG);
+                string vindecoder = vindecodeResult?.ToString() ?? "Unknown";
 
                 webhelper.DeleteWakeupFile();
 

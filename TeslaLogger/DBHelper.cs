@@ -929,28 +929,31 @@ AND id <=(
                         // first row
                         if (dr.Read())
                         {
-                            index = (int)dr[0];
-                            maxid = (int)dr[0];
-                            lastCEA = (double)dr[1];
+                            index = dr.GetInt32OrDefault(0, 0);
+                            maxid = index;
+                            lastCEA = dr.GetDoubleOrDefault(1, 0.0);
                         }
                         // all rows
                         while (dr.Read())
                         {
+                            int currentID = dr.GetInt32OrDefault(0, 0);
+                            double currentCEA = dr.GetDoubleOrDefault(1, 0.0);
+                            
                             if (
                                 // charge_energy_added is lower than in the row before
-                                (double)dr[1] < lastCEA
+                                currentCEA < lastCEA
                                 /*
                                  * create segments for every drop
                                  * &&
                                 // and the current row is zero or near zero
-                                (double)dr[1] < 0.5*/
+                                currentCEA < 0.5*/
                                 )
                             {
-                                segments.Add(new Tuple<int, int>(index, ((int)dr[0]) - 1));
-                                index = ((int)dr[0]);
+                                segments.Add(new Tuple<int, int>(index, currentID - 1));
+                                index = currentID;
                             }
-                            maxid = (int)dr[0];
-                            lastCEA = (double)dr[1];
+                            maxid = currentID;
+                            lastCEA = currentCEA;
                         }
                         segments.Add(new Tuple<int, int>(index, maxid));
                     }
