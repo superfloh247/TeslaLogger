@@ -123,7 +123,7 @@ namespace TeslaLogger
                     string result = string.Empty;
                     try
                     {
-                        result = car.webhelper.GetNearbyChargingSitesOwnerAPI();
+                        result = await car.webhelper.GetNearbyChargingSitesOwnerAPIAsync().ConfigureAwait(false);
                         if (result is null || result == "NULL")
                         {
                             continue;

@@ -2190,7 +2190,7 @@ namespace TeslaLogger
                         if (state == "offline" || state == "asleep")
                             return state;
 
-                        CheckVehicleConfig();
+                        await CheckVehicleConfigAsync().ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
@@ -2236,7 +2236,7 @@ namespace TeslaLogger
             }
         }
 
-        protected void CheckVehicleConfig()
+        protected async ValueTask CheckVehicleConfigAsync()
         {
             if (car.FleetAPI)
             {
@@ -2248,10 +2248,10 @@ namespace TeslaLogger
             string resultContent2 = "";
             try
             {
-                // resultContent2 = GetCommand("vehicle_config").Result;
-                // resultContent2 = GetCommand("vehicle_data?endpoints=vehicle_config&let_sleep=true").Result;
+                // resultContent2 = await GetCommand("vehicle_config").ConfigureAwait(false);
+                // resultContent2 = await GetCommand("vehicle_data?endpoints=vehicle_config&let_sleep=true").ConfigureAwait(false);
                 Log("CheckVehicleConfig");
-                resultContent2 = GetCommand(vehicle_data_everything).Result;
+                resultContent2 = await GetCommand(vehicle_data_everything).ConfigureAwait(false);
 
                 if (resultContent2 == INSERVICE || resultContent2 == "NULL")
                 {
@@ -2917,7 +2917,7 @@ namespace TeslaLogger
                 else
                 {
                     // New API after 2023.38.4 
-                    var rc2 = GetCommand(vehicle_data_everything).Result;
+                    var rc2 = await GetCommand(vehicle_data_everything).ConfigureAwait(false);
                     if (rc2 is null)
                         return false;
                     try
@@ -3001,7 +3001,10 @@ namespace TeslaLogger
                         elevation = "";
                     }
 
-                    double ideal_battery_range_km = GetIdealBatteryRangekm(out double battery_level, out double battery_range_km);
+                    var batteryResult = await GetIdealBatteryRangekm().ConfigureAwait(false);
+                    double ideal_battery_range_km = batteryResult.idealBatteryRange;
+                    double battery_level = batteryResult.batteryLevel;
+                    double battery_range_km = batteryResult.batteryRange;
 
                     if (t_outside_temp is not null)
                     {
@@ -4183,38 +4186,38 @@ WHERE
             }
         }
 
-        private double GetIdealBatteryRangekm(out double battery_level, out double battery_range_km)
+        private async ValueTask<(double idealBatteryRange, double batteryLevel, double batteryRange)> GetIdealBatteryRangekm()
         {
             string resultContent = "";
-            battery_level = -1;
-            battery_range_km = -1;
+            double battery_level = -1;
+            double battery_range_km = -1;
 
             try
             {
-                // resultContent = GetCommand("charge_state").Result;
-                // resultContent = GetCommand("vehicle_data?endpoints=charge_state&let_sleep=true").Result;
-                resultContent = GetCommand(vehicle_data_everything).Result;
+                // resultContent = await GetCommand("charge_state").ConfigureAwait(false);
+                // resultContent = await GetCommand("vehicle_data?endpoints=charge_state&let_sleep=true").ConfigureAwait(false);
+                resultContent = await GetCommand(vehicle_data_everything).ConfigureAwait(false);
 
                 if (resultContent is null || resultContent == "NULL")
-                    return -1;
+                    return (-1, -1, -1);
 
                 Tools.SetThreadEnUS();
                 JObject? jsonResult = NullSafetyHelpers.SafeJObject(resultContent);
                 if (jsonResult == null)
-                    return -1;
+                    return (-1, -1, -1);
 
                 JObject? response = jsonResult["response"] as JObject;
                 if (response == null)
-                    return -1;
+                    return (-1, -1, -1);
 
                 JObject? r2 = response["charge_state"] as JObject;
                 if (r2 == null)
-                    return -1;
+                    return (-1, -1, -1);
 
                 decimal ideal_battery_range = r2.GetSafeDecimal("ideal_battery_range", 0);
                 if (ideal_battery_range == 0)
                 {
-                    return -1;
+                    return (-1, -1, -1);
                 }
 
                 if (ideal_battery_range == 999)
@@ -4239,7 +4242,7 @@ WHERE
                     car.CurrentJSON.current_battery_level = battery_level;
                 }
                 battery_range2ideal_battery_range = (double)ideal_battery_range / Convert.ToDouble(r2["battery_range"]);
-                return Tools.MlToKm((double)ideal_battery_range, 1);
+                return (Tools.MlToKm((double)ideal_battery_range, 1), battery_level, battery_range_km);
             }
             catch (Exception ex)
             {
@@ -4254,7 +4257,7 @@ WHERE
                     ExceptionWriter(ex, resultContent);
                 }
             }
-            return -1;
+            return (-1, -1, -1);
         }
 
         public virtual async Task<double> GetOdometerAsync(CancellationToken cancellationToken = default)
@@ -4746,12 +4749,12 @@ WHERE
         }
 
         // for classic Owner API
-        public string GetNearbyChargingSitesOwnerAPI()
+        public async ValueTask<string> GetNearbyChargingSitesOwnerAPIAsync()
         {
             string resultContent = "";
             try
             {
-                resultContent = GetCommand("nearby_charging_sites").Result;
+                resultContent = await GetCommand("nearby_charging_sites").ConfigureAwait(false);
                 return resultContent;
             }
             catch (Exception ex)
@@ -4761,7 +4764,7 @@ WHERE
                     CreateExceptionlessClientWithResultContent(ex, resultContent).AddObject(car.GetCurrentState().ToString(), "CarState").Submit();
 
                 car.Log(ex.Message);
-                Task.Delay(30000).Wait();
+                await Task.Delay(30000).ConfigureAwait(false);
             }
 
             return "NULL";
