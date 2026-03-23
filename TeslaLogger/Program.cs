@@ -112,6 +112,23 @@ namespace TeslaLogger
         private static WebServer? webServer;
         
         /// <summary>
+        /// Global cancellation token source for graceful application shutdown.
+        /// </summary>
+        /// <remarks>
+        /// Used to propagate cancellation requests throughout the application's async operations.
+        /// Handles Ctrl+C and other shutdown signals for proper resource cleanup.
+        /// </remarks>
+        private static readonly CancellationTokenSource ApplicationCancellationTokenSource = new();
+        
+        /// <summary>
+        /// Gets the cancellation token for the entire application.
+        /// </summary>
+        /// <remarks>
+        /// Use this token in all long-running async operations to enable graceful shutdown.
+        /// </remarks>
+        public static CancellationToken ApplicationCancellationToken => ApplicationCancellationTokenSource.Token;
+        
+        /// <summary>
         /// Indicates whether the OVMS (Open Vehicle Monitoring System) has been started.
         /// </summary>
         /// <remarks>
@@ -160,7 +177,9 @@ namespace TeslaLogger
                 Logfile.Log($"Processname: {System.Diagnostics.Process.GetCurrentProcess().ProcessName}");
                 Logfile.Log($"Run on Linux: {Tools.RunOnLinux()}");
 
-                await InitCheckNet8().ConfigureAwait(false);
+                RegisterCancellationHandlers();
+
+                await InitCheckNet8(ApplicationCancellationToken).ConfigureAwait(false);
 
                 InitDebugLogging();
 
@@ -170,7 +189,7 @@ namespace TeslaLogger
 
                 InitStage2();
 
-                await InitConnectToDB().ConfigureAwait(false);
+                await InitConnectToDB(ApplicationCancellationToken).ConfigureAwait(false);
 
                 InitWebserver();
 
@@ -190,7 +209,7 @@ namespace TeslaLogger
 
                 Logfile.Log("Init finished, now enter main loop");
 
-                await GetAllCars().ConfigureAwait(false);
+                await GetAllCars(ApplicationCancellationToken).ConfigureAwait(false);
 
                 InitNearbySuCService();
 
@@ -208,6 +227,18 @@ namespace TeslaLogger
             }
             finally
             {
+                // Ensure graceful shutdown
+                try
+                {
+                    Logfile.Log("Starting graceful shutdown...");
+                    ApplicationCancellationTokenSource.Cancel();
+                    Logfile.Log("Graceful shutdown initiated.");
+                }
+                catch (Exception ex)
+                {
+                    Logfile.Log($"Error during graceful shutdown: {ex.Message}");
+                }
+
                 if (!UpdateTeslalogger.DownloadUpdateAndInstallStarted)
                 {
                     try
@@ -230,7 +261,58 @@ namespace TeslaLogger
             }
         }
 
-        private static async Task InitCheckNet8()
+        /// <summary>
+        /// Registers handlers for console cancellation (Ctrl+C) and provides graceful shutdown.
+        /// </summary>
+        /// <remarks>
+        /// Sets up listeners for console termination signals to propagate cancellation throughout the app.
+        /// </remarks>
+        private static void RegisterCancellationHandlers()
+        {
+            try
+            {
+                Console.CancelKeyPress += (sender, e) =>
+                {
+                    e.Cancel = true; // Prevent immediate termination
+                    Logfile.Log("Cancellation request received (Ctrl+C). Initiating graceful shutdown...");
+                    try
+                    {
+                        ApplicationCancellationTokenSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Token source already disposed, ignore
+                    }
+                };
+
+                // Register for AppDomain unload events (process termination)
+                AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
+                {
+                    Logfile.Log("Process exit event fired. Initiating graceful shutdown...");
+                    try
+                    {
+                        ApplicationCancellationTokenSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Token source already disposed, ignore
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                Logfile.Log($"Error registering cancellation handlers: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Checks the .NET framework version and switches to .NET 8 if necessary.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// If running on .NET Framework and .NET 8 is available, launches the .NET 8 version.
+        /// </remarks>
+        private static async Task InitCheckNet8(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -261,7 +343,7 @@ namespace TeslaLogger
                         p.StartInfo.UseShellExecute = false;
                         p.Start();
 
-                        await Task.Delay(5000).ConfigureAwait(false);
+                        await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
 
                         Environment.Exit(0);
                     }
@@ -350,15 +432,26 @@ namespace TeslaLogger
 
         }
 
-        internal static async Task GetAllCars()
+        /// <summary>
+        /// Retrieves all registered vehicles and initiates their data collection threads.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Applies throttling between vehicle initialization to prevent resource exhaustion.
+        /// Respects cancellation tokens for graceful shutdown during startup.
+        /// </remarks>
+        internal static async Task GetAllCars(CancellationToken cancellationToken = default)
         {
             using (DataTable dt = DBHelper.GetCarsByTokenAge(true))
             {
                 foreach (DataRow r in dt.Rows)
                 {
+                    // Check for cancellation before starting new vehicle thread
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     StartCarThread(r);
                     // small throttle delay
-                    await Task.Delay(500).ConfigureAwait(false);
+                    await Task.Delay(500, cancellationToken).ConfigureAwait(false);
                 }
                 dt.Clear();
             } 
@@ -642,9 +735,16 @@ namespace TeslaLogger
             }
         }
 
-        private static async Task InitConnectToDB()
+        /// <summary>
+        /// Initializes the database connection and starts background update tasks.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Establishes database connectivity, starts async update tasks for Grafana configuration.
+        /// </remarks>
+        private static async Task InitConnectToDB(CancellationToken cancellationToken = default)
         {
-            await WaitForDB().ConfigureAwait(false);
+            await WaitForDB(cancellationToken).ConfigureAwait(false);
 
             #pragma warning disable CS4014
             UpdateTeslalogger.Start();
@@ -655,15 +755,31 @@ namespace TeslaLogger
             }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
-        private static async Task WaitForDB()
+        /// <summary>
+        /// Waits for the database connection to become available.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Attempts to connect to the database up to 300 times with 15-second intervals.
+        /// Respects cancellation tokens to enable graceful shutdown during database waits.
+        /// </remarks>
+        private static async Task WaitForDB(CancellationToken cancellationToken = default)
         {
             for (int x = 1; x <= 300; x++) // try 300 times until DB is up and running
             {
+                // Check for cancellation before attempting connection
+                cancellationToken.ThrowIfCancellationRequested();
+
                 try
                 {
                     Logfile.Log($"DB Version: {DBHelper.GetVersion()}");
                     Logfile.Log($"Count Pos: {DBHelper.CountPos()}"); // test the DBConnection
                     break;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logfile.Log($"Database connection wait cancelled at attempt {x}/300");
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -679,7 +795,7 @@ namespace TeslaLogger
                         Logfile.Log($"DBCONNECTION {ex.Message}");
                     }
 
-                    await Task.Delay(15000).ConfigureAwait(false);
+                    await Task.Delay(15000, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
