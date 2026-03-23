@@ -28,23 +28,27 @@ namespace TeslaLogger
             return _tLStats;
         }
 
-        public static void run()
+        public static async Task RunAsync(CancellationToken ct = default)
         {
             try
             {
                 Logfile.Log(Dump());
-                while (true)
+                while (!ct.IsCancellationRequested)
                 {
                     if (DateTime.Now.Minute % 30 == 0)
                     {
                         Logfile.Log(Dump());
-                        System.Threading.Thread.Sleep(60000); // sleep 60 seconds
+                        await Task.Delay(60000, ct); // sleep 60 seconds (non-blocking)
                     }
                     else
                     {
-                        System.Threading.Thread.Sleep(30000); // sleep 30 seconds
+                        await Task.Delay(30000, ct); // sleep 30 seconds (non-blocking)
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                Logfile.Log("Statistics collection cancelled");
             }
             catch (Exception ex)
             {

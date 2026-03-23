@@ -468,7 +468,7 @@ namespace TeslaLogger
         {
             try
             {
-                Task.Run(() => TLStats.run());
+                _ = Task.Run(async () => await TLStats.RunAsync());
             }
             catch (Exception ex)
             {

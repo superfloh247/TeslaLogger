@@ -205,13 +205,27 @@ namespace TeslaLogger
             try
             {
                 Logfile.Log("FileSystemWatcher: file modified: " + e.FullPath);
-
                 fsw.EnableRaisingEvents = false;
                 
+                // Fire async processing in background; don't wait for completion
+                // This prevents blocking the FileSystemWatcher event
+                _ = Fsw_ChangedAsync(e);
+            }
+            finally
+            {
+                fsw.EnableRaisingEvents = true;
+            }
+        }
+
+        private async Task Fsw_ChangedAsync(FileSystemEventArgs e)
+        {
+            try
+            {
                 DateTime dt = File.GetLastWriteTime(e.FullPath);
                 TimeSpan ts = DateTime.Now - dt;
 
-                System.Threading.Thread.Sleep(5000);
+                // Non-blocking delay to allow file write to complete
+                await Task.Delay(5000);
 
                 if (ts.TotalSeconds > 5)
                 {
@@ -224,9 +238,9 @@ namespace TeslaLogger
 
                 _ = Task.Run(() => WebHelper.UpdateAllPOIAddresses());
             }
-            finally
+            catch (Exception ex)
             {
-                fsw.EnableRaisingEvents = true;
+                Logfile.Log($"Error in Fsw_ChangedAsync: {ex.Message}");
             }
         }
 

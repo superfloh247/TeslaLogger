@@ -254,7 +254,7 @@ namespace TeslaLogger
                     switch (cmd)
                     {
                         case "LoginRespone":
-                            handleLoginResponse((dynamic)j);
+                            await handleLoginResponseAsync((dynamic)j);
                             break;
                         case "ConfigAlreadySent":
                             string Config = j.GetSafeString("Config", "");
@@ -1356,7 +1356,7 @@ namespace TeslaLogger
             }
         }
 
-        private void handleLoginResponse(dynamic j)
+        private async Task handleLoginResponseAsync(dynamic j)
         {
             try
             {
@@ -1398,7 +1398,7 @@ namespace TeslaLogger
 
                 if (response.ToString().Contains("not_found"))
                 {
-                    System.Threading.Thread.Sleep(10 * 60 * 1000);
+                    await Task.Delay(10 * 60 * 1000); // 10-minute delay (non-blocking async)
                 }
                 else if (response.ToString().Contains("token expired"))
                 {
