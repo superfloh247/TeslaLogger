@@ -395,7 +395,7 @@ namespace TeslaLogger
                             try
                             {
                                 cancellationToken.ThrowIfCancellationRequested();
-                                await MQTT.GetSingleton().RunMqttAsync(cancellationToken).ConfigureAwait(false);
+                                MQTT.GetSingleton().RunMqtt();
                             }
                             catch (OperationCanceledException)
                             {
@@ -443,7 +443,7 @@ namespace TeslaLogger
                     try
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        await NearbySuCService.GetSingleton().Run(cancellationToken).ConfigureAwait(false);
+                        await NearbySuCService.GetSingleton().Run();
                     }
                     catch (OperationCanceledException)
                     {
@@ -628,12 +628,12 @@ namespace TeslaLogger
             {
                 if (Tools.UseOpenTopoData())
                 {
-                    Task.Run(async () =>
+                    Task.Run(() =>
                     {
                         try
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            await OpenTopoDataService.GetSingleton().RunAsync(cancellationToken).ConfigureAwait(false);
+                            OpenTopoDataService.GetSingleton().Run();
                         }
                         catch (OperationCanceledException)
                         {
@@ -971,7 +971,7 @@ namespace TeslaLogger
                 DateTime start = DateTime.Now;
                 Logfile.Log("RunHousekeepingInBackground started");
                 Tools.Housekeeping();
-                await DBHelper.UpdateCO2Async(cancellationToken).ConfigureAwait(false);
+                await DBHelper.UpdateCO2Async().ConfigureAwait(false);
                 GeocodeCache.Cleanup();
                 Logfile.Log($"RunHousekeepingInBackground finished, took {(DateTime.Now - start).TotalMilliseconds}ms");
             }, cancellationToken);
@@ -998,7 +998,7 @@ namespace TeslaLogger
                     {
                         try
                         {
-                            await Geofence.GetInstance().OnlineUpdateAsync(cancellationToken).ConfigureAwait(false);
+                            await Geofence.GetInstance().OnlineUpdateAsync().ConfigureAwait(false);
                         }
                         catch (OperationCanceledException)
                         {
@@ -1037,12 +1037,12 @@ namespace TeslaLogger
         {
             try
             {
-                Task.Run(async () =>
+                Task.Run(() =>
                 {
                     try
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        await StaticMapService.GetSingleton().RunAsync(cancellationToken).ConfigureAwait(false);
+                        StaticMapService.GetSingleton().Run();
                     }
                     catch (OperationCanceledException)
                     {
