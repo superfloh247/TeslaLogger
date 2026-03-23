@@ -139,7 +139,7 @@ namespace TeslaLogger
         /// 
         /// All exceptions are caught and logged; application does not terminate on errors.
         /// </remarks>
-        private static void Main(string[] _)
+        private static async Task Main(string[] _)
         {
             try
             {
@@ -160,7 +160,7 @@ namespace TeslaLogger
                 Logfile.Log($"Processname: {System.Diagnostics.Process.GetCurrentProcess().ProcessName}");
                 Logfile.Log($"Run on Linux: {Tools.RunOnLinux()}");
 
-                InitCheckNet8();
+                await InitCheckNet8().ConfigureAwait(false);
 
                 InitDebugLogging();
 
@@ -170,7 +170,7 @@ namespace TeslaLogger
 
                 InitStage2();
 
-                InitConnectToDB();
+                await InitConnectToDB().ConfigureAwait(false);
 
                 InitWebserver();
 
@@ -190,7 +190,7 @@ namespace TeslaLogger
 
                 Logfile.Log("Init finished, now enter main loop");
 
-                GetAllCars();
+                await GetAllCars().ConfigureAwait(false);
 
                 InitNearbySuCService();
 
@@ -230,7 +230,7 @@ namespace TeslaLogger
             }
         }
 
-        private static void InitCheckNet8()
+        private static async Task InitCheckNet8()
         {
             try
             {
@@ -261,7 +261,7 @@ namespace TeslaLogger
                         p.StartInfo.UseShellExecute = false;
                         p.Start();
 
-                        System.Threading.Thread.Sleep(5000);
+                        await Task.Delay(5000).ConfigureAwait(false);
 
                         Environment.Exit(0);
                     }
@@ -350,7 +350,7 @@ namespace TeslaLogger
 
         }
 
-        internal static void GetAllCars()
+        internal static async Task GetAllCars()
         {
             using (DataTable dt = DBHelper.GetCarsByTokenAge(true))
             {
@@ -358,7 +358,7 @@ namespace TeslaLogger
                 {
                     StartCarThread(r);
                     // small throttle delay
-                    System.Threading.Thread.Sleep(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                 }
                 dt.Clear();
             } 
@@ -642,9 +642,9 @@ namespace TeslaLogger
             }
         }
 
-        private static void InitConnectToDB()
+        private static async Task InitConnectToDB()
         {
-            WaitForDB();
+            await WaitForDB().ConfigureAwait(false);
 
             #pragma warning disable CS4014
             UpdateTeslalogger.Start();
@@ -655,7 +655,7 @@ namespace TeslaLogger
             }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
-        private static void WaitForDB()
+        private static async Task WaitForDB()
         {
             for (int x = 1; x <= 300; x++) // try 300 times until DB is up and running
             {
@@ -679,7 +679,7 @@ namespace TeslaLogger
                         Logfile.Log($"DBCONNECTION {ex.Message}");
                     }
 
-                    System.Threading.Thread.Sleep(15000);
+                    await Task.Delay(15000).ConfigureAwait(false);
                 }
             }
         }
