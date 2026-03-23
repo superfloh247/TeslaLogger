@@ -1305,6 +1305,28 @@ PRIMARY KEY(id)
 
         public static async Task DownloadUpdateAndInstallAsync()
         {
+            // Attempt to use injected service for update management
+            if (UpdateManager != null)
+            {
+                try
+                {
+                    Logfile.Log("Using service-based update installation (via UpdateManager)");
+                    await UpdateManager.DownloadAndInstallUpdateAsync(CancellationToken.None).ConfigureAwait(false);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    ex.ToExceptionless().FirstCarUserID().Submit();
+                    Logfile.Log($"Warning: Service-based update failed, falling back to legacy path: {ex.Message}");
+                    // Fall through to legacy implementation
+                }
+            }
+            else
+            {
+                Logfile.Log("WARNING: UpdateManager not initialized, using legacy update installation");
+            }
+
+            // Legacy implementation fallback
             DownloadUpdateAndInstallStarted = true;
             CheckNET8Installed();
 
@@ -1593,7 +1615,6 @@ PRIMARY KEY(id)
                         Logfile.Log(ex.ToString());
                     }
                 }
-
             }
         }
 
@@ -2601,6 +2622,7 @@ PRIMARY KEY(id)
                     CopyLanguageFileToTimelinePanel(language);
 
                     CopySettingsToTimelinePanel();
+                    }
                 }
             }
             catch (Exception ex)
@@ -3049,8 +3071,6 @@ PRIMARY KEY(id)
                 lastTeslaLoggerVersionCheckObj.Wait();
                 try
                 {
-                try
-                {
                     for (int x = 0; x < Car.Allcars.Count; x++)
                     {
                         Car c = Car.Allcars[x];
@@ -3125,10 +3145,10 @@ PRIMARY KEY(id)
                     ex.ToExceptionless().FirstCarUserID().Submit();
                     Logfile.Log(ex.ToString());
                 }
-            }
-            finally
-            {
-                lastTeslaLoggerVersionCheckObj.Release();
+                finally
+                {
+                    lastTeslaLoggerVersionCheckObj.Release();
+                }
             }
         }
 
