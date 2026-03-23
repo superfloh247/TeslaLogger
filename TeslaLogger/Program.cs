@@ -193,27 +193,27 @@ namespace TeslaLogger
 
                 InitWebserver();
 
-                InitOpenTopoDataService();
+                InitOpenTopoDataService(ApplicationCancellationToken);
 
-                InitStaticMapService();
+                InitStaticMapService(ApplicationCancellationToken);
 
                 UpdateTeslalogger.StopComfortingMessagesThread();
 
-                InitMQTT();
+                InitMQTT(ApplicationCancellationToken);
 
                 MQTTClient.StartMQTTClient();
 
-                InitTLStats();
+                InitTLStats(ApplicationCancellationToken);
 
-                UpdateDbInBackground();
+                UpdateDbInBackground(ApplicationCancellationToken);
 
                 Logfile.Log("Init finished, now enter main loop");
 
                 await GetAllCars(ApplicationCancellationToken).ConfigureAwait(false);
 
-                InitNearbySuCService();
+                InitNearbySuCService(ApplicationCancellationToken);
 
-                OnlineUpdateGeofenceInBackground();
+                OnlineUpdateGeofenceInBackground(ApplicationCancellationToken);
             }
             catch (Exception ex)
             {
@@ -374,7 +374,14 @@ namespace TeslaLogger
             }
         }
 
-        private static void InitMQTT()
+        /// <summary>
+        /// Initializes the MQTT client for publish/subscribe messaging.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Starts the MQTT client in a background task that respects cancellation signals.
+        /// </remarks>
+        private static void InitMQTT(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -383,18 +390,23 @@ namespace TeslaLogger
                     JObject settings = JObject.Parse(mqttSettings);
                     if ((long?)settings["mqtt_host"] > 0)
                     {
-                        Task.Run(() =>
+                        Task.Run(async () =>
                         {
                             try
                             {
-                                MQTT.GetSingleton().RunMqtt();
+                                cancellationToken.ThrowIfCancellationRequested();
+                                await MQTT.GetSingleton().RunMqttAsync(cancellationToken).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                Logfile.Log("MQTT client cancelled");
                             }
                             catch (Exception ex)
                             {
                                 ex.ToExceptionless().FirstCarUserID().Submit();
                                 Logfile.Log(ex.ToString());
                             }
-                        }); 
+                        }, cancellationToken); 
                     }
                 }
                 else
@@ -416,13 +428,28 @@ namespace TeslaLogger
 
         }
 
-        private static void InitNearbySuCService()
+        /// <summary>
+        /// Initializes the Nearby Supercharger service for location-based queries.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Starts the nearby SuC service in a background task that respects cancellation signals.
+        /// </remarks>
+        private static void InitNearbySuCService(CancellationToken cancellationToken = default)
         {
             try
             {
-                Task.Run(async() => {                    
-                    await NearbySuCService.GetSingleton().Run();
-                });                
+                Task.Run(async() => {
+                    try
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        await NearbySuCService.GetSingleton().Run(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Logfile.Log("NearbySuCService cancelled");
+                    }
+                }, cancellationToken);                
             }
             catch (Exception ex)
             {
@@ -557,11 +584,29 @@ namespace TeslaLogger
             }
         }
 
-        private static void InitTLStats()
+        /// <summary>
+        /// Initializes the TeslaLogger statistics collection service.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Starts the TLStats service in a background task that respects cancellation signals.
+        /// </remarks>
+        private static void InitTLStats(CancellationToken cancellationToken = default)
         {
             try
             {
-                _ = Task.Run(async () => await TLStats.RunAsync());
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        await TLStats.RunAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Logfile.Log("TLStats service cancelled");
+                    }
+                }, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -570,13 +615,31 @@ namespace TeslaLogger
             }
         }
 
-        private static void InitOpenTopoDataService()
+        /// <summary>
+        /// Initializes the OpenTopoData elevation service for elevation queries.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Starts the OpenTopoData service in a background task that respects cancellation signals.
+        /// </remarks>
+        private static void InitOpenTopoDataService(CancellationToken cancellationToken = default)
         {
             try
             {
                 if (Tools.UseOpenTopoData())
                 {
-                    Task.Run(() => OpenTopoDataService.GetSingleton().Run());
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            await OpenTopoDataService.GetSingleton().RunAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Logfile.Log("OpenTopoDataService cancelled");
+                        }
+                    }, cancellationToken);
                 }
                 else
                 {
@@ -875,53 +938,86 @@ namespace TeslaLogger
             return "{\"SleepTimeSpanStart\":\"\",\"SleepTimeSpanEnd\":\"\",\"SleepTimeSpanEnable\":\"false\",\"Power\":\"hp\",\"Temperature\":\"celsius\",\"Length\":\"km\",\"Pressure\":\"bar\",\"Language\":\"en\",\"URL_Admin\":\"\",\"ScanMyTesla\":\"false\"}";
         }
 
-        internal static void RunHousekeepingInBackground()
+        /// <summary>
+        /// Runs background housekeeping tasks including CO2 updates and cache cleanup.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Uses a background task instead of a manual thread to allow awaiting async operations.
+        /// Respects both UpdateTeslalogger.done and application cancellation tokens.
+        /// </remarks>
+        internal static void RunHousekeepingInBackground(CancellationToken cancellationToken = default)
         {
-            // use a background task instead of a manual thread; allows awaiting async operations
             _ = Task.Run(async () =>
             {
                 // wait for DB updates
                 try
                 {
-                    while (!UpdateTeslalogger.done.IsCancellationRequested)
+                    while (!UpdateTeslalogger.done.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
                     {
-                        await Task.Delay(5000, UpdateTeslalogger.done.Token);
+                        // Create composite cancellation token that covers both sources
+                        using (var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(UpdateTeslalogger.done.Token, cancellationToken))
+                        {
+                            await Task.Delay(5000, linkedTokenSource.Token).ConfigureAwait(false);
+                        }
                     }
                 }
                 catch (System.Threading.Tasks.TaskCanceledException)
                 {
                     // cancellation requested, continue to housekeeping
+                    Logfile.Log("RunHousekeepingInBackground: Cancellation requested");
                 }
 
                 DateTime start = DateTime.Now;
                 Logfile.Log("RunHousekeepingInBackground started");
                 Tools.Housekeeping();
-                await DBHelper.UpdateCO2Async();
+                await DBHelper.UpdateCO2Async(cancellationToken).ConfigureAwait(false);
                 GeocodeCache.Cleanup();
                 Logfile.Log($"RunHousekeepingInBackground finished, took {(DateTime.Now - start).TotalMilliseconds}ms");
-            });
+            }, cancellationToken);
         }
 
-        internal static void OnlineUpdateGeofenceInBackground()
+        /// <summary>
+        /// Initializes background geofence updates from online sources.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Periodically syncs geofence data online in a background task that respects cancellation.
+        /// Uses a background task instead of manual Thread so we can await async methods.
+        /// </remarks>
+        internal static void OnlineUpdateGeofenceInBackground(CancellationToken cancellationToken = default)
         {
-            // use a background task instead of manual Thread so we can await async methods
             _ = Task.Run(async () =>
             {
-                // initially sleep 5min
-                await Task.Delay(TimeSpan.FromMinutes(5));
-                while (true)
+                try
                 {
-                    try
+                    // initially sleep 5min
+                    await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
+                    
+                    while (!cancellationToken.IsCancellationRequested)
                     {
-                        await Geofence.GetInstance().OnlineUpdateAsync();
+                        try
+                        {
+                            await Geofence.GetInstance().OnlineUpdateAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Logfile.Log("OnlineUpdateGeofenceInBackground cancelled");
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logfile.ExceptionWriter(ex, "OnlineUpdateGeofenceInBackground");
+                        }
+                        
+                        await Task.Delay(TimeSpan.FromDays(1), cancellationToken).ConfigureAwait(false);
                     }
-                    catch (Exception ex)
-                    {
-                        Logfile.ExceptionWriter(ex, "OnlineUpdateGeofenceInBackground");
-                    }
-                    await Task.Delay(TimeSpan.FromDays(1));
                 }
-            });
+                catch (OperationCanceledException)
+                {
+                    Logfile.Log("OnlineUpdateGeofenceInBackground task cancelled");
+                }
+            }, cancellationToken);
         }
 
         private static void ExitTeslaLogger(string? _msg, int _exitcode = 0)
@@ -930,11 +1026,29 @@ namespace TeslaLogger
             Environment.Exit(_exitcode);
         }
 
-        private static void InitStaticMapService()
+        /// <summary>
+        /// Initializes the static map generation service for trip visualization.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Starts the StaticMapService in a background task that respects cancellation signals.
+        /// </remarks>
+        private static void InitStaticMapService(CancellationToken cancellationToken = default)
         {
             try
             {
-                Task.Run(() => StaticMapService.GetSingleton().Run());
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        await StaticMapService.GetSingleton().RunAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Logfile.Log("StaticMapService cancelled");
+                    }
+                }, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -943,7 +1057,15 @@ namespace TeslaLogger
             }
         }
 
-        private static void UpdateDbInBackground()
+        /// <summary>
+        /// Initializes background database update tasks with proper cancellation support.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <remarks>
+        /// Runs database maintenance tasks once per day, including elevation updates and charging analysis.
+        /// Respects application-wide cancellation signals for graceful shutdown.
+        /// </remarks>
+        private static void UpdateDbInBackground(CancellationToken cancellationToken = default)
         {
             // Run only once a day per version
             string kvskey = "UpdateDbInBackground";
@@ -955,19 +1077,18 @@ namespace TeslaLogger
                 {
                     Logfile.Log("UpdateDbInBackground: SKIP today");
                     // run HouseKeeping anyway
-                    RunHousekeepingInBackground();
+                    RunHousekeepingInBackground(cancellationToken);
                     return;
                 }
             }
-
 
             Task.Run(async () =>
             {
                 try
                 {
-                    // wait for DB updates
-                    while (!UpdateTeslalogger.done.IsCancellationRequested)
-                        await Task.Delay(5000);
+                    // wait for DB updates - respect both UpdateTeslalogger.done and application cancellation token
+                    while (!UpdateTeslalogger.done.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                        await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
 
                     await Task.Delay(30000);
 
@@ -1021,7 +1142,7 @@ namespace TeslaLogger
                     DBHelper.MigratePosOdometerNullValues();
 
                     Logfile.Log($"UpdateDbInBackground finished, took {(DateTime.Now - start).TotalMilliseconds}ms");
-                    RunHousekeepingInBackground();
+                    RunHousekeepingInBackground(cancellationToken);
 
                     KVS.InsertOrUpdate(kvskey, check);
                 }
