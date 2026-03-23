@@ -10,6 +10,8 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using TeslaLoggerNET8.Lucid;
 using TeslaLoggerNET8.Kafka;
+using Microsoft.Extensions.DependencyInjection;
+using TeslaLogger.Services;
 
 namespace TeslaLogger
 {
@@ -112,6 +114,15 @@ namespace TeslaLogger
         private static WebServer? webServer;
         
         /// <summary>
+        /// Service provider for dependency injection across the application.
+        /// </summary>
+        /// <remarks>
+        /// Initialized in Main() after Exceptionless setup.
+        /// Contains registered services: IDbSchemaMigrator, IApplicationUpdateManager, IGrafanaDashboardConfigurer.
+        /// </remarks>
+        private static IServiceProvider? ServiceProvider { get; set; }
+        
+        /// <summary>
         /// Global cancellation token source for graceful application shutdown.
         /// </summary>
         /// <remarks>
@@ -178,6 +189,8 @@ namespace TeslaLogger
                 Logfile.Log($"Run on Linux: {Tools.RunOnLinux()}");
 
                 RegisterCancellationHandlers();
+                
+                RegisterServices();
 
                 await InitCheckNet8(ApplicationCancellationToken).ConfigureAwait(false);
 
@@ -1152,6 +1165,50 @@ namespace TeslaLogger
                     Logfile.Log(ex.ToString());
                 }
             });
+        }
+
+        /// <summary>
+        /// Registers all application services in the dependency injection container.
+        /// </summary>
+        /// <remarks>
+        /// Called during application startup to configure services for dependency injection.
+        /// Currently registers:
+        /// - IDbSchemaMigrator (Singleton)
+        /// - IApplicationUpdateManager (Singleton)
+        /// - IGrafanaDashboardConfigurer (Singleton)
+        /// 
+        /// Services are exposed to UpdateTeslalogger via static properties.
+        /// </remarks>
+        private static void RegisterServices()
+        {
+            try
+            {
+                var services = new ServiceCollection();
+                
+                // Register schema migration service
+                services.AddSingleton<IDbSchemaMigrator, DbSchemaMigrator>();
+                
+                // Register application update manager service
+                services.AddSingleton<IApplicationUpdateManager, ApplicationUpdateManager>();
+                
+                // Register Grafana dashboard configurer service
+                services.AddSingleton<IGrafanaDashboardConfigurer, GrafanaDashboardConfigurer>();
+                
+                ServiceProvider = services.BuildServiceProvider();
+                
+                // Expose services to UpdateTeslalogger for backward compatibility
+                UpdateTeslalogger.SchemaMigrator = ServiceProvider.GetRequiredService<IDbSchemaMigrator>();
+                UpdateTeslalogger.UpdateManager = ServiceProvider.GetRequiredService<IApplicationUpdateManager>();
+                UpdateTeslalogger.DashboardConfigurer = ServiceProvider.GetRequiredService<IGrafanaDashboardConfigurer>();
+                
+                Logfile.Log("Dependency Injection container initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.Log($"Error registering services: {ex.Message}");
+                throw;
+            }
         }
     }
 }

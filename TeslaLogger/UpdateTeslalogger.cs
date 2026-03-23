@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Net.Http;
+using TeslaLogger.Services;
 
 namespace TeslaLogger
 {
@@ -33,6 +34,33 @@ namespace TeslaLogger
         private static Task? ComfortingMessages; // defaults to null;
         private static CancellationTokenSource comfortingMessagesCTS = new CancellationTokenSource();
         public static bool DownloadUpdateAndInstallStarted; // defaults to false;
+
+        /// <summary>
+        /// Injected dependency for database schema migration.
+        /// </summary>
+        /// <remarks>
+        /// Initialized by Program.RegisterServices() during application startup.
+        /// Used to replace individual CheckDBSchema_* method calls.
+        /// </remarks>
+        internal static IDbSchemaMigrator? SchemaMigrator { get; set; }
+
+        /// <summary>
+        /// Injected dependency for application update management.
+        /// </summary>
+        /// <remarks>
+        /// Initialized by Program.RegisterServices() during application startup.
+        /// Used for version checking and update orchestration.
+        /// </remarks>
+        internal static IApplicationUpdateManager? UpdateManager { get; set; }
+
+        /// <summary>
+        /// Injected dependency for Grafana dashboard configuration.
+        /// </summary>
+        /// <remarks>
+        /// Initialized by Program.RegisterServices() during application startup.
+        /// Used to replace UpdateGrafana*() method calls.
+        /// </remarks>
+        internal static IGrafanaDashboardConfigurer? DashboardConfigurer { get; set; }
 
         public static void StopComfortingMessagesThread()
         {
@@ -108,61 +136,58 @@ namespace TeslaLogger
                 shareDataOnStartup = Tools.IsShareData();
 
                 // start schema update
-
-                KVS.CheckSchema();
-                DBHelper.EnableUTF8mb4();
-
-                CheckDBCharset();
-
-                CheckDBSchema_areaa();
-
-                CheckDBSchema_can();
-
-                CheckDBSchema_candata();
-
-                CheckDBSchema_cars();
-
-                CheckDBSchema_car_version();
-
-                CheckDBSchema_charging();
-
-                CheckDBSchema_chargingstate();
-
-                CheckDBSchema_drivestate();
-
-                CheckDBSchema_httpcodes();
-
-                Journeys.CheckSchema();
-
-                GeocodeCache.CheckSchema();
-
-                CheckDBSchema_mothership();
-
-                CheckDBSchema_mothershipcommands();
-
-                CheckDBSchema_pos();
-
-                CheckDBSchema_shiftstate();
-
-                CheckDBSchema_state();
-
-                CheckDBSchema_superchargers();
-
-                CheckDBSchema_superchargerstate();
-
-                CheckDBSchema_TPMS();
-
-                CheckDBSchema_Battery();
-
-                CheckDBSchema_Cruisestate();
-
-                CheckDBSchema_Alerts();
-
-                GetChargingHistoryV2Service.CheckSchema();
-
-                Komoot.CheckSchema();
-
-                Logfile.Log("DBSchema Update finished.");
+                // Using injected IDbSchemaMigrator service to replace individual schema checks
+                if (SchemaMigrator != null)
+                {
+                    Logfile.Log("DBSchema Update (via service) started.");
+                    _ = Task.Factory.StartNew(async () =>
+                    {
+                        try
+                        {
+                            await SchemaMigrator.ValidateAllSchemasAsync().ConfigureAwait(false);
+                            Logfile.Log("DBSchema Update (via service) finished.");
+                        }
+                        catch (Exception ex)
+                        {
+                            ex.ToExceptionless().FirstCarUserID().Submit();
+                            Logfile.Log($"Error during schema validation: {ex.Message}");
+                        }
+                    }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                }
+                else
+                {
+                    // Fallback if service not initialized
+                    Logfile.Log("WARNING: SchemaMigrator not initialized, using legacy schema update");
+                    
+                    KVS.CheckSchema();
+                    DBHelper.EnableUTF8mb4();
+                    CheckDBCharset();
+                    CheckDBSchema_areaa();
+                    CheckDBSchema_can();
+                    CheckDBSchema_candata();
+                    CheckDBSchema_cars();
+                    CheckDBSchema_car_version();
+                    CheckDBSchema_charging();
+                    CheckDBSchema_chargingstate();
+                    CheckDBSchema_drivestate();
+                    CheckDBSchema_httpcodes();
+                    Journeys.CheckSchema();
+                    GeocodeCache.CheckSchema();
+                    CheckDBSchema_mothership();
+                    CheckDBSchema_mothershipcommands();
+                    CheckDBSchema_pos();
+                    CheckDBSchema_shiftstate();
+                    CheckDBSchema_state();
+                    CheckDBSchema_superchargers();
+                    CheckDBSchema_superchargerstate();
+                    CheckDBSchema_TPMS();
+                    CheckDBSchema_Battery();
+                    CheckDBSchema_Cruisestate();
+                    CheckDBSchema_Alerts();
+                    GetChargingHistoryV2Service.CheckSchema();
+                    Komoot.CheckSchema();
+                    Logfile.Log("DBSchema Update finished.");
+                }
 
                 // end of schema update
 
@@ -1932,8 +1957,21 @@ PRIMARY KEY(id)
                     return;
                 }
 
-                if (Tools.IsMono() || Tools.IsDocker() || Tools.IsDotnet8())
+                // Using injected IGrafanaDashboardConfigurer service
+                if (DashboardConfigurer != null)
                 {
+                    Logfile.Log("Grafana update (via service) started");
+                    await DashboardConfigurer.UpdateGrafanaAsync().ConfigureAwait(false);
+                    Logfile.Log("Grafana update (via service) finished");
+                }
+                else
+                {
+                    // Fallback if service not initialized
+                    Logfile.Log("WARNING: DashboardConfigurer not initialized, using legacy Grafana update");
+                    
+                    // Legacy Grafana startup sequence
+                    if (Tools.IsMono() || Tools.IsDocker() || Tools.IsDotnet8())
+                    {
                     Tools.GrafanaSettings(out string power, out string temperature, out string length, out string pressure, out string language, out string URL_Admin,
                         out string Range, out string URL_Grafana, out string defaultcar, out string defaultcarid);
 
@@ -2965,9 +3003,52 @@ PRIMARY KEY(id)
 
         public static void CheckForNewVersion()
         {
-            lastTeslaLoggerVersionCheckObj.Wait();
-            try
+            // Using injected IApplicationUpdateManager service
+            if (UpdateManager != null)
             {
+                lastTeslaLoggerVersionCheckObj.Wait();
+                try
+                {
+                    // Quick check: don't interrupt active driving/charging
+                    for (int x = 0; x < Car.Allcars.Count; x++)
+                    {
+                        Car c = Car.Allcars[x];
+                        if (c.GetCurrentState() == Car.TeslaState.Charge || c.GetCurrentState() == Car.TeslaState.Drive)
+                            return;
+                    }
+
+                    // Schedule version check asynchronously; don't block caller
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await UpdateManager.CheckForNewVersionAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            ex.ToExceptionless().FirstCarUserID().Submit();
+                            Logfile.Log($"Error checking new version: {ex.Message}");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    ex.ToExceptionless().FirstCarUserID().Submit();
+                    Logfile.Log($"Error in CheckForNewVersion: {ex.Message}");
+                }
+                finally
+                {
+                    lastTeslaLoggerVersionCheckObj.Release();
+                }
+            }
+            else
+            {
+                // Legacy version check
+                Logfile.Log("WARNING: UpdateManager not initialized, using legacy version check");
+                
+                lastTeslaLoggerVersionCheckObj.Wait();
+                try
+                {
                 try
                 {
                     for (int x = 0; x < Car.Allcars.Count; x++)
