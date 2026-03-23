@@ -29,7 +29,7 @@ namespace UnitTestsTeslalogger
         }
 
         [TestMethod]
-        public void Work_does_refresh_all_cars_on_currentjson_not_found()
+        public async Task Work_does_refresh_all_cars_on_currentjson_not_found()
         {
             var mqttClientMock = new Mock<IMqttClient>();
             var mock = mqttClientMock.SetupGet(client => client.IsConnected).Returns(true);
@@ -57,7 +57,7 @@ namespace UnitTestsTeslalogger
             Assert.IsNotNull(mqtt);
 
             var c = new Car(1, "", "", 0, "", DateTime.MinValue, "", "", "", "", "", "5YJ3E7EB3KFXXXXXX", "", null, false);
-            mqtt.Work();
+            await mqtt.WorkAsync();
 
             webDownloaderMock.Verify(m => m.DownloadString(s_InvalidCarCurrentJson), Times.Never);
             webDownloaderMock.Verify(m => m.DownloadString(s_AllCarsUrl), Times.Exactly(2));
@@ -71,7 +71,7 @@ namespace UnitTestsTeslalogger
         }
 
         [TestMethod]
-        public void Work_does_not_try_to_retrieve_currentjson_for_invalid_car_id()
+        public async Task Work_does_not_try_to_retrieve_currentjson_for_invalid_car_id()
         {
             var mqttClientMock = new Mock<IMqttClient>();
             var mock = mqttClientMock.SetupGet(client => client.IsConnected).Returns(true);
@@ -99,7 +99,7 @@ namespace UnitTestsTeslalogger
             Assert.IsNotNull(mqtt);
 
             var c = new Car(1, "", "", 0, "", DateTime.MinValue, "", "", "", "", "", "", "", null, false);
-            mqtt.Work();
+            await mqtt.WorkAsync();
 
             webDownloaderMock.Verify(m => m.DownloadString(s_InvalidCarCurrentJson), Times.Never);
             webDownloaderMock.Verify(m => m.DownloadString(s_AllCarsUrl), Times.Exactly(2));
@@ -113,7 +113,7 @@ namespace UnitTestsTeslalogger
         }
 
         [TestMethod]
-        public void Work_does_not_try_to_retrieve_currentjson_for_inactive_car()
+        public async Task Work_does_not_try_to_retrieve_currentjson_for_inactive_car()
         {
             var mqttClientMock = new Mock<IMqttClient>();
             var mock = mqttClientMock.SetupGet(client => client.IsConnected).Returns(true);
@@ -134,7 +134,7 @@ namespace UnitTestsTeslalogger
 
             Assert.IsNotNull(mqtt);
 
-            mqtt.Work();
+            await mqtt.WorkAsync();
 
             webDownloaderMock.Verify(m => m.DownloadString(s_InvalidCarCurrentJson), Times.Never);
             webDownloaderMock.Verify(m => m.DownloadString(s_firstCarCurrentJson), Times.Never);

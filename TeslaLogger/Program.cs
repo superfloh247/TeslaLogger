@@ -408,7 +408,7 @@ namespace TeslaLogger
                             try
                             {
                                 cancellationToken.ThrowIfCancellationRequested();
-                                MQTT.GetSingleton().RunMqtt();
+                                await MQTT.GetSingleton().RunMqttAsync(cancellationToken).ConfigureAwait(false);
                             }
                             catch (OperationCanceledException)
                             {
