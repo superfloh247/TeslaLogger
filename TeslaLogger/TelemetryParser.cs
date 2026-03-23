@@ -65,7 +65,7 @@ namespace TeslaLogger
 
         public bool databaseCalls = true;
 
-        public event EventHandler handleACChargeChange;
+        public event EventHandler? handleACChargeChange;
 
         internal TelemetryParser(Car c)
         {
@@ -104,7 +104,7 @@ namespace TeslaLogger
 
         private bool driving;
         private bool _acCharging;
-        private string lastDetailedChargeState;
+        private string lastDetailedChargeState = "";
 
         internal bool dcCharging
         {

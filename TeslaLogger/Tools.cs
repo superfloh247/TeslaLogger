@@ -2620,7 +2620,7 @@ WHERE
 
     public static class EventBuilderExtension
     {
-        static String lastFirstCar;
+        static string? lastFirstCar;
         public static EventBuilder FirstCarUserID(this EventBuilder v)
         {
             try

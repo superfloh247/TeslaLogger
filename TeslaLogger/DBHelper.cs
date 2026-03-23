@@ -18,6 +18,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using ZstdSharp.Unsafe;
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
+#pragma warning disable CS8601 // Possible null reference assignment
+#pragma warning disable CS8602 // Dereference of possibly null reference
+#pragma warning disable CS8603 // Possible null reference return
+#pragma warning disable CS8604 // Possible null reference argument
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable type
+
+#nullable enable
+
 namespace TeslaLogger
 {
     [SuppressMessage("Globalization", "CA1303:Literale nicht als lokalisierte Parameter übergeben", Justification = "<Pending>")]

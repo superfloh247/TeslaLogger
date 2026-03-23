@@ -450,7 +450,7 @@ namespace TeslaLogger
         public double? SMTSpeed; // defaults to null;
         public double? SMTBatteryPower; // defaults to null;
 
-        public string active_route_destination; // defaults to null;
+        public string active_route_destination = ""; // defaults to null;
         public long? active_route_energy_at_arrival; // defaults to null;
         public long? active_route_km_to_arrival; // defaults to null;
         public double? active_route_minutes_to_arrival; // defaults to null;
@@ -458,7 +458,7 @@ namespace TeslaLogger
         public double? active_route_latitude; // defaults to null;
         public double? active_route_longitude; // defaults to null;
 
-        public string FatalError;
+        public string FatalError = "";
 
         public string current_json = "";
         private DateTime lastJSONwrite = DateTime.MinValue;

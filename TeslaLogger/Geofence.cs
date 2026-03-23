@@ -30,8 +30,8 @@ namespace TeslaLogger
             OnChargeComplete
         }
 
-        public string name;
-        public string rawName;
+        public string name = "";
+        public string rawName = "";
         public double lat;
         public double lng;
         public int radius;
@@ -119,7 +119,7 @@ namespace TeslaLogger
     public class Geofence
     {
         private static System.Threading.SemaphoreSlim lockObj = new System.Threading.SemaphoreSlim(1, 1);
-        private static Geofence _geofence; // Singleton
+        private static Geofence? _geofence; // Singleton
 
         public static Geofence GetInstance()
         {

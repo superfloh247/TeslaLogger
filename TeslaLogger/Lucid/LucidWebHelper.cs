@@ -17,16 +17,16 @@ namespace TeslaLoggerNET8.Lucid
     internal class LucidWebHelper : WebHelper
     {
         string lastData = "";
-        private string charge_state;
+        private string charge_state = "";
         private double charge_energy_added;
         private double charger_power;
         private DateTime lastNewData;
         private double battery_level;
         private double ideal_battery_range;
         private int session_minutes_remaining;
-        private string power;
+        private string power = "";
         private double speed;
-        private string gear_position;
+        private string gear_position = "";
         private double latitude;
         private double longitude;
         private long last_updated_ms;

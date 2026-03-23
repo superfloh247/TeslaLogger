@@ -27,14 +27,14 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     public partial class WebServer : IDisposable
     {
-        private readonly HttpListener listener; // defaults to null;
+        private readonly HttpListener? listener; // defaults to null;
 
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
             {
                 // Dispose managed resources.
-                listener.Close();
+                listener?.Close();
             }
             // Free native resources.
         }
@@ -45,7 +45,7 @@ namespace TeslaLogger
             GC.SuppressFinalize(this);
         }
 
-        static TeslaAuth teslaAuth; // defaults to null;
+        static TeslaAuth? teslaAuth; // defaults to null;
 
         private readonly List<string> AllowedTeslaAPICommands = new()
         {

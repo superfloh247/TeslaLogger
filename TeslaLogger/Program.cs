@@ -109,7 +109,7 @@ namespace TeslaLogger
             Housekeeping
         }
 
-        private static WebServer webServer;
+        private static WebServer? webServer;
         
         /// <summary>
         /// Indicates whether the OVMS (Open Vehicle Monitoring System) has been started.

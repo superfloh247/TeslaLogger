@@ -20,7 +20,7 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     public class NearbySuCService
     {
-        private static NearbySuCService _NearbySuCService;
+        private static NearbySuCService? _NearbySuCService;
 
         private NearbySuCService()
         {
@@ -719,7 +719,7 @@ VALUES(
             public int unknown = 0;
         }
 
-        static HttpClient _teslaGuestHttpClient;
+        static HttpClient? _teslaGuestHttpClient;
         static HttpClient TeslaGuestHttpClient()
         {
             if (_teslaGuestHttpClient is null)

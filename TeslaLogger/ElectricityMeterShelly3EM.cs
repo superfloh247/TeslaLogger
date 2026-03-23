@@ -12,8 +12,8 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     class ElectricityMeterShelly3EM : ElectricityMeterBase
     {
-        private string host;
-        private string paramater;
+        private string host = "";
+        private string paramater = "";
 
         internal string mockup_status, mockup_shelly;
 

@@ -14,7 +14,7 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     public class ScanMyTesla
     {
-        private string token;
+        private string token = "";
         private bool fastmode; // defaults to false
         internal HttpClient httpclient_teslalogger_de;
         Car car;

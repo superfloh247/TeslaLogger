@@ -67,7 +67,7 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     internal class MQTT
     {
-        private static MQTT _Mqtt;
+        private static MQTT? _Mqtt;
 
         private string? clientid;
         private string? host;
@@ -808,7 +808,7 @@ namespace TeslaLogger
     internal class MqttClientWrapper : IMqttClient
     {
         private MQTTnet.Client.IMqttClient _client;
-        private string _brokerHost;
+        private string _brokerHost = "";
         private int _brokerPort;
 
         public bool IsConnected => _client?.IsConnected ?? false;

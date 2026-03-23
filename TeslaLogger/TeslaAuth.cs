@@ -220,7 +220,7 @@ public class TeslaAuth
         public string? RefreshToken { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
         public TimeSpan ExpiresIn { get; init; }
-        public string TokenType { get; init; }
+        public string? TokenType { get; init; }
     }
 
 

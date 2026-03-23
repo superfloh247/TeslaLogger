@@ -66,8 +66,8 @@ namespace TeslaLogger
             public double Lng { get; }
         }
 
-        private static StaticMapService _StaticMapService; // defaults to null;
-        private static StaticMapProvider _StaticMapProvider; // defaults to null;
+        private static StaticMapService? _StaticMapService; // defaults to null;
+        private static StaticMapProvider? _StaticMapProvider; // defaults to null;
 
         private readonly ConcurrentQueue<Request> queue = new ConcurrentQueue<Request>();
 

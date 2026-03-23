@@ -20,6 +20,7 @@
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
+    <NoWarn>$(NoWarn);CS0162;CS0618;CS8600;CS8601;CS8602;CS8603;CS8604;CS8605;CS8618;CS8622;CS8625;CS8629;SYSLIB0014</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Compile Update="ApplicationSettings.Designer.cs">

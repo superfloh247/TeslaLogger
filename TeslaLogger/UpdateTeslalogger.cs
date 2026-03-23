@@ -22,7 +22,7 @@ namespace TeslaLogger
         private const string cmd_restart_path = "/tmp/teslalogger-cmd-restart.txt";
         private const string TPMSSchemaVersion = "TPMSSchemaVersion";
         private static bool shareDataOnStartup; // defaults to false;
-        private static Timer timer;
+        private static Timer? timer;
 
         private static DateTime lastTeslaLoggerVersionCheck = DateTime.UtcNow;
         private static System.Threading.SemaphoreSlim lastTeslaLoggerVersionCheckObj = new System.Threading.SemaphoreSlim(1, 1);
@@ -30,7 +30,7 @@ namespace TeslaLogger
 
         internal static CancellationTokenSource done = new CancellationTokenSource();
 
-        private static Task ComfortingMessages; // defaults to null;
+        private static Task? ComfortingMessages; // defaults to null;
         private static CancellationTokenSource comfortingMessagesCTS = new CancellationTokenSource();
         public static bool DownloadUpdateAndInstallStarted; // defaults to false;
 

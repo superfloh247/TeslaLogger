@@ -11,10 +11,10 @@ namespace TeslaLogger
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     class ElectricityMeterEVCC : ElectricityMeterBase
     {
-        string host;
-        string parameter;
-        string loadpointcarname;
-        internal string api_state;
+        string host = "";
+        string parameter = "";
+        string loadpointcarname = "";
+        internal string api_state = "";
 
         static WebClient client; 
         Guid guid = Guid.NewGuid();
