@@ -456,7 +456,7 @@ namespace TeslaLogger
                     try
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        await NearbySuCService.GetSingleton().Run();
+                        await NearbySuCService.GetSingleton().Run(cancellationToken);
                     }
                     catch (OperationCanceledException)
                     {
@@ -641,12 +641,12 @@ namespace TeslaLogger
             {
                 if (Tools.UseOpenTopoData())
                 {
-                    Task.Run(() =>
+                    Task.Run(async () =>
                     {
                         try
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            OpenTopoDataService.GetSingleton().Run();
+                            await OpenTopoDataService.GetSingleton().RunAsync(cancellationToken);
                         }
                         catch (OperationCanceledException)
                         {
@@ -1050,12 +1050,12 @@ namespace TeslaLogger
         {
             try
             {
-                Task.Run(() =>
+                Task.Run(async () =>
                 {
                     try
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        StaticMapService.GetSingleton().Run();
+                        await StaticMapService.GetSingleton().RunAsync(cancellationToken);
                     }
                     catch (OperationCanceledException)
                     {

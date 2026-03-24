@@ -99,18 +99,18 @@ namespace TeslaLogger
             queue.Enqueue(new POIRequest(type, lat, lng, mode));
         }
 
-        public void Run()
+        public async Task RunAsync(CancellationToken cancellationToken = default)
         {
-            Tools.DebugLog("StaticMapService:Run()");
+            Tools.DebugLog("StaticMapService:RunAsync()");
             try
             {
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     if (!queue.IsEmpty)
                     {
                         try
                         {
-                            Work();
+                            await WorkAsync(cancellationToken);
                         }
                         catch (Exception ex)
                         {
@@ -121,9 +121,14 @@ namespace TeslaLogger
                     }
                     else
                     {
-                        System.Threading.Thread.Sleep(1000);
+                        await Task.Delay(1000, cancellationToken);
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected during shutdown
+                Logfile.Log("StaticMapService cancelled");
             }
             catch (Exception ex)
             {
@@ -132,20 +137,20 @@ namespace TeslaLogger
             }
         }
 
-        private void Work()
+        private async Task WorkAsync(CancellationToken cancellationToken = default)
         {
-            //Tools.DebugLog("StaticMapService:Work() queue:" + queue.Count + " MapProvider:" + _StaticMapProvider);
+            //Tools.DebugLog("StaticMapService:WorkAsync() queue:" + queue.Count + " MapProvider:" + _StaticMapProvider);
             if (_StaticMapProvider is not null)
             {
                 int queueLength = queue.Count;
                 if (queue.TryDequeue(out Request request))
                 {
-                    Tools.DebugLog("StaticMapService:Work() queue:" + queue.Count + " MapProvider:" + _StaticMapProvider);
+                    Tools.DebugLog("StaticMapService:WorkAsync() queue:" + queue.Count + " MapProvider:" + _StaticMapProvider);
                     int width = request.Width > 0 ? request.Width : 200;
                     int height = request.Height > 0 ? request.Height : 150;
                     if (request is TripRequest)
                     {
-                        //Tools.DebugLog($"StaticMapService:Work() request:{request.Type} {((TripRequest)request).StartPosID}->{((TripRequest)request).EndPosID}");
+                        //Tools.DebugLog($"StaticMapService:WorkAsync() request:{request.Type} {((TripRequest)request).StartPosID}->{((TripRequest)request).EndPosID}");
                         string filename = System.IO.Path.Combine(GetMapDir(), GetMapFileName(((TripRequest)request).CarID, ((TripRequest)request).StartPosID, ((TripRequest)request).EndPosID));
                         Tools.DebugLog("StaticMapService:filename = " + filename);
                         if (MapFileExistsOrIsTooOld(filename))
@@ -159,11 +164,11 @@ namespace TeslaLogger
                                     dt.Dispose();
                                     if (_StaticMapProvider is not null)
                                     {
-                                        Task.Delay(_StaticMapProvider.GetDelayMS());
+                                        await Task.Delay(_StaticMapProvider.GetDelayMS(), cancellationToken);
                                     }
                                     else
                                     {
-                                        System.Threading.Thread.Sleep(1000);
+                                        await Task.Delay(1000, cancellationToken);
                                     }
                                 }
                             }
@@ -171,7 +176,7 @@ namespace TeslaLogger
                     }
                     else if (request is POIRequest)
                     {
-                        //Tools.DebugLog($"StaticMapService:Work() request:{request.Type} {((POIRequest)request).Lat},{((POIRequest)request).Lng}");
+                        //Tools.DebugLog($"StaticMapService:WorkAsync() request:{request.Type} {((POIRequest)request).Lat},{((POIRequest)request).Lng}");
                         string filename = System.IO.Path.Combine(GetMapDir(), GetMapFileName(request.Type, ((POIRequest)request).Lat, ((POIRequest)request).Lng));
                         if (MapFileExistsOrIsTooOld(filename))
                         {
@@ -190,11 +195,11 @@ namespace TeslaLogger
                             }
                             if (_StaticMapProvider is not null)
                             {
-                                Task.Delay(_StaticMapProvider.GetDelayMS());
+                                await Task.Delay(_StaticMapProvider.GetDelayMS(), cancellationToken);
                             }
                             else
                             {
-                                System.Threading.Thread.Sleep(1000);
+                                await Task.Delay(1000, cancellationToken);
                             }
                         }
                     }

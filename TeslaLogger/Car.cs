@@ -2130,13 +2130,13 @@ namespace TeslaLogger
             webhelper.StopStreaming();
             webhelper.scanMyTesla?.StopThread();
 
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 for (int x = 0; x < waitSeconds; x++)
                 {
                     Logfile.Log($"Restart carthread in {waitSeconds - x}sec");
 
-                    System.Threading.Thread.Sleep(1000);
+                    await Task.Delay(1000);
                 }
 
                 webhelper.scanMyTesla?.KillThread();

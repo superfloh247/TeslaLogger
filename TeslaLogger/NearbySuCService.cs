@@ -36,23 +36,28 @@ namespace TeslaLogger
             return _NearbySuCService;
         }
 
-        public async Task Run()
+        public async Task Run(CancellationToken cancellationToken = default)
         {
             // initially sleep 30 seconds to let the cars get from Start to Online
-            await Task.Delay(30000);
+            await Task.Delay(30000, cancellationToken);
             try
             {
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     if (Tools.UseNearbySuCService())
                     {
-                        await WorkAsync();
+                        await WorkAsync(cancellationToken);
                         GetNextSuperchargerToCalculate();
                     }
 
                     // sleep 10 Minutes
-                    System.Threading.Thread.Sleep(600000);
+                    await Task.Delay(600000, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected during shutdown
+                Logfile.Log("NearbySuCService cancelled");
             }
             catch (Exception ex)
             {
@@ -61,7 +66,7 @@ namespace TeslaLogger
             }
         }
 
-        private async Task WorkAsync()
+        private async Task WorkAsync(CancellationToken cancellationToken = default)
         {
             ArrayList send = new ArrayList();
 
@@ -73,7 +78,7 @@ namespace TeslaLogger
 
                 if (car is LucidCar)
                 {
-                    System.Threading.Thread.Sleep(100);
+                    await Task.Delay(100, cancellationToken);
                     continue;
                 }    
 

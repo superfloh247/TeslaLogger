@@ -92,7 +92,7 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
                         await Task.Delay(1000);
 
 
-                    ConnectToServer();
+                    await ConnectToServerAsync();
 
                     if (zmq is null)
                         continue;
@@ -126,13 +126,13 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
                     }
 
                     var s = r.Next(30000, 60000);
-                    System.Threading.Thread.Sleep(s);
+                    await Task.Delay(s);
                 }
             }
         }
 
 
-        private void ConnectToServer()
+        private async Task ConnectToServerAsync()
         {
             Log("Connect to Telemetry Server (ZQM)");
 
@@ -159,13 +159,13 @@ internal class TelemetryConnectionZMQ : TelemetryConnection
                     else
                         car.CreateExceptionlessClient(ex2).Submit();
 
-                    System.Threading.Thread.Sleep(60000);
+                    await Task.Delay(60000);
                 }
                 else
                 {
                     Log("Connect to Telemetry Server (ZQM) Error: " + ex.Message);
                     car.CreateExceptionlessClient(ex).Submit();
-                    System.Threading.Thread.Sleep(60000);
+                    await Task.Delay(60000);
                 }
             }
         }

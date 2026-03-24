@@ -90,7 +90,7 @@ class TelemetryConnectionWS : TelemetryConnection
                     while (!connect)
                         await Task.Delay(1000);
 
-                    ConnectToServer();
+                    await ConnectToServerAsync();
 
                     if (ws is null)
                         continue;
@@ -124,7 +124,7 @@ class TelemetryConnectionWS : TelemetryConnection
                     }
 
                     var s = r.Next(30000, 60000);
-                    System.Threading.Thread.Sleep(s);
+                    await Task.Delay(s);
                 }
             }
         }
@@ -187,7 +187,7 @@ class TelemetryConnectionWS : TelemetryConnection
             return true;
         }
 
-        private void ConnectToServer()
+        private async Task ConnectToServerAsync()
         {
             Log("Connect to Telemetry Server (WS)");
 
@@ -199,8 +199,7 @@ class TelemetryConnectionWS : TelemetryConnection
             try
             {
                 var cws = new ClientWebSocket();
-                Task tc = cws.ConnectAsync(new Uri(ApplicationSettings.Default.TelemetryServerURL), cts.Token);
-                tc.Wait();
+                await cws.ConnectAsync(new Uri(ApplicationSettings.Default.TelemetryServerURL), cts.Token);
 
                 ws = cws;
             }
@@ -214,13 +213,13 @@ class TelemetryConnectionWS : TelemetryConnection
                     else
                         car.CreateExceptionlessClient(ex2).Submit();
 
-                    System.Threading.Thread.Sleep(60000);
+                    await Task.Delay(60000);
                 }
                 else
                 {
                     Log("Connect to Telemetry Server (WS) Error: " + ex.Message);
                     car.CreateExceptionlessClient(ex).Submit();
-                    System.Threading.Thread.Sleep(60000);
+                    await Task.Delay(60000);
                 }
             }
         }

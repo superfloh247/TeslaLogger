@@ -40,23 +40,28 @@ namespace TeslaLogger
             queue.Push(new Tuple<long, double, double>(posID, lat, lng));
         }
 
-        public void Run()
+        public async Task RunAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     // max 1000 requests per day
                     // 24hours divided by 1000 --> one request every 86,4 seconds, so try every 2 minutes (including safety margin)
                     if (DateTime.Now.Minute % 2 == 0)
                     {
-                        Work();
+                        await WorkAsync(cancellationToken);
                     }
                     else
                     {
-                        System.Threading.Thread.Sleep(30000); // sleep 30 seconds
+                        await Task.Delay(30000, cancellationToken); // sleep 30 seconds
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected during shutdown
+                Logfile.Log("OpenTopoDataService cancelled");
             }
             catch (Exception ex)
             {
@@ -65,7 +70,7 @@ namespace TeslaLogger
             }
         }
 
-        private void Work()
+        private async Task WorkAsync(CancellationToken cancellationToken = default)
         {
             // is there something in the queue?
             if (!queue.IsEmpty)
@@ -76,14 +81,14 @@ namespace TeslaLogger
                 if (queue.TryPopRange(items) > 0)
                 {
                     // build pipe separated query string for opentopodata.org
-                    RequestLocationsAsync(items, UpdateDB).Wait();
+                    await RequestLocationsAsync(items, UpdateDB).ConfigureAwait(false);
 
-                    System.Threading.Thread.Sleep(90000); // sleep 90 seconds (safety marging)
+                    await Task.Delay(90000, cancellationToken); // sleep 90 seconds (safety margin)
                 }
             }
             else
             {
-                System.Threading.Thread.Sleep(60000); // sleep 60 seconds
+                await Task.Delay(60000, cancellationToken); // sleep 60 seconds
             }
         }
         public delegate void RequestLocationsResponse(long id, double elevation);

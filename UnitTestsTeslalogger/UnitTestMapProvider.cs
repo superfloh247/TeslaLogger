@@ -31,9 +31,9 @@ namespace UnitTestsTeslalogger
 
             var inst = StaticMapService.GetSingleton();
 
-            var taskStaticMapService = Task.Run(() =>
+            var taskStaticMapService = Task.Run(async () =>
             {
-                StaticMapService.GetSingleton().Run();
+                await StaticMapService.GetSingleton().RunAsync(CancellationToken.None);
             });
 
             while (inst.QueueLength > 0)
@@ -48,9 +48,9 @@ namespace UnitTestsTeslalogger
 
             var inst = StaticMapService.GetSingleton();
 
-            var taskStaticMapService = Task.Run(() =>
+            var taskStaticMapService = Task.Run(async () =>
             {
-                StaticMapService.GetSingleton().Run();
+                await StaticMapService.GetSingleton().RunAsync(CancellationToken.None);
             });
 
             while (inst.QueueLength > 0)
@@ -73,9 +73,9 @@ namespace UnitTestsTeslalogger
 
             var inst = StaticMapService.GetSingleton();
 
-            var taskStaticMapService = Task.Run(() =>
+            var taskStaticMapService = Task.Run(async () =>
             {
-                StaticMapService.GetSingleton().Run();
+                await StaticMapService.GetSingleton().RunAsync(CancellationToken.None);
             });
 
             while (inst.QueueLength > 0)
@@ -99,9 +99,9 @@ namespace UnitTestsTeslalogger
 
             var inst = StaticMapService.GetSingleton();
 
-            var taskStaticMapService = Task.Run(() =>
+            var taskStaticMapService = Task.Run(async () =>
             {
-                StaticMapService.GetSingleton().Run();
+                await StaticMapService.GetSingleton().RunAsync(CancellationToken.None);
             });
 
             while (inst.QueueLength > 0)
@@ -125,9 +125,9 @@ namespace UnitTestsTeslalogger
 
             var inst = StaticMapService.GetSingleton();
 
-            var taskStaticMapService = Task.Run(() =>
+            var taskStaticMapService = Task.Run(async () =>
             {
-                StaticMapService.GetSingleton().Run();
+                await StaticMapService.GetSingleton().RunAsync(CancellationToken.None);
             });
 
             while (inst.QueueLength > 0)
@@ -152,9 +152,9 @@ namespace UnitTestsTeslalogger
 
             var inst = StaticMapService.GetSingleton();
 
-            var taskStaticMapService = Task.Run(() =>
+            var taskStaticMapService = Task.Run(async () =>
             {
-                StaticMapService.GetSingleton().Run();
+                await StaticMapService.GetSingleton().RunAsync(CancellationToken.None);
             });
 
             while (inst.QueueLength > 0)
