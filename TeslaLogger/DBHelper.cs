@@ -3096,8 +3096,11 @@ WHERE
 
         internal void GetEconomy_Wh_km(WebHelper wh)
         {
+            ArgumentNullException.ThrowIfNull(wh);
+
             try
             {
+                // Query economy data from database with detailed charging analytics
                 using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                 {
                     con.Open();
@@ -3107,33 +3110,28 @@ SELECT
     ROUND(charging_End.charge_energy_added / (charging_End.ideal_battery_range_km - charging.ideal_battery_range_km), 3) AS economy_Wh_km
 FROM
     charging
-INNER JOIN
-    chargingstate
-ON
-    charging.id = chargingstate.StartChargingID
-LEFT OUTER JOIN
-    charging AS charging_End
-ON
-    chargingstate.EndChargingID = charging_End.id
+INNER JOIN chargingstate ON charging.id = chargingstate.StartChargingID
+LEFT OUTER JOIN charging AS charging_End ON chargingstate.EndChargingID = charging_End.id
 WHERE
     TIMESTAMPDIFF(MINUTE, chargingstate.StartDate, chargingstate.EndDate) > 100
     AND chargingstate.EndChargingID - chargingstate.StartChargingID > 4
     AND charging_End.battery_level <= 90
     AND chargingstate.CarID = @CarID
     AND charging_End.charge_energy_added > 5
-GROUP BY
-    economy_Wh_km
-ORDER BY
-    anz DESC
+GROUP BY economy_Wh_km
+ORDER BY anz DESC
 LIMIT 1", con))
                     {
                         cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
                         MySqlDataReader dr = SQLTracer.TraceDR(cmd);
+                        
+                        // Extract and validate economy data
                         if (dr.Read())
                         {
                             int anz = Convert.ToInt32(dr["anz"], Tools.ciEnUS);
                             double wh_km = (double)dr["economy_Wh_km"];
 
+                            // Log and store result
                             car.Log($"Economy from DB: {wh_km} Wh/km - count: {anz}");
 
                             wh.car.DBWhTR = wh_km;
@@ -3145,7 +3143,6 @@ LIMIT 1", con))
             catch (Exception ex)
             {
                 car.CreateExceptionlessClient(ex).Submit();
-
                 car.Log(ex.ToString());
             }
         }
@@ -3356,108 +3353,42 @@ LIMIT 1", con)
 
         public async Task StartChargingStateAsync(WebHelper wh, CancellationToken cancellationToken = default)
         {
-            object meter_vehicle_kwh_start = DBNull.Value;
-            object meter_utility_kwh_start = DBNull.Value;
+            ArgumentNullException.ThrowIfNull(wh);
 
-            ElectricityMeterBase v = null;
-            try
-            {
-                if (wh is not null && !wh.fast_charger_present)
-                {
-                    v = ElectricityMeterBase.Instance(wh.car);
-                    if (v is not null)
-                    {
-                        meter_vehicle_kwh_start = v.GetVehicleMeterReading_kWh();
-                        meter_utility_kwh_start = v.GetUtilityMeterReading_kWh();
+            // Step 1: Get electricity meter readings (if available)
+            var (meter_vehicle_kwh_start, meter_utility_kwh_start) = Helper_GetElectricityMeterReadings(wh);
+            var electricityMeter = !wh.fast_charger_present ? ElectricityMeterBase.Instance(wh.car) : null;
 
-                        car.Log($"Meter: {v}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                car.CreateExceptionlessClient(ex).Submit();
-
-                Logfile.Log(ex.ToString());
-            }
-
+            // Step 2: Get current position
             int posid = GetMaxPosid();
 
+            // Step 3: Handle FleetAPI charging state
             if (car.FleetAPI)
             {
-                await car.webhelper.IsChargingAsync(cancellationToken: cancellationToken).ConfigureAwait(false); // insert a charging row in DB
+                await car.webhelper.IsChargingAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
                 UpdatePosFromCurrentJSON(posid);
             }
 
-            bool fast_charger_present = wh.fast_charger_present;
-            if (car.telemetryParser?.dcCharging == true)
-                fast_charger_present = true;
+            // Step 4: Get charging metadata
+            Helper_GetStartChargingState(out int chargeID, out DateTime chargeStart);
 
-            int chargeID = GetMaxChargeid(out DateTime chargeStart, out double? _);
-            long chargingstateid = 0;
-            if (wh is not null)
-            {
-                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                {
-                    await con.OpenAsync(cancellationToken).ConfigureAwait(false);
-                    using (MySqlCommand cmd = new MySqlCommand(@"
-INSERT
-    chargingstate(
-        CarID,
-        StartDate,
-        Pos,
-        StartChargingID,
-        fast_charger_brand,
-        fast_charger_type,
-        conn_charge_cable,
-        fast_charger_present,
-        meter_vehicle_kwh_start,
-        meter_utility_kwh_start,
-        wheel_type
-    )
-VALUES(
-    @CarID,
-    @StartDate,
-    @Pos,
-    @StartChargingID,
-    @fast_charger_brand,
-    @fast_charger_type,
-    @conn_charge_cable,
-    @fast_charger_present,
-    @meter_vehicle_kwh_start,
-    @meter_utility_kwh_start,
-    @wheel_type
-)", con))
-                    {
-                        cmd.Parameters.AddWithValue("@CarID", wh.car.CarInDB);
-                        cmd.Parameters.AddWithValue("@StartDate", chargeStart);
-                        cmd.Parameters.AddWithValue("@Pos", posid);
-                        cmd.Parameters.AddWithValue("@StartChargingID", chargeID);
-                        cmd.Parameters.AddWithValue("@fast_charger_brand", wh.fast_charger_brand);
-                        cmd.Parameters.AddWithValue("@fast_charger_type", wh.fast_charger_type);
-                        cmd.Parameters.AddWithValue("@conn_charge_cable", wh.conn_charge_cable);
-                        cmd.Parameters.AddWithValue("@fast_charger_present",fast_charger_present);
-                        cmd.Parameters.AddWithValue("@meter_vehicle_kwh_start", meter_vehicle_kwh_start);
-                        cmd.Parameters.AddWithValue("@meter_utility_kwh_start", meter_utility_kwh_start);
-                        cmd.Parameters.AddWithValue("@wheel_type", wh.car.wheel_type);
-                        _ = SQLTracer.TraceNQ(cmd, out chargingstateid);
-                    }
-                }
-            }
-            if (wh is not null)
-            {
-                wh.car.CurrentJSON.current_charging = true;
-                wh.car.CurrentJSON.CreateCurrentJSON();
-            }
+            // Step 5: Insert charging state record and get ID
+            long chargingstateid = await Helper_InsertChargingStateRecordAsync(
+                wh, posid, chargeID, chargeStart,
+                meter_vehicle_kwh_start, meter_utility_kwh_start,
+                cancellationToken).ConfigureAwait(false);
 
-            // Check for one minute if meter claims car is really not charging 
-            if (v is not null && v.IsCharging() != true)
+            // Step 6: Update vehicle charging state
+            Helper_UpdateVehicleChargingState(wh.car);
+
+            // Step 7: Background task - monitor meter charging status (if meter exists)
+            if (electricityMeter is not null && electricityMeter.IsCharging() != true)
             {
-                _ =Task.Run(async () =>
+                _ = Task.Run(async () =>
                 {
                     for (int x = 0; x < 10; x++)
                     {
-                        if (v.IsCharging() == true)
+                        if (electricityMeter.IsCharging() == true)
                         {
                             car.Log("Meter: Charging!");
                             return;
@@ -3469,102 +3400,22 @@ VALUES(
 
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
                     {
-                        await con.OpenAsync();
+                        await con.OpenAsync().ConfigureAwait(false);
                         using (MySqlCommand cmd = new MySqlCommand(@"
-UPDATE
-    chargingstate
-SET
-    meter_vehicle_kwh_start = NULL,
-    meter_utility_kwh_start = NULL
-WHERE
-    id = @id", con))
+UPDATE chargingstate SET meter_vehicle_kwh_start = NULL, meter_utility_kwh_start = NULL WHERE id = @id", con))
                         {
                             cmd.Parameters.AddWithValue("@id", chargingstateid);
-                            await cmd.ExecuteNonQueryAsync();
+                            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
                         }
                     }
                 }, car.cts.Token);
             }
 
+            // Step 8: Background task - update charging position after delay
             _ = Task.Run(async () =>
             {
-                // give TL some time to enter charge state
-                await Task.Delay(30000);
-                // try to update chargingstate.pos
-                // are we still charging?
-                car.Log($"StartChargingState Task start");
-                int latestPos = GetMaxPosidLatLng(out double poslat, out double poslng);
-                car.Log($"StartChargingState Task latestPos: {latestPos}");
-                if (car.GetCurrentState() == Car.TeslaState.Charge)
-                {
-                    // now get a new entry in pos
-                    await wh.IsDrivingAsync(true);
-                    // get lat, lng from max pos id
-                    int newPos = GetMaxPosidLatLng(out poslat, out poslng);
-                    car.Log($"StartChargingState Task newPos: {newPos}");
-                    if (!double.IsNaN(poslat) && !double.IsNaN(poslng))
-                    {
-                        int chargingstateId = GetMaxChargingstateId(out double chglat, out double chglng, out _, out _);
-                        if (!double.IsNaN(chglat) && !double.IsNaN(chglng))
-                        {
-                            car.Log($"StartChargingState Task (poslng, poslat, chglng, chglat) ({poslng}, {poslat}, {chglng}, {chglat})");
-                            double distance = Geofence.GetDistance(poslng, poslat, chglng, chglat);
-                            car.Log($"StartChargingState Task distance: {distance}");
-                            if (distance > 10)
-                            {
-                                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                                {
-                                    con.Open();
-                                    using (MySqlCommand cmd = new MySqlCommand(@"
-UPDATE
-    chargingstate
-SET
-    Pos = @latestPos
-WHERE
-    chargingstate.id = @chargingstateId", con))
-                                    {
-                                        cmd.Parameters.AddWithValue("@latestPos", newPos);
-                                        cmd.Parameters.AddWithValue("@chargingstateId", chargingstateId);
-                                        int updatedRows = SQLTracer.TraceNQ(cmd, out _);
-                                        car.Log($"updated chargingstate {chargingstateId} to pos.id {newPos}");
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            car.Log($"StartChargingState Task chglat: {chglat} chglng: {chglng}");
-                        }
-                    }
-                    else
-                    {
-                        car.Log($"StartChargingState Task poslat: {poslat} poslng: {poslng}");
-                    }
-
-                    Tools.DebugLog($"fast_charger_present: {wh.fast_charger_present}");
-                    Tools.DebugLog($"fast_charger_brand: {wh.fast_charger_brand}");
-                    if (wh.fast_charger_present && wh.fast_charger_brand == "Tesla")
-                    {
-                        if (!String.IsNullOrEmpty(car.SuCBingoUser) && !String.IsNullOrEmpty(car.SuCBingoApiKey))
-                        {
-                            car.Log("SuperchargeBingo: Checkin!");
-                            _ = GetMaxPosidLatLng(out poslat, out poslng);
-                            _ = wh.SuperchargeBingoCheckin(poslat, poslng);
-                        }
-                        else
-                        {
-                            Tools.DebugLog("SuperchargeBingo: no credentials!");
-                        }
-                    }
-                    else
-                    {
-                        Tools.DebugLog("SuperchargeBingo: not a tesla supecharger!");
-                    }
-                }
-                else
-                {
-                    car.Log($"StartChargingState Task GetCurrentState(): {car.GetCurrentState()}");
-                }
+                await Task.Delay(30000).ConfigureAwait(false);
+                await Helper_UpdateChargingStatePositionAsync(wh, chargingstateid).ConfigureAwait(false);
             }, car.cts.Token);
         }
 

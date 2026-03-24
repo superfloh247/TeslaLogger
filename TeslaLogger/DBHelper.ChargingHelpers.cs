@@ -174,5 +174,129 @@ VALUES(
             vehicleState.CurrentJSON.current_charging = true;
             vehicleState.CurrentJSON.CreateCurrentJSON();
         }
+
+        /// <summary>
+        /// Helper: Updates charging state position after an initial delay to allow car to settle.
+        /// 
+        /// Called as background task after charging begins. Waits for vehicle to enter charge state,
+        /// then updates the charging position record if vehicle has moved significantly.
+        /// Also handles Supercharger Bingo checkin if applicable.
+        /// </summary>
+        /// <param name="wh">WebHelper with vehicle context</param>
+        /// <param name="chargingstateid">ID of the charging state to update</param>
+        /// <returns>Task that completes when position update is finished</returns>
+        internal async Task Helper_UpdateChargingStatePositionAsync(WebHelper wh, long chargingstateid)
+        {
+            try
+            {
+                car.Log($"StartChargingState Task start");
+                int latestPos = GetMaxPosidLatLng(out double poslat, out double poslng);
+                car.Log($"StartChargingState Task latestPos: {latestPos}");
+
+                if (car.GetCurrentState() == Car.TeslaState.Charge)
+                {
+                    // Request new position data from API
+                    await wh.IsDrivingAsync(true).ConfigureAwait(false);
+                    
+                    // Get updated position
+                    int newPos = GetMaxPosidLatLng(out poslat, out poslng);
+                    car.Log($"StartChargingState Task newPos: {newPos}");
+
+                    if (!double.IsNaN(poslat) && !double.IsNaN(poslng))
+                    {
+                        // Get charging location
+                        int chargingstateId = GetMaxChargingstateId(out double chglat, out double chglng, out _, out _);
+                        
+                        if (!double.IsNaN(chglat) && !double.IsNaN(chglng))
+                        {
+                            car.Log($"StartChargingState Task (poslng, poslat, chglng, chglat) ({poslng}, {poslat}, {chglng}, {chglat})");
+                            
+                            // Check if position has moved significantly
+                            double distance = Geofence.GetDistance(poslng, poslat, chglng, chglat);
+                            car.Log($"StartChargingState Task distance: {distance}");
+                            
+                            if (distance > 10)
+                            {
+                                // Update charging position in DB
+                                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                                {
+                                    await con.OpenAsync().ConfigureAwait(false);
+                                    using (MySqlCommand cmd = new MySqlCommand(@"
+UPDATE chargingstate SET Pos = @latestPos WHERE chargingstate.id = @chargingstateId", con))
+                                    {
+                                        cmd.Parameters.AddWithValue("@latestPos", newPos);
+                                        cmd.Parameters.AddWithValue("@chargingstateId", chargingstateId);
+                                        int updatedRows = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                                        car.Log($"updated chargingstate {chargingstateId} to pos.id {newPos}");
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            car.Log($"StartChargingState Task chglat: {chglat} chglng: {chglng}");
+                        }
+                    }
+                    else
+                    {
+                        car.Log($"StartChargingState Task poslat: {poslat} poslng: {poslng}");
+                    }
+
+                    // Handle Supercharger Bingo checkin
+                    await Helper_ProcessSuperchargerBingoAsync(wh).ConfigureAwait(false);
+                }
+                else
+                {
+                    car.Log($"StartChargingState Task GetCurrentState(): {car.GetCurrentState()}");
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+                Logfile.Log($"Error updating charging state position: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Helper: Processes Supercharger Bingo checkin if vehicle is at a Tesla supercharger.
+        /// 
+        /// Supercharger Bingo is a tracking service for Tesla supercharger usage.
+        /// This helper checks if we have credentials and the charger is a Tesla supercharger,
+        /// then performs the checkin with current location.
+        /// </summary>
+        /// <param name="wh">WebHelper with vehicle context and location data</param>
+        /// <returns>Task that completes when checkin is processed</returns>
+        private async Task Helper_ProcessSuperchargerBingoAsync(WebHelper wh)
+        {
+            try
+            {
+                Tools.DebugLog($"fast_charger_present: {wh.fast_charger_present}");
+                Tools.DebugLog($"fast_charger_brand: {wh.fast_charger_brand}");
+
+                // Check if this is a Tesla supercharger with Bingo credentials
+                if (wh.fast_charger_present && wh.fast_charger_brand == "Tesla")
+                {
+                    if (!string.IsNullOrEmpty(car.SuCBingoUser) && !string.IsNullOrEmpty(car.SuCBingoApiKey))
+                    {
+                        car.Log("SuperchargeBingo: Checkin!");
+                        _ = GetMaxPosidLatLng(out double poslat, out double poslng);
+                        _ = wh.SuperchargeBingoCheckin(poslat, poslng);
+                    }
+                    else
+                    {
+                        Tools.DebugLog("SuperchargeBingo: no credentials!");
+                    }
+                }
+                else
+                {
+                    Tools.DebugLog("SuperchargeBingo: not a tesla supercharger!");
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+                Logfile.Log($"Error processing Supercharger Bingo: {ex.Message}");
+            }
+        }
     }
 }
