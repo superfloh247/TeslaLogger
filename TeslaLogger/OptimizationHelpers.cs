@@ -29,7 +29,7 @@ namespace TeslaLogger
     {
         private static List<(string key, object value, string columnName)> queue = 
             new();
-        private static object queueLock = new object();
+        private static readonly SemaphoreSlim queueLock = new SemaphoreSlim(1, 1);
         private const int AUTO_FLUSH_SIZE = 100;  // Flush automatically every 100 items
 
         internal static void Queue(string key, int value)
@@ -64,7 +64,8 @@ namespace TeslaLogger
 
         private static void Queue(string key, object value, string columnName)
         {
-            lock (queueLock)
+            queueLock.Wait();
+            try
             {
                 queue.Add((key, value, columnName));
                 
@@ -73,6 +74,10 @@ namespace TeslaLogger
                     Flush();
                 }
             }
+            finally
+            {
+                queueLock.Release();
+            }
         }
 
         /// <summary>
@@ -80,7 +85,8 @@ namespace TeslaLogger
         /// </summary>
         internal static int Flush()
         {
-            lock (queueLock)
+            queueLock.Wait();
+            try
             {
                 if (queue.Count == 0)
                     return KVS.SUCCESS;
@@ -102,6 +108,10 @@ namespace TeslaLogger
                     return KVS.FAILED;
                 }
             }
+            finally
+            {
+                queueLock.Release();
+            }
         }
 
         /// <summary>
@@ -109,9 +119,14 @@ namespace TeslaLogger
         /// </summary>
         internal static int GetQueueSize()
         {
-            lock (queueLock)
+            queueLock.Wait();
+            try
             {
                 return queue.Count;
+            }
+            finally
+            {
+                queueLock.Release();
             }
         }
 
@@ -120,9 +135,14 @@ namespace TeslaLogger
         /// </summary>
         internal static void Clear()
         {
-            lock (queueLock)
+            queueLock.Wait();
+            try
             {
                 queue.Clear();
+            }
+            finally
+            {
+                queueLock.Release();
             }
         }
     }
@@ -143,14 +163,15 @@ namespace TeslaLogger
         }
 
         private static List<OperationMetric> metrics = new();
-        private static object metricsLock = new object();
+        private static readonly SemaphoreSlim metricsLock = new SemaphoreSlim(1, 1);
 
         /// <summary>
         /// Record a metric for an optimization operation.
         /// </summary>
         internal static void RecordMetric(string operationName, long executionTimeMs, int rowsAffected)
         {
-            lock (metricsLock)
+            metricsLock.Wait();
+            try
             {
                 metrics.Add(new OperationMetric
                 {
@@ -166,6 +187,10 @@ namespace TeslaLogger
                     metrics.RemoveRange(0, 500);  // Remove oldest 500
                 }
             }
+            finally
+            {
+                metricsLock.Release();
+            }
         }
 
         /// <summary>
@@ -173,13 +198,18 @@ namespace TeslaLogger
         /// </summary>
         internal static long GetAverageExecutionTime(string operationName)
         {
-            lock (metricsLock)
+            metricsLock.Wait();
+            try
             {
                 var operationMetrics = metrics.Where(m => m.OperationName == operationName).ToList();
                 if (operationMetrics.Count == 0)
                     return 0;
                 
                 return (long)operationMetrics.Average(m => m.ExecutionTimeMs);
+            }
+            finally
+            {
+                metricsLock.Release();
             }
         }
 
@@ -188,7 +218,8 @@ namespace TeslaLogger
         /// </summary>
         internal static string GetSummary()
         {
-            lock (metricsLock)
+            metricsLock.Wait();
+            try
             {
                 if (metrics.Count == 0)
                     return "No metrics recorded";
@@ -209,6 +240,10 @@ namespace TeslaLogger
 
                 return summary.ToString();
             }
+            finally
+            {
+                metricsLock.Release();
+            }
         }
 
         /// <summary>
@@ -216,9 +251,14 @@ namespace TeslaLogger
         /// </summary>
         internal static void Clear()
         {
-            lock (metricsLock)
+            metricsLock.Wait();
+            try
             {
                 metrics.Clear();
+            }
+            finally
+            {
+                metricsLock.Release();
             }
         }
     }
