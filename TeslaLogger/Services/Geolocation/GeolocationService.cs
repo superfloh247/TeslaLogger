@@ -22,7 +22,6 @@ namespace TeslaLogger.Services.Geolocation
         private static int _mapQuestCount = 0;
         private static int _nominatimCount = 0;
         private DateTime _elevation_time = DateTime.Now;
-        private string _elevation = "";
 
         public int GetMapQuestRequestCount => _mapQuestCount;
         public int GetNominatimRequestCount => _nominatimCount;

@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Web;
 
+#nullable enable
+
 namespace TeslaLogger
 {
     public class Logfile
@@ -27,9 +29,13 @@ namespace TeslaLogger
         {
             get
             {
-                if (_logfilepath is null)
+                if (_logfilepath == null)
                 {
-                    _logfilepath = Path.Combine(GetExecutingPath(), "nohup.out");
+                    string? executingPath = GetExecutingPath();
+                    if (executingPath != null)
+                    {
+                        _logfilepath = Path.Combine(executingPath, "nohup.out");
+                    }
                 }
 
                 return _logfilepath;
@@ -48,7 +54,7 @@ namespace TeslaLogger
             string temp = $"{DateTime.Now.ToString(ciDeDE)} : {text}";
 
             if (noDate)
-                temp = text;
+                temp = text ?? "";
 
             Console.WriteLine(temp);
 
@@ -56,8 +62,12 @@ namespace TeslaLogger
             {
                 try
                 {
-                    mutex.WaitOne();
-                    File.AppendAllText(Logfilepath, temp + "\r\n");
+                    string? logfilePath = Logfilepath;
+                    if (logfilePath != null)
+                    {
+                        mutex.WaitOne();
+                        File.AppendAllText(logfilePath, temp + "\r\n");
+                    }
                 }
                 finally
                 {
@@ -118,7 +128,7 @@ namespace TeslaLogger
                     Task.Delay(15000).GetAwaiter().GetResult();
                     return;
                 }
-                if (inhalt.Contains("operation_timedout with 10s timeout for txid"))
+                if (inhalt != null && inhalt.Contains("operation_timedout with 10s timeout for txid"))
                 {
                     Log(prefix + "Mothership Timeout");
                     Task.Delay(20000).GetAwaiter().GetResult();
@@ -201,7 +211,11 @@ namespace TeslaLogger
 
             string filename = $"Exception/Exception_{DateTime.Now.ToString("yyyyMMddHHmmssfff")}.txt";
 
-            string filepath = Path.Combine(GetExecutingPath(), filename);
+            string? executingPath = GetExecutingPath();
+            if (executingPath == null)
+                return;
+
+            string filepath = Path.Combine(executingPath, filename);
 
             File.WriteAllText(filepath, temp);
         }
