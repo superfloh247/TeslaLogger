@@ -983,7 +983,7 @@ namespace TeslaLogger
 
                 DateTime start = DateTime.Now;
                 Logfile.Log("RunHousekeepingInBackground started");
-                Tools.Housekeeping();
+                await Tools.Housekeeping(cancellationToken).ConfigureAwait(false);
                 await DBHelper.UpdateCO2Async().ConfigureAwait(false);
                 GeocodeCache.Cleanup();
                 Logfile.Log($"RunHousekeepingInBackground finished, took {(DateTime.Now - start).TotalMilliseconds}ms");
@@ -1110,7 +1110,7 @@ namespace TeslaLogger
 
                     DBHelper.UpdateElevationForAllPoints();
                     WebHelper.UpdateAllPOIAddresses();
-                    DBHelper.DeleteDuplicateTrips();
+                    await DBHelper.DeleteDuplicateTrips().ConfigureAwait(false);
 
                     for (int i = 0; i < Car.Allcars.Count; i++)
                     {

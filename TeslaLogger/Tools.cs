@@ -1902,8 +1902,7 @@ namespace TeslaLogger
             }
         }
 
-        [MethodImpl(MethodImplOptions.Synchronized)]
-        public static void Housekeeping()
+        public static async Task Housekeeping(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1914,7 +1913,7 @@ namespace TeslaLogger
                 // cleanup Exceptions
                 CleanupExceptionsDir();
                 // cleanup database
-                CleanupDatabaseTableMothership();
+                await CleanupDatabaseTableMothership(cancellationToken).ConfigureAwait(false);
                 // cleanup backup folder
                 CleanupBackupFolder();
 
@@ -2156,7 +2155,7 @@ WHERE
             }
         }
 
-        private static void CleanupDatabaseTableMothership()
+        private static async Task CleanupDatabaseTableMothership(CancellationToken cancellationToken = default)
         {
             long mothershipCount = 0;
             long mothershipMaxId = 0;
@@ -2209,7 +2208,7 @@ WHERE
                             con.Close();
                         }
                     }
-                    System.Threading.Thread.Sleep(1000);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
                 using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
                 {

@@ -1427,7 +1427,7 @@ PRIMARY KEY(id)
 
                 // run housekeeping to make sure there is enough free disk space
 
-                Tools.Housekeeping();
+                await Tools.Housekeeping().ConfigureAwait(false);
 
                 // download update package from github
                 // download update package from github

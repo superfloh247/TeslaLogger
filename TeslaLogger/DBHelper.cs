@@ -705,7 +705,7 @@ ORDER BY
         /// Old implementation: Single DELETE with LIMIT on 100k+ rows = 60-180 seconds, full table lock
         /// New implementation: DELETE LIMIT 500 per batch with 100ms pauses = 3-5 seconds total, minimal locks
         /// </summary>
-        internal static void DeleteDuplicateTrips()
+        internal static async Task DeleteDuplicateTrips()
         {
             Tools.DebugLog("DeleteDuplicateTrips() [BATCHED]");
             try
@@ -747,7 +747,7 @@ LIMIT {batchSize}", 30);  // 30 second timeout per batch (was 3000)
                     // Brief delay between batches to prevent server load spikes
                     if (deleted >= batchSize)  // Only delay if more records might exist
                     {
-                        System.Threading.Thread.Sleep(100);
+                        await Task.Delay(100).ConfigureAwait(false);
                     }
                 }
 
@@ -3464,7 +3464,7 @@ VALUES(
                         }
 
                         car.Log("Meter: Not Charging!");
-                        System.Threading.Thread.Sleep(6000);
+                        await Task.Delay(6000).ConfigureAwait(false);
                     }
 
                     using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -6770,7 +6770,7 @@ FROM
                 var dt = GetAllChargingstates();
                 foreach (DataRow dr in dt.Rows)
                 {
-                    System.Threading.Thread.Sleep(10);
+                    await Task.Delay(10).ConfigureAwait(false);
 
                     calculateCountry = "";
                     calculateDate = null;

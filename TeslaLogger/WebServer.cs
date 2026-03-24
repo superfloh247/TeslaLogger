@@ -179,7 +179,7 @@ namespace TeslaLogger
             }
         }
 
-        private void OnContext(object o)
+        private async void OnContext(object o)
         {
             string localpath = "";
 
@@ -342,7 +342,7 @@ namespace TeslaLogger
                         break;
                     // static map service
                     case bool _ when request.Url.LocalPath.Equals("/get/map", System.StringComparison.Ordinal):
-                        GetStaticMap(request, response);
+                        await GetStaticMap(request, response).ConfigureAwait(false);
                         break;
                     // send car commands
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/command/[0-9]+/.+"):
@@ -362,7 +362,7 @@ namespace TeslaLogger
                         Restart(request, response);
                         break;
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/decodecar/[0-9]+"):
-                        DecodeCar(request, response);
+                        await DecodeCar(request, response).ConfigureAwait(false);
                         break;
                     // Tesla API debug
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/debug/TeslaAPI/[0-9]+/.+"):
@@ -375,7 +375,7 @@ namespace TeslaLogger
                         Set_Captcha(request, response);
                         break;
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/captchapic/[0-9]+"):
-                        CaptchaPic(request, response);
+                        await CaptchaPic(request, response).ConfigureAwait(false);
                         break;
                     case bool _ when Regex.IsMatch(request.Url.LocalPath, @"/carname/[0-9]+/info"):
                         CarName_Info(request, response);
@@ -1405,7 +1405,7 @@ DROP TABLE chargingstate_bak";
             WriteString(response, "");
         }
 
-        private static void GetStaticMap(HttpListenerRequest request, HttpListenerResponse response)
+        private static async Task GetStaticMap(HttpListenerRequest request, HttpListenerResponse response)
         {
             int startPosID = 0;
             int endPosID = 0;
@@ -1477,7 +1477,7 @@ DROP TABLE chargingstate_bak";
                         // wait
                         for (int i = 0; i < 30; i++)
                         {
-                            System.Threading.Thread.Sleep(1000);
+                            await Task.Delay(1000).ConfigureAwait(false);
                             if (File.Exists(path))
                             {
                                 using (FileStream fs = File.OpenRead(path))
@@ -1561,7 +1561,7 @@ DROP TABLE chargingstate_bak";
             WriteString(response, "");
         }
 
-        private static void CaptchaPic(HttpListenerRequest request, HttpListenerResponse response)
+        private static async Task CaptchaPic(HttpListenerRequest request, HttpListenerResponse response)
         {
             Match m = Regex.Match(request.Url.LocalPath, @"/captchapic/([0-9]+)");
             if (m.Success && m.Groups.Count == 2 && m.Groups[1].Captures.Count == 1)
@@ -1573,7 +1573,7 @@ DROP TABLE chargingstate_bak";
                     response.ContentType = "image/svg+xml";
                     while (car.Captcha is null)
                     {
-                        System.Threading.Thread.Sleep(250);
+                        await Task.Delay(250).ConfigureAwait(false);
                     }
 
                     WriteString(response, car.Captcha, "image/svq+xml");
@@ -1698,7 +1698,7 @@ DROP TABLE chargingstate_bak";
             }
         }
 
-        private static void DecodeCar(HttpListenerRequest request, HttpListenerResponse response)
+        private static async Task DecodeCar(HttpListenerRequest request, HttpListenerResponse response)
         {
             System.Diagnostics.Debug.WriteLine(request.Url.LocalPath);
 
@@ -1760,7 +1760,7 @@ DROP TABLE chargingstate_bak";
                         if (vehicle_config?.Trim()?.StartsWith("{", System.StringComparison.Ordinal) == true)
                             break;
 
-                        System.Threading.Thread.Sleep(2000);
+                        await Task.Delay(2000).ConfigureAwait(false);
                     }
 
                     sb.Append("Vehicle Config:").Append("\r\n").Append(new Tools.JsonFormatter(vehicle_config).Format()).Append("\r\n");
@@ -1772,7 +1772,7 @@ DROP TABLE chargingstate_bak";
                     if (ex is TaskCanceledException)
                     {
                         Logfile.Log("DecodeCar: TaskCanceledException");
-                        System.Threading.Thread.Sleep(1000);
+                        await Task.Delay(1000).ConfigureAwait(false);
                     }
                     else
                     {
