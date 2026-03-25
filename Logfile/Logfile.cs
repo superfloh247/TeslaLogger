@@ -134,13 +134,13 @@ namespace TeslaLogger
                     Task.Delay(20000).GetAwaiter().GetResult();
                     return;
                 }
-                if (inhalt.Contains("{\"response\":null,\"error\":\"not_found\",\"error_description\":\"\"}"))
+                if (inhalt != null && inhalt.Contains("{\"response\":null,\"error\":\"not_found\",\"error_description\":\"\"}"))
                 {
                     Log(prefix + "Mothership response:null");
                     Task.Delay(20000).GetAwaiter().GetResult();
                     return;
                 }
-                if (inhalt.Contains("502 Bad Gateway"))
+                if (inhalt != null && inhalt.Contains("502 Bad Gateway"))
                 {
                     Log(prefix + "Mothership 502 Bad Gateway");
                     Task.Delay(30000).GetAwaiter().GetResult();
