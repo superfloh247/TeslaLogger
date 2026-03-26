@@ -505,5 +505,221 @@ WHERE
             }
             return double.NaN;
         }
+
+        internal void UpdateEmptyUnplugDate()
+        {
+            Tools.DebugLog("UpdateEmptyUnplugDate()");
+            try
+            {
+                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                {
+                    con.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+SELECT
+  id,
+  EndDate
+FROM
+  chargingstate
+WHERE
+  CarID = @CarID
+  AND UnplugDate IS NULL
+  AND EndDate IS NOT NULL
+  AND EndDate < (
+    SELECT
+      MAX(EndDate)
+    FROM
+      drivestate
+    WHERE
+      EndDate IS NOT NULL
+  )", con))
+                    {
+                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
+                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
+                        while (dr.Read() && dr[0] is not DBNull)
+                        {
+                            if (int.TryParse(dr[0].ToString(), out int ChargingStateID)
+                                && DateTime.TryParse(dr[1].ToString(), out DateTime UnplugDate))
+                            {
+                                FillEmptyUnplugDate(ChargingStateID, UnplugDate);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+
+                Tools.DebugLog($"Exception during UpdateEmptyUnplugDate(): {ex}");
+                Logfile.ExceptionWriter(ex, "Exception during UpdateEmptyUnplugDate()");
+            }
+        }
+
+        private void FillEmptyUnplugDate(int ChargingStateID, DateTime UnplugDate)
+        {
+            try
+            {
+                using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                {
+                    con.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+UPDATE 
+  chargingstate 
+SET 
+  UnplugDate = @UnplugDate
+WHERE 
+  CarID = @CarID
+  AND id = @ChargingStateID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
+                        cmd.Parameters.AddWithValue("@ChargingStateID", ChargingStateID);
+                        cmd.Parameters.AddWithValue("@UnplugDate", UnplugDate);
+                        int rowsUpdated = SQLTracer.TraceNQ(cmd, out _);
+                        car.Log($"FillEmptyUnplugDate({ChargingStateID}): {rowsUpdated} rows updated");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+
+                Tools.DebugLog($"Exception during DBHelper.FillEmptyUnplugDate(): {ex}");
+                Logfile.ExceptionWriter(ex, "Exception during DBHelper.FillEmptyUnplugDate()");
+            }
+        }
+
+        internal void CloseChargingStates()
+        {
+            DateTime dtstart = DateTime.UtcNow;
+            // find open charging states (EndDate == NULL) order by oldest first
+            Queue<int> openchargingstates = FindOpenChargingStates();
+
+            // foreach open charging state (identified by id)
+            foreach (int openChargingState in openchargingstates)
+            {
+                // close charging state with enddate, endID from max charging
+                CloseChargingState(openChargingState);
+                UpdateChargePrice(openChargingState);
+
+                // if charging was interrupted, maybe combine it with the previous session
+                if (CombineChangingStatesAt(openChargingState))
+                {
+                    // get pos.odometer from openChargingState
+                    double odometer = GetOdometerFromChargingstate(openChargingState);
+                    if (!double.IsNaN(odometer))
+                    {
+                        Tools.DebugLog($"openChargingState id:{openChargingState} odometer:{odometer}");
+                        // find charging state(s) with identical pos.odometer
+                        Queue<int> chargingStates = FindSimilarChargingStates(openChargingState);
+                        foreach (int chargingState in chargingStates)
+                        {
+                            Tools.DebugLog($"FindSimilarChargingStates: {chargingState}:{odometer}");
+                        }
+                        // get startdate, startID, posID from oldest
+                        if (chargingStates.Count > 0 && GetStartValuesFromChargingState(chargingStates.First(), out DateTime startDate, out int startdID, out int posID, out string _, out object meter_vehicle_kwh_start, out object meter_utility_kwh_start))
+                        {
+                            car.Log($"Combine charging states {string.Join(", ", chargingStates)} into {openChargingState}");
+                            Tools.DebugLog($"GetStartValuesFromChargingState: id:{chargingStates.First()} startDate:{startDate} startID:{startdID} posID:{posID}");
+                            // update current charging state with startdate, startID, pos
+                            UpdateChargingstate(openChargingState, startDate, startdID, meter_vehicle_kwh_start, meter_utility_kwh_start, double.NegativeInfinity);
+                            // update meter_*_kwh_sum in chargingstate
+                            UpdateMeter_kWh_sum(openChargingState);
+                            // delete all older charging states
+                            foreach (int chargingState in chargingStates)
+                            {
+                                Tools.DebugLog($"delete combined chargingState id:{chargingState}");
+                                DeleteChargingstate(chargingState);
+                            }
+                        }
+                    }
+                }
+                // calculate chargingstate.charge_energy_added from endchargingid - startchargingid
+                // this will also recalculate charge price
+                _ = RecalculateChargeEnergyAdded(openChargingState);
+
+                // get tesla invoice for supercharger
+                if (ChargingStateLocationIsSuC(openChargingState))
+                {
+                    _ = Task.Factory.StartNew(() =>
+                    {
+                        Task.Delay(600000 + random.Next(1000, 5000)); // sleep 10+rand minutes so that the invoice is ready
+                        if (GetChargingHistoryV2Service.LoadLatest(car))
+                        {
+                            if (GetChargingHistoryV2Service.SyncAll(car) == 0)
+                            {
+                                // invoice not ready yet
+                                Task.Delay(3600000 + random.Next(1000, 5000)); // sleep 60+rand minutes so that the invoice is ready
+                                if (GetChargingHistoryV2Service.LoadLatest(car))
+                                {
+                                    _ = GetChargingHistoryV2Service.SyncAll(car);
+                                }
+                            }
+                        }
+                    }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                }
+            }
+
+            car.CurrentJSON.current_charging = false;
+            car.CurrentJSON.current_charger_power = 0;
+            car.CurrentJSON.current_charger_voltage = 0;
+            car.CurrentJSON.current_charger_phases = 0;
+            car.CurrentJSON.current_charger_actual_current = 0;
+            car.CurrentJSON.current_charge_current_request = 0;
+            car.CurrentJSON.current_charge_rate_km = 0;
+            car.CurrentJSON.current_charger_actual_current_calc = 0;
+            car.CurrentJSON.current_charger_phases_calc = 0;
+            car.CurrentJSON.current_charger_power_calc_w = 0;
+
+            UpdateMaxChargerPower();
+
+            // As charging point name is depending on the max charger power, it will be updated after "MaxChargerPower" was computed
+            car.webhelper.UpdateLastChargingAdress();
+
+            DateTime dtend = DateTime.UtcNow;
+            TimeSpan ts = dtend - dtstart;
+            Tools.DebugLog($"CloseChargingStates took {ts.TotalMilliseconds}ms");
+            if (ts.TotalMilliseconds > 1000)
+            {
+                car.Log($"CloseChargingStates took {ts.TotalMilliseconds}ms");
+            }
+        }
+
+        internal void UpdateUnplugDate()
+        {
+            int ChargingStateID = GetMaxChargingstateId(out _, out _, out DateTime unplugDate, out DateTime EndDate);
+            if (unplugDate == DateTime.MinValue && EndDate != DateTime.MinValue)
+            {
+                // UnplugDate is unset, so update it!
+                try
+                {
+                    using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                    {
+                        con.Open();
+                        using (MySqlCommand cmd = new MySqlCommand(@"
+UPDATE
+    chargingstate
+SET
+    unplugdate = @EndDate
+WHERE
+    CarID = @CarID
+    AND id = @ChargingStateID", con))
+                        {
+                            cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
+                            cmd.Parameters.AddWithValue("@EndDate", EndDate);
+                            cmd.Parameters.AddWithValue("@ChargingStateID", ChargingStateID);
+                            int rowsUpdated = SQLTracer.TraceNQ(cmd, out _);
+                            car.Log($"UpdateUnplugDate({ChargingStateID}): {rowsUpdated} rows updated to EndDate {EndDate}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    car.CreateExceptionlessClient(ex).Submit();
+
+                    Tools.DebugLog($"Exception during DBHelper.UpdateUnplugDate(): {ex}");
+                    Logfile.ExceptionWriter(ex, "Exception during DBHelper.UpdateUnplugDate()");
+                }
+            }
+        }
     }
 }
