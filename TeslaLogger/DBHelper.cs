@@ -1064,89 +1064,6 @@ ORDER BY
             return openChargingStates;
         }
 
-        public void UpdateMaxChargerPower()
-        {
-            try
-            {
-                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    id,
-    StartChargingID,
-    EndChargingID
-FROM
-    chargingstate
-WHERE
-    CarID = @CarID
-ORDER BY
-    id DESC
-LIMIT 1", con))
-                    {
-                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        if (dr.Read())
-                        {
-                            int id = Convert.ToInt32(dr["id"], Tools.ciEnUS);
-                            int StartChargingID = Convert.ToInt32(dr["StartChargingID"], Tools.ciEnUS);
-                            int EndChargingID = Convert.ToInt32(dr["EndChargingID"], Tools.ciEnUS);
-
-                            UpdateMaxChargerPower(id, StartChargingID, EndChargingID);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                car.CreateExceptionlessClient(ex).Submit();
-
-                car.Log(ex.Message);
-            }
-        }
-
-        public void UpdateMaxChargerPower(int chargingstateid)
-        {
-            try
-            {
-                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    id,
-    StartChargingID,
-    EndChargingID
-FROM
-    chargingstate
-WHERE
-    CarID=@CarID
-    AND id=@id
-ORDER BY
-    id DESC", con))
-                    {
-                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        cmd.Parameters.AddWithValue("@id", chargingstateid);
-                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        if (dr.Read())
-                        {
-                            int id = Convert.ToInt32(dr["id"], Tools.ciEnUS);
-                            int StartChargingID = Convert.ToInt32(dr["StartChargingID"], Tools.ciEnUS);
-                            int EndChargingID = Convert.ToInt32(dr["EndChargingID"], Tools.ciEnUS);
-
-                            UpdateMaxChargerPower(id, StartChargingID, EndChargingID);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                car.CreateExceptionlessClient(ex).Submit();
-
-                car.Log(ex.Message);
-            }
-        }
-
         [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities")]
         internal static bool IndexExists(string index, string table)
         {
@@ -1171,43 +1088,6 @@ WHERE
             }
 
             return false;
-        }
-
-        private void UpdateMaxChargerPower(int id, int startChargingID, int endChargingID)
-        {
-            using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-            {
-                con.Open();
-                using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    MAX(charger_power)
-FROM
-    charging
-WHERE
-    id >= @startChargingID
-    AND id <= @endChargingID
-    AND CarID = @CarID", con))
-                {
-                    cmd.Parameters.AddWithValue("@startChargingID", startChargingID);
-                    cmd.Parameters.AddWithValue("@endChargingID", endChargingID);
-                    cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                    MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                    if (dr.Read())
-                    {
-                        if (dr[0] != DBNull.Value)
-                        {
-                            int max_charger_power = Convert.ToInt32(dr[0], Tools.ciEnUS);
-                            ExecuteSQLQuery($@"
-UPDATE
-    chargingstate
-SET
-    max_charger_power = {max_charger_power}
-WHERE
-    id = {id}");
-                        }
-                    }
-                }
-            }
         }
 
         internal void GetEconomy_Wh_km(WebHelper wh)
