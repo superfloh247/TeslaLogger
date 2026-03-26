@@ -766,16 +766,6 @@ namespace TeslaLogger
                                 await HandleState_GoSleep();
                                 break;
 
-                            case TeslaState.Park:
-                                // this state is currently unused
-                                await Task.Delay(5000, cts.Token);
-                                break;
-
-                            case TeslaState.WaitForSleep:
-                                // this state is currently unused
-                                await Task.Delay(5000, cts.Token);
-                                break;
-
                             default:
                                 Log($"Main loop default reached with state: {GetCurrentState()}");
                                 await Task.Delay(30000, cts.Token);

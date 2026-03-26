@@ -7,10 +7,8 @@ namespace TeslaLogger
         {
             Start,
             Drive,
-            Park,
             Charge,
             Sleep,
-            WaitForSleep,
             Online,
             GoSleep,
             Inactive
