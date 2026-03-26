@@ -353,5 +353,157 @@ WHERE
                 Logfile.Log(ex.ToString());
             }
         }
+
+        private bool RecalculateChargeEnergyAdded(int ChargingStateID)
+        {
+            List<Tuple<int, int>> segments = new();
+            bool updatedChargePrice = false;
+            try
+            {
+                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                {
+                    con.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+                    SELECT
+    id,
+    charge_energy_added
+FROM
+    charging
+WHERE
+    CarID = @CarID
+    AND id >=(
+        SELECT
+            StartChargingID
+        FROM
+            chargingstate
+        WHERE
+        CarID = @CarID
+        AND id = @ChargingID
+)
+AND id <=(
+    SELECT
+        EndChargingID
+    FROM
+        chargingstate
+    WHERE
+        CarID = @CarID
+        AND id = @ChargingID
+)", con))
+                    {
+                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
+                        cmd.Parameters.AddWithValue("@ChargingID", ChargingStateID);
+                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
+                        int index = 0;
+                        double lastCEA = 0;
+                        int maxid = 0;
+                        // first row
+                        if (dr.Read())
+                        {
+                            index = dr.GetInt32OrDefault(0, 0);
+                            maxid = index;
+                            lastCEA = dr.GetDoubleOrDefault(1, 0.0);
+                        }
+                        // all rows
+                        while (dr.Read())
+                        {
+                            int currentID = dr.GetInt32OrDefault(0, 0);
+                            double currentCEA = dr.GetDoubleOrDefault(1, 0.0);
+                            
+                            if (
+                                // charge_energy_added is lower than in the row before
+                                currentCEA < lastCEA
+                                /*
+                                 * create segments for every drop
+                                 * &&
+                                // and the current row is zero or near zero
+                                currentCEA < 0.5*/
+                                )
+                            {
+                                segments.Add(new Tuple<int, int>(index, currentID - 1));
+                                index = currentID;
+                            }
+                            maxid = currentID;
+                            lastCEA = currentCEA;
+                        }
+                        segments.Add(new Tuple<int, int>(index, maxid));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+                Logfile.Log(ex.ToString());
+            }
+            if (segments.Count > 0)
+            {
+                Tools.DebugLog($"RecalculateChargeEnergyAdded ChargingStateID:{ChargingStateID} segments:{string.Join(",", segments.Select(t => string.Format(Tools.ciEnUS, "[{0},{1}]", t.Item1, t.Item2)))}");
+                double sum = 0.0;
+                bool firstSegment = true;
+                foreach (Tuple<int, int> segment in segments)
+                {
+                    double segmentCEA = GetChargeEnergyAddedFromCharging(segment.Item2);
+                    Tools.DebugLog($"RecalculateChargeEnergyAdded segment:{segment.Item2} c_e_a:{segmentCEA}");
+                    if (firstSegment)
+                    {
+                        double firstSegmentCEA = GetChargeEnergyAddedFromCharging(segment.Item1);
+                        Tools.DebugLog($"RecalculateChargeEnergyAdded 1stsegment:{segment.Item1} c_e_a:{firstSegmentCEA}");
+                        firstSegment = false;
+                        // firstSegmentCEA > 0.67 means we did not just miss the first seconds of the charge session
+                        // the car was probably not unplugged and continued charging
+                        // previous charge session was not combined, so it's allowed to start with c_e_a >> 0.67
+                        if (segmentCEA - firstSegmentCEA > 0 && firstSegmentCEA > 0.67)
+                        {
+                            sum += segmentCEA - firstSegmentCEA;
+                        }
+                        else
+                        {
+                            sum += segmentCEA;
+                        }
+                    }
+                    else
+                    {
+                        double startCEA = GetChargeEnergyAddedFromCharging(segment.Item1);
+                        sum += segmentCEA - startCEA > 0 ? segmentCEA - startCEA : 0;
+                    }
+                }
+                Tools.DebugLog($"RecalculateChargeEnergyAdded ChargingStateID:{ChargingStateID} sum:{sum}");
+                UpdateChargeEnergyAdded(ChargingStateID, sum);
+                UpdateChargePrice(ChargingStateID, true);
+                updatedChargePrice = true;
+            }
+            return updatedChargePrice;
+        }
+
+        internal static double GetChargeEnergyAddedFromCharging(int ChargingID)
+        {
+            try
+            {
+                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                {
+                    con.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+SELECT
+    charge_energy_added
+FROM
+    charging
+WHERE
+    id = @ChargingID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@ChargingID", ChargingID);
+                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
+                        if (dr.Read())
+                        {
+                            return (double)dr[0];
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.Log(ex.ToString());
+            }
+            return double.NaN;
+        }
     }
 }
