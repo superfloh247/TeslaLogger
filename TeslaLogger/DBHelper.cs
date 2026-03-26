@@ -980,67 +980,7 @@ WHERE
 
 
 
-        internal static bool GetStartValuesFromChargingState(int ChargingStateID, out DateTime startDate, out int startChargingID, out int posID, out string posName, out object meter_vehicle_kwh_start, out object meter_utility_kwh_start)
-        {
-            try
-            {
-                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    chargingstate.StartDate,
-    chargingstate.StartChargingID,
-    chargingstate.pos,
-    pos.address,
-    chargingstate.meter_vehicle_kwh_start,
-    chargingstate.meter_utility_kwh_start
-FROM
-    chargingstate
-JOIN
-    pos ON chargingstate.pos = pos.id
-WHERE
-    chargingstate.id = @ChargingStateID", con))
-                    {
-                        cmd.Parameters.AddWithValue("@ChargingStateID", ChargingStateID);
-                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        if (dr.Read()
-                            && dr[0] != DBNull.Value
-                            && dr[1] != DBNull.Value
-                            && dr[2] != DBNull.Value
-                            && dr[3] != DBNull.Value
-                            )
-                        {
-                            if (DateTime.TryParse(dr[0].ToString(), out startDate)
-                                && int.TryParse(dr[1].ToString(), out startChargingID)
-                                && int.TryParse(dr[2].ToString(), out posID)
-                                )
-                            {
-                                posName = dr[3].ToString();
-                                meter_vehicle_kwh_start = dr[4];
-                                meter_utility_kwh_start = dr[5];
-                                Tools.DebugLog($"GetStartValuesFromChargingState -> ChargingStateID:{ChargingStateID} startDate:{startDate} startdID:{startChargingID} posID:{posID} posName:{posName} meter_vehicle_kwh_start:{meter_vehicle_kwh_start} meter_utility_kwh_start:{meter_utility_kwh_start}");
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ex.ToExceptionless().FirstCarUserID().Submit();
 
-                Tools.DebugLog($"Exception during GetStartValuesFromChargingState(): {ex}");
-                Logfile.ExceptionWriter(ex, "Exception during GetStartValuesFromChargingState()");
-            }
-            startDate = DateTime.MinValue;
-            startChargingID = int.MinValue;
-            posID = int.MinValue;
-            posName = string.Empty;
-            meter_vehicle_kwh_start = DBNull.Value;
-            meter_utility_kwh_start = DBNull.Value;
-            return false;
-        }
 
         private double GetOdometerFromChargingstate(int openChargingState)
         {
@@ -2887,50 +2827,6 @@ VALUES (
                     last_active_route_energy_at_arrival = active_route_energy_at_arrival;
                 }
             }
-        }
-
-        private Address GetAddressFromChargingState(int ChargingStateID)
-        {
-            try
-            {
-                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    pos.lat,
-    pos.lng
-FROM
-    chargingstate,
-    pos
-WHERE
-    chargingstate.CarID = @CarID
-    AND chargingstate.Pos = pos.id
-    AND chargingstate.id = @ChargingStateID", con))
-                    {
-                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
-                        cmd.Parameters.AddWithValue("@ChargingStateID", ChargingStateID);
-                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        if (dr.Read() && dr[0] != DBNull.Value && dr[1] != DBNull.Value)
-                        {
-                            if (double.TryParse(dr[0].ToString(), out double lat)
-                                && double.TryParse(dr[1].ToString(), out double lng))
-                            {
-                                Address addr = Geofence.GetInstance().GetPOI(lat, lng, false);
-                                // works well enough, no debug output needed at the moment Tools.DebugLog("GetAddressFromChargingState: " + addr);
-                                return addr;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                car.CreateExceptionlessClient(ex).Submit();
-                Tools.DebugLog($"Exception during GetAddressFromChargingState(): {ex}");
-                Logfile.ExceptionWriter(ex, "Exception during GetAddressFromChargingState()");
-            }
-            return null;
         }
 
         private DateTime lastChargingInsert = DateTime.Today;
