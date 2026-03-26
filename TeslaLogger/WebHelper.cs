@@ -3841,32 +3841,6 @@ namespace TeslaLogger
             return "";
         }
 
-        public void UpdateAllPosAddresses()
-        {
-            using (SqlConnection con = new SqlConnection(DBHelper.DBConnectionstring))
-            {
-                con.Open();
-#pragma warning disable CS0618 // Type or member is obsolete
-                using (SqlCommand cmd = new SqlCommand("Select lat, lng, id from pos where address = ''", con))
-                {
-                    SqlDataReader dr = cmd.ExecuteReader();
-#pragma warning restore CS0618
-                    while (dr.Read())
-                    {
-                        System.Threading.Thread.Sleep(10000); // Sleep to not get banned by Nominatim !
-
-                        double lat = (double)dr[0];
-                        double lng = (double)dr[1];
-                        int id = (int)dr[2];
-                        Task<string> adress = ReverseGecocodingAsync(car, lat, lng);
-                        //var altitude = AltitudeAsync(lat, lng);
-                        //UpdateAddressByPosId(id, adress.Result, altitude.Result);
-                        UpdateAddressByPosId(id, adress.Result, 0);
-                    }
-                }
-            }
-        }
-
         private static void UpdateAddressByPosId(int id, string address, double altitude)
         {
             try
