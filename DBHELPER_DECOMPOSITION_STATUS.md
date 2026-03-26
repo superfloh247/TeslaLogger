@@ -91,33 +91,43 @@ Methods extracted:
 - `AddCommandToDBAsync()`
 - `GetMothershipCommandsFromDBAsync()`
 
-### Phase 3.2: TripAnalytics (🟡 IN PROGRESS - Method extraction list prepared)
+### Phase 3.2: TripAnalytics (🟡 IN PROGRESS - Batch 1/7 Extraction Complete)
 
 **Target File:** `DBHelper.TripAnalytics.cs`  
-**Estimated Size:** ~2,200 lines  
-**Methods to Extract (31 methods):**
+**Estimated Total Size:** ~2,200 lines  
+**Completed Batches:** ✅ Batch 1 (3 methods, ~329 lines extracted)  
+**Remaining:** 28 methods, ~1,870 lines
 
-#### Charging State Analysis & Validation (3 methods, ~250 lines)
-- `AnalyzeChargingStates()` - lines 385-525 (141 lines)
+#### ✅ BATCH 1: COMPLETED - Charging State Analysis (3 methods, 329 lines)
+**Status:** ✅ Extracted and verified (0 errors, 0 warnings)
+**Methods Extracted:**
+- `AnalyzeChargingStates()` - 141 lines ✅
+- `DeleteDuplicateTrips()` - 54 lines ✅ (async Task for batched duplicate removal)
+- `CheckDuplicateDriveStates()` - 134 lines ✅
+
+**File Status:** DBHelper.TripAnalytics.cs created with 329 lines (includes pragmas & namespace)
+
+#### BATCH 2: PENDING - Energy Calculation (2 methods, ~150 lines)
+**Target Methods:**
 - `RecalculateChargeEnergyAdded(int)` - lines 714-833 (119 lines)
 - `GetChargeEnergyAddedFromCharging(int)` - lines 834-865 (31 lines)
 
-#### Duplicate Detection & Removal (2 methods, ~150 lines)
-- `DeleteDuplicateTrips()` - lines 526-580 (54 lines)
-- `CheckDuplicateDriveStates()` - lines 582-713 (131 lines)
-
-#### Charging Session Closing & Updates (3 methods, ~180 lines)
+#### BATCH 3: PENDING - Charging Session Closing (4 methods, ~180 lines)
+**Target Methods:**
 - `CloseChargingStates()` - lines 1638-1733 (95 lines)
 - `UpdateUnplugDate()` - lines 2165-2202 (37 lines)
 - `UpdateEmptyUnplugDate()` - lines 1007-1055 (48 lines)
+- `FillEmptyUnplugDate()` - (estimated 30 lines)
 
-#### Charging State Combining (4 methods, ~180 lines)
+#### BATCH 4: PENDING - Charging Combining Logic (4 methods, ~180 lines)
+**Target Methods:**
 - `CombineChangingStates()` - lines 1121-1203 (82 lines)
 - `CombineChangingStatesAt(int)` - lines 1089-1120 (31 lines)
 - `FixChargeEnergyAdded(int)` - lines 1204-1269 (65 lines)
 - `UpdateMeter_kWh_sum(int)` - lines 1270-1302 (32 lines)
 
-#### Charging Cost Calculation (6 methods, ~600 lines)
+#### BATCH 5: PENDING - Cost Calculation (6 methods, **~600 lines - LARGEST**)
+**Target Methods:**
 - `UpdateChargePrice(int, bool)` - lines 1818-1865 (47 lines)
 - `UpdateChargePrice(int, string, double, bool, ...)` - lines 1866-2164 (298 lines)
 - `GetChargeCostDataFromReference(int, ...)` - lines 1734-1775 (41 lines)
@@ -125,7 +135,8 @@ Methods extracted:
 - `FindReferenceChargingState(int, ...)` - lines 2343-2422 (79 lines)
 - `ChargingStateLocationIsSuC(int)` - lines 1776-1817 (41 lines)
 
-#### Charging Session Metadata (8 methods, ~280 lines)
+#### BATCH 6: PENDING - Metadata & Lookups (8 methods, ~280 lines)
+**Target Methods:**
 - `UpdateChargeEnergyAdded(int, double)` - lines 2203-2240 (37 lines)
 - `UpdateChargeEnergyAdded(int)` - lines 2241-2342 (101 lines)
 - `GetStartValuesFromChargingState(int, ...)` - lines 2514-2575 (61 lines)
@@ -135,19 +146,13 @@ Methods extracted:
 - `FindCombineCandidates()` - lines 1386-1430 (44 lines)
 - `GetStartEndFromCharginState(int)` - lines 1303-1346 (43 lines)
 
-#### Charger Power & Analytics (4 methods, ~180 lines)
+#### BATCH 7: PENDING - Power & Analytics Finalization (5 methods, ~170 lines)
+**Target Methods:**
 - `UpdateMaxChargerPower()` - lines 2737-2777 (40 lines)
 - `UpdateMaxChargerPower(int)` - lines 2778-2820 (42 lines)
 - `UpdateMaxChargerPower(int, int, int)` - lines 2846-2882 (36 lines)
 - `GetEconomy_Wh_km(WebHelper)` - lines 2883-2935 (52 lines)
-
-#### Address & Location Lookup (1 method, ~40 lines)
 - `GetAddressFromChargingState(int)` - lines 4502-4545 (43 lines)
-
-**Extraction Strategy:**
-1. Remove method implementations from DBHelper.cs (lines 385-525, 526-580, etc.)
-2. Create DBHelper.TripAnalytics.cs with all extracted methods
-3. Verify build compiles with 0 errors, 0 warnings
 4. Update status to show Phase 3.2 completion
 
 **Benefits:**
@@ -253,13 +258,20 @@ Organization:          Improved with domain-driven partitioning ✅
 - `AddMothershipDataToDBAsync()` (both overloads)
 - Helper methods: `AddCommandToDBAsync()`, `GetMothershipCommandsFromDBAsync()`
 
-**Build Status:** ✅ ALL PROJECT COMPILE SUCCESSFULLY, 0 ERRORS, 0 WARNINGS
+✅ **DBHelper.TripAnalytics.cs Batch 1** (329 lines - Phase 3.2 Batch 1/7)
+- `AnalyzeChargingStates()` - Lines 385-525 (141 lines) ✅
+- `DeleteDuplicateTrips()` - Lines 526-580 (54 lines) ✅
+- `CheckDuplicateDriveStates()` - Lines 582-713 (134 lines) ✅
 
-### Statistics After Phase 3.1:
-- Main DBHelper.cs: **7,120 lines** (down from 7,334)
-- StateManagement partial: **298 lines** (new)
-- Total partials: **8 files**
-- **Progress: 31.1% complete** (estimated based on extraction of ~214 lines of state logic)
+**Build Status:** ✅ ALL PROJECTS COMPILE SUCCESSFULLY, 0 ERRORS, 0 WARNINGS
+
+### Statistics After Phase 3.1 + Batch 1:
+- Main DBHelper.cs: **7,005 lines** (down from 7,334 in Phase 3.1)
+- StateManagement partial: **298 lines** (existing)
+- TripAnalytics partial: **329 lines** (new - Batch 1 only)
+- Total partials: **9 files**
+- **Progress: 31.1% → 32.1% complete** (estimated based on extraction of ~543 lines total)
+- **Remaining in Phase 3.2:** 28 methods, ~1,870 lines (6 more batches planned)
 
 ---
 
