@@ -2606,41 +2606,6 @@ VALUES(
             }
         }
 
-        public static int CalculateCurrent(int actualCurrent, int requestedCurrent)
-        {
-            if (actualCurrent < 1 || requestedCurrent < 1)
-                return 0;
-
-            if (actualCurrent > requestedCurrent && requestedCurrent < 6)
-                return requestedCurrent;
-
-            return actualCurrent;
-        }
-
-        public static int CalculatePhases(int power, int voltage, int current)
-        {
-            if (power <= 0 || voltage <= 0 || current <= 0 )
-                return 0;
-
-            int phases = Convert.ToInt32(Math.Truncate(Math.Truncate((power * 1000.0 + 500) / voltage / current))+0.3);
-            
-            if (phases > 3)
-                return 3;
-
-            if (phases < 1)
-                return 1;
-            
-            return phases;
-        }
-        
-        public static int CalculatePower(int voltage, int phases, int current)
-        {
-            if (voltage < 0 || phases < 1 || current < 1)
-                return 0;
-                       
-            return phases * voltage * current;
-        }
-
         public static DateTime UnixToDateTime(long t)
         {
             DateTime dt = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
