@@ -767,7 +767,15 @@ namespace TeslaLogger
             return "";
         }
 
-        private string UpdateTeslaTokenFromRefreshTokenFromFleetAPI(string refresh_token)
+        /// <summary>
+        /// Asynchronously updates Tesla access token using refresh token via FleetAPI.
+        /// Replaces blocking Thread.Sleep with non-blocking Task.Delay for ARM32 compatibility.
+        /// </summary>
+        /// <param name="refresh_token">Valid Tesla refresh token</param>
+        /// <param name="cancellationToken">Cancellation token for graceful shutdown</param>
+        /// <returns>Access token string, or empty string on error</returns>
+        private async Task<string> UpdateTeslaTokenFromRefreshTokenFromFleetAPIAsync(
+            string refresh_token, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -794,11 +802,12 @@ namespace TeslaLogger
                 new KeyValuePair<string, string>("vin", car.Vin),
             }))
                 {
-
-                    var response = httpclient_teslalogger_de.PostAsync(new Uri("https://teslalogger.de/teslaredirect/refresh_token.php"), formContent)
-                        .ConfigureAwait(false).GetAwaiter().GetResult();
-                    string result = response.Content.ReadAsStringAsync()
-                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    var response = await httpclient_teslalogger_de.PostAsync(
+                        new Uri("https://teslalogger.de/teslaredirect/refresh_token.php"), 
+                        formContent).ConfigureAwait(false);
+                    
+                    string result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    
                     if (response.IsSuccessStatusCode)
                     {
                         if (result.Contains("User revoked consent"))
@@ -821,7 +830,9 @@ namespace TeslaLogger
                                 .AddObject(result, "Result Content")
                                 .Submit();
                             car.Log(result);
-                            System.Threading.Thread.Sleep(30000);
+                            
+                            // ARM32 optimization: Use async delay instead of blocking Thread.Sleep
+                            await Task.Delay(30000, cancellationToken).ConfigureAwait(false);
                             return "";
                         }
 
@@ -845,17 +856,6 @@ namespace TeslaLogger
                             }
 
                             Log("access token expires: " + nextTeslaTokenFromRefreshToken.ToLocalTime());
-
-                            /*
-                            CacheItemPolicy policy = new CacheItemPolicy();
-                            policy.AbsoluteExpiration = DateTime.Now.AddSeconds((int)(jsonResult["expires_in"])).AddMinutes(-5);
-                            policy.RemovedCallback = new CacheEntryRemovedCallback((CacheEntryRemovedArguments _) =>
-                            {
-                                Tools.DebugLog($"#{car.CarInDB}: access token will expire in 5 minutes");
-                                UpdateTeslaTokenFromRefreshToken();
-                            });
-                            _ = MemoryCache.Default.Add("RefreshToken_" + car.CarInDB+ $"_{Environment.TickCount}", policy, policy);
-                            */
                         }
                         
                         string access_token = jsonResult.GetSafeString("access_token", "");
@@ -878,7 +878,9 @@ namespace TeslaLogger
                             .Submit();
 
                         Log("Error getting Access Token from Refreh Token: " + (int)response.StatusCode + " / " + response.StatusCode.ToString());
-                        System.Threading.Thread.Sleep(30000);
+                        
+                        // ARM32 optimization: Use async delay instead of blocking Thread.Sleep
+                        await Task.Delay(30000, cancellationToken).ConfigureAwait(false);
                         return "";
                     }
                 }
@@ -891,25 +893,42 @@ namespace TeslaLogger
             {
                 car.Log($"HTTP Error in UpdateTeslaTokenFromRefreshTokenFromFleetAPI: {httpEx.Message}");
                 car.CreateExceptionlessClient(httpEx).MarkAsCritical().Submit();
-                ExceptionlessClient.Default.ProcessQueueAsync();
-                System.Threading.Thread.Sleep(30000);
+                _ = ExceptionlessClient.Default.ProcessQueueAsync();
+                
+                // ARM32 optimization: Use async delay instead of blocking Thread.Sleep
+                await Task.Delay(30000, cancellationToken).ConfigureAwait(false);
             }
             catch (Newtonsoft.Json.JsonException jsonEx)
             {
                 car.Log($"JSON Parse Error in UpdateTeslaTokenFromRefreshTokenFromFleetAPI: {jsonEx.Message}");
                 car.CreateExceptionlessClient(jsonEx).MarkAsCritical().Submit();
-                ExceptionlessClient.Default.ProcessQueueAsync();
-                System.Threading.Thread.Sleep(30000);
+                _ = ExceptionlessClient.Default.ProcessQueueAsync();
+                
+                // ARM32 optimization: Use async delay instead of blocking Thread.Sleep
+                await Task.Delay(30000, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 car.Log(ex.ToString());
                 car.CreateExceptionlessClient(ex).MarkAsCritical().Submit();
-                ExceptionlessClient.Default.ProcessQueueAsync();
-                System.Threading.Thread.Sleep(30000);
+                _ = ExceptionlessClient.Default.ProcessQueueAsync();
+                
+                // ARM32 optimization: Use async delay instead of blocking Thread.Sleep
+                await Task.Delay(30000, cancellationToken).ConfigureAwait(false);
             }
 
             return "";
+        }
+
+        /// <summary>
+        /// Backward-compatible synchronous wrapper for UpdateTeslaTokenFromRefreshTokenFromFleetAPIAsync.
+        /// Deprecated: Use async variant for ARM32 compatibility. This wrapper uses blocking GetAwaiter().GetResult().
+        /// </summary>
+        [Obsolete("Use UpdateTeslaTokenFromRefreshTokenFromFleetAPIAsync instead for ARM32 compatibility")]
+        private string UpdateTeslaTokenFromRefreshTokenFromFleetAPI(string refresh_token)
+        {
+            return UpdateTeslaTokenFromRefreshTokenFromFleetAPIAsync(refresh_token, CancellationToken.None)
+                .ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         private string UpdateTeslaTokenFromRefreshTokenFromFleetAPIWithClientID(string refresh_token)
@@ -3866,9 +3885,19 @@ namespace TeslaLogger
             }
         }
 
-        public void UpdateAllEmptyAddresses()
+        /// <summary>
+        /// Asynchronously updates all addresses with empty values using Nominatim geocoding.
+        /// Uses Task.Delay (non-blocking) instead of Thread.Sleep to avoid rate limiting bans.
+        /// ARM32 optimized: No thread pool blocking.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token for graceful shutdown</param>
+        /// <remarks>
+        /// Nominatim requires 10 second delays between requests to avoid bans.
+        /// This async implementation respects that requirement without blocking threads.
+        /// </remarks>
+        public async Task UpdateAllEmptyAddressesAsync(CancellationToken cancellationToken = default)
         {
-            Tools.DebugLog("UpdateAllEmptyAddresses()");
+            Tools.DebugLog("UpdateAllEmptyAddressesAsync()");
             using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
             {
                 con.Open();
@@ -3888,11 +3917,13 @@ namespace TeslaLogger
                 WHERE
                     ((pos_end.odometer - pos_start.odometer) > 0.1) and (pos_start.address IS null or pos_end.address IS null or pos_start.address = '' or pos_end.address = '')", con))
                 {
-
                     MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                     while (dr.Read())
                     {
-                        System.Threading.Thread.Sleep(10000); // Sleep to not get banned by Nominatim !
+                        // ARM32 optimization: Use non-blocking async delay instead of Thread.Sleep
+                        // Nominatim rate limiting: 10 second delay between requests
+                        await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
+                        
                         try
                         {
 #pragma warning disable CS8602 // Dereference of possibly null reference
@@ -3901,13 +3932,13 @@ namespace TeslaLogger
                                 int id = (int)dr["PosStartId"];
                                 double lat = (double)dr["PosStartLat"];
                                 double lng = (double)dr["PosStartLng"];
-                                Task<string> address = ReverseGecocodingAsync(car, lat, lng);
-                                //var altitude = AltitudeAsync(lat, lng);
-
-                                string addressResult = address.Result;
+                                
+                                // Use await instead of .Result to maintain async flow
+                                string addressResult = await ReverseGecocodingAsync(car, lat, lng)
+                                    .ConfigureAwait(false);
+                                
                                 if (!string.IsNullOrEmpty(addressResult))
                                 {
-                                    //UpdateAddressByPosId(id, addressResult, altitude.Result);
                                     UpdateAddressByPosId(id, addressResult, 0);
                                 }
                             }
@@ -3918,13 +3949,13 @@ namespace TeslaLogger
                                 int id = (int)dr["PosEndId"];
                                 double lat = (double)dr["PosEndtLat"];
                                 double lng = (double)dr["PosEndLng"];
-                                Task<string> address = ReverseGecocodingAsync(car, lat, lng);
-                                //var altitude = AltitudeAsync(lat, lng);
-
-                                string addressResult = address.Result;
+                                
+                                // Use await instead of .Result to maintain async flow
+                                string addressResult = await ReverseGecocodingAsync(car, lat, lng)
+                                    .ConfigureAwait(false);
+                                
                                 if (!string.IsNullOrEmpty(addressResult))
                                 {
-                                    //UpdateAddressByPosId(id, addressResult, altitude.Result);
                                     UpdateAddressByPosId(id, addressResult, 0);
                                 }
                             }
@@ -3943,23 +3974,25 @@ namespace TeslaLogger
                 con.Open();
                 using (MySqlCommand cmd = new MySqlCommand(@"SELECT pos.id, lat, lng FROM chargingstate join pos on chargingstate.Pos = pos.id where address IS null OR address = '' or pos.id = ''", con))
                 {
-
                     MySqlDataReader dr = SQLTracer.TraceDR(cmd);
                     while (dr.Read())
                     {
-                        System.Threading.Thread.Sleep(10000); // Sleep to not get banned by Nominatim !
+                        // ARM32 optimization: Use non-blocking async delay instead of Thread.Sleep
+                        // Nominatim rate limiting: 10 second delay between requests
+                        await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
+                        
                         try
                         {
                             int id = (int)dr[0];
                             double lat = (double)dr[1];
                             double lng = (double)dr[2];
-                            Task<string> address = ReverseGecocodingAsync(car, lat, lng);
-                            //var altitude = AltitudeAsync(lat, lng);
-
-                            string addressResult = address.Result;
+                            
+                            // Use await instead of .Result to maintain async flow
+                            string addressResult = await ReverseGecocodingAsync(car, lat, lng)
+                                .ConfigureAwait(false);
+                            
                             if (!string.IsNullOrEmpty(addressResult))
                             {
-                                //UpdateAddressByPosId(id, addressResult, altitude.Result);
                                 UpdateAddressByPosId(id, addressResult, 0);
                             }
                         }
@@ -3971,6 +4004,17 @@ namespace TeslaLogger
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Backward-compatible synchronous wrapper for UpdateAllEmptyAddressesAsync.
+        /// Deprecated: Use async variant for ARM32 compatibility.
+        /// </summary>
+        [Obsolete("Use UpdateAllEmptyAddressesAsync instead for ARM32 compatibility")]
+        public void UpdateAllEmptyAddresses()
+        {
+            UpdateAllEmptyAddressesAsync(CancellationToken.None)
+                .ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public static void UpdateAllPOIAddresses()
