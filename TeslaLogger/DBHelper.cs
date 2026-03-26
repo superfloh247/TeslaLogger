@@ -195,40 +195,6 @@ WHERE
             return "";
         }
 
-        public static string? GetRefreshTokenFromAccessToken(string? access_token)
-        {
-            try
-            {
-                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(@"
-SELECT
-    refresh_token
-FROM
-    cars
-WHERE
-    tesla_token = @tesla_token", con))
-                    {
-                        cmd.Parameters.AddWithValue("@tesla_token", access_token);
-                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        if (dr.Read())
-                        {
-                            string refresh_token = dr.GetStringOrNull(0) ?? "";
-                            return refresh_token;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ex.ToExceptionless();
-                Logfile.Log(ex.ToString());
-            }
-
-            return "";
-        }
-
         internal bool SetCarName(string? car_name)
         {
             car.CarName = car_name;
@@ -4979,43 +4945,6 @@ ORDER BY startdate", con))
                 ex.ToExceptionless().Submit();
             }
             return 0;
-        }
-
-        public static bool NET8TaskerToken()
-        {
-            try
-            {
-                return true;
-
-                /*
-                using (MySqlConnection con = new MySqlConnection($"{DBConnectionstring};Allow User Variables=True"))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand($@"SELECT tasker_hash FROM teslalogger.cars where left(tasker_hash,1) in (1,2,3,4,5)", con)) // 
-                    {
-                        using (MySqlDataReader dr = SQLTracer.TraceDR(cmd))
-                        {
-                            if (dr.Read())
-                            {
-                                Logfile.Log($"NET8TaskerToken: true - {dr.GetString(0)}");
-                                return true;
-                            }
-                            else
-                            {
-                                Logfile.Log("NET8TaskerToken: false");
-                                return false;
-                            }
-                        }
-                    }
-                }*/
-            }
-            catch (Exception ex)
-            {
-                Logfile.Log(ex.ToString());
-                ex.ToExceptionless().Submit();
-            }
-            return false;
-
         }
 
         internal void InsertCan(int id, double val)
