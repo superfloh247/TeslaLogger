@@ -76,28 +76,93 @@ Instead of a generic DBCache, the team extracted domain-specific functionality:
 
 ---
 
-## Recommended Next Steps (Phase 3)
+## Phase 3: Charging & Trip Analytics Decomposition
 
-### High Priority (Addresses remaining 73% of monolith)
+### Phase 3.1: StateManagement (✅ COMPLETED)
+**File:** `DBHelper.StateManagement.cs`  
+**Status:** ✅ EXTRACTED (298 lines)
 
-1. **Extract DBHelper.StateManagement.cs** (~1,500 lines)
-   - `CarStateChangedAsync()` and state transition logic
-   - `Mothership` related methods
-   - Vehicle status updates
+Methods extracted:
+- `EnableMothership()`
+- `UpdateHTTPStatusCodes()`
+- `CloseStateAsync()`
+- `StartStateAsync()`
+- `AddMothershipDataToDBAsync()` (2 overloads)
+- `AddCommandToDBAsync()`
+- `GetMothershipCommandsFromDBAsync()`
 
-2. **Extract DBHelper.TripAnalytics.cs** (~1,200 lines)
-   - Trip calculation methods
-   - Efficiency metrics
-   - Drive statistics
+### Phase 3.2: TripAnalytics (🟡 IN PROGRESS - Method extraction list prepared)
 
-3. **Extract DBHelper.GeolocationCache.cs** (~800 lines)
-   - Geofence logic
-   - Address caching
-   - Location-based operations
+**Target File:** `DBHelper.TripAnalytics.cs`  
+**Estimated Size:** ~2,200 lines  
+**Methods to Extract (31 methods):**
 
-### Medium Priority
+#### Charging State Analysis & Validation (3 methods, ~250 lines)
+- `AnalyzeChargingStates()` - lines 385-525 (141 lines)
+- `RecalculateChargeEnergyAdded(int)` - lines 714-833 (119 lines)
+- `GetChargeEnergyAddedFromCharging(int)` - lines 834-865 (31 lines)
 
-4. **Extract DBHelper.ReportingHelpers.cs** (~1,000 lines)
+#### Duplicate Detection & Removal (2 methods, ~150 lines)
+- `DeleteDuplicateTrips()` - lines 526-580 (54 lines)
+- `CheckDuplicateDriveStates()` - lines 582-713 (131 lines)
+
+#### Charging Session Closing & Updates (3 methods, ~180 lines)
+- `CloseChargingStates()` - lines 1638-1733 (95 lines)
+- `UpdateUnplugDate()` - lines 2165-2202 (37 lines)
+- `UpdateEmptyUnplugDate()` - lines 1007-1055 (48 lines)
+
+#### Charging State Combining (4 methods, ~180 lines)
+- `CombineChangingStates()` - lines 1121-1203 (82 lines)
+- `CombineChangingStatesAt(int)` - lines 1089-1120 (31 lines)
+- `FixChargeEnergyAdded(int)` - lines 1204-1269 (65 lines)
+- `UpdateMeter_kWh_sum(int)` - lines 1270-1302 (32 lines)
+
+#### Charging Cost Calculation (6 methods, ~600 lines)
+- `UpdateChargePrice(int, bool)` - lines 1818-1865 (47 lines)
+- `UpdateChargePrice(int, string, double, bool, ...)` - lines 1866-2164 (298 lines)
+- `GetChargeCostDataFromReference(int, ...)` - lines 1734-1775 (41 lines)
+- `GetChargeCostDataFromID(int, ...)` - lines 2423-2513 (90 lines)
+- `FindReferenceChargingState(int, ...)` - lines 2343-2422 (79 lines)
+- `ChargingStateLocationIsSuC(int)` - lines 1776-1817 (41 lines)
+
+#### Charging Session Metadata (8 methods, ~280 lines)
+- `UpdateChargeEnergyAdded(int, double)` - lines 2203-2240 (37 lines)
+- `UpdateChargeEnergyAdded(int)` - lines 2241-2342 (101 lines)
+- `GetStartValuesFromChargingState(int, ...)` - lines 2514-2575 (61 lines)
+- `GetOdometerFromChargingstate(int)` - lines 2576-2616 (40 lines)
+- `FindOpenChargingStates()` - lines 2617-2657 (40 lines)
+- `FindSimilarChargingStates(int)` - lines 2658-2736 (78 lines)
+- `FindCombineCandidates()` - lines 1386-1430 (44 lines)
+- `GetStartEndFromCharginState(int)` - lines 1303-1346 (43 lines)
+
+#### Charger Power & Analytics (4 methods, ~180 lines)
+- `UpdateMaxChargerPower()` - lines 2737-2777 (40 lines)
+- `UpdateMaxChargerPower(int)` - lines 2778-2820 (42 lines)
+- `UpdateMaxChargerPower(int, int, int)` - lines 2846-2882 (36 lines)
+- `GetEconomy_Wh_km(WebHelper)` - lines 2883-2935 (52 lines)
+
+#### Address & Location Lookup (1 method, ~40 lines)
+- `GetAddressFromChargingState(int)` - lines 4502-4545 (43 lines)
+
+**Extraction Strategy:**
+1. Remove method implementations from DBHelper.cs (lines 385-525, 526-580, etc.)
+2. Create DBHelper.TripAnalytics.cs with all extracted methods
+3. Verify build compiles with 0 errors, 0 warnings
+4. Update status to show Phase 3.2 completion
+
+**Benefits:**
+- Isolates charging state management logic
+- Enables ARM32 deployment by reducing compilation unit size  
+- Improves testability for charging analytics
+- Clear separation of concerns (state transitions vs. analytics)
+
+---
+
+## Recommended Next Steps (Phase 3.3+)
+
+### High Priority (Addresses remaining ~5,000 lines)
+
+1. **Extract DBHelper.ReportingHelpers.cs** (~1,000 lines)
    - Summary statistics
    - Range calculations
    - Reporting functions
