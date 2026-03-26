@@ -241,5 +241,107 @@ WHERE
             }
             return null;
         }
+
+        private void UpdateChargingstate(int chargingStateID, DateTime startDate, int startChargingID, object meter_vehicle_kwh_start, object meter_utility_kwh_start, double charge_energy_added = double.NaN)
+        {
+            try
+            {
+                car.Log($"Update Chargingstate {chargingStateID} with new StartDate: {startDate} /  StartChargingID: {startChargingID} / charge_energy_added: {charge_energy_added} meter_vehicle_kwh_start: {meter_vehicle_kwh_start} / meter_utility_kwh_start: {meter_utility_kwh_start}");
+
+                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                {
+                    con.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+UPDATE
+    chargingstate
+SET
+    StartDate = @StartDate,
+    StartChargingID = @StartChargingID,
+    meter_vehicle_kwh_start = @meter_vehicle_kwh_start,
+    meter_utility_kwh_start = @meter_utility_kwh_start
+WHERE
+    id = @id", con))
+                    {
+                        cmd.Parameters.AddWithValue("@id", chargingStateID);
+                        cmd.Parameters.AddWithValue("@StartDate", startDate);
+                        cmd.Parameters.AddWithValue("@StartChargingID", startChargingID);
+                        cmd.Parameters.AddWithValue("@meter_vehicle_kwh_start", meter_vehicle_kwh_start);
+                        cmd.Parameters.AddWithValue("@meter_utility_kwh_start", meter_utility_kwh_start);
+                        _ = SQLTracer.TraceNQ(cmd, out _);
+                    }
+                    switch (charge_energy_added)
+                    {
+                        case double.NegativeInfinity:
+                            // handle special case: set charge_energy_added to DBNull
+                            using (MySqlCommand cmd = new MySqlCommand(@"
+UPDATE
+    chargingstate
+SET
+    charge_energy_added = @charge_energy_added 
+WHERE
+    id = @id", con))
+                            {
+                                cmd.Parameters.AddWithValue("@id", chargingStateID);
+                                cmd.Parameters.AddWithValue("@charge_energy_added", DBNull.Value);
+                                _ = SQLTracer.TraceNQ(cmd, out _);
+                            }
+                            break;
+                        case double.NaN:
+                            // no value set --> do nothing
+                            break;
+                        default:
+                            // some value set --> set value
+                            using (MySqlCommand cmd = new MySqlCommand(@"
+UPDATE
+    chargingstate
+SET
+    charge_energy_added = @charge_energy_added 
+WHERE
+    id = @id", con))
+                            {
+                                cmd.Parameters.AddWithValue("@id", chargingStateID);
+                                cmd.Parameters.AddWithValue("@charge_energy_added", charge_energy_added);
+                                _ = SQLTracer.TraceNQ(cmd, out _);
+                            }
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+                Logfile.ExceptionWriter(ex, chargingStateID.ToString(Tools.ciEnUS));
+                car.Log(ex.ToString());
+            }
+        }
+
+        private void DeleteChargingstate(int chargingstate_id)
+        {
+            try
+            {
+                car.Log($"Delete Chargingstate {chargingstate_id}");
+
+                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                {
+                    con.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+DELETE
+FROM
+    chargingstate
+WHERE
+    id = @id", con))
+                    {
+                        cmd.Parameters.AddWithValue("@id", chargingstate_id);
+                        _ = SQLTracer.TraceNQ(cmd, out _);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+                Logfile.ExceptionWriter(ex, chargingstate_id.ToString(Tools.ciEnUS));
+                car.Log(ex.ToString());
+            }
+        }
     }
 }
