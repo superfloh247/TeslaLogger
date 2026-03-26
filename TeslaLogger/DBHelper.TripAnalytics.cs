@@ -721,5 +721,219 @@ WHERE
                 }
             }
         }
+
+        internal bool CombineChangingStatesAt(int sessionid)
+        {
+            bool doCombine = Tools.CombineChargingStates(); // use default
+            // check if combine is disabled globally
+            if (!doCombine)
+            {
+                Logfile.Log("CombineChargingStates disabled globally");
+                Address addr = GetAddressFromChargingState(sessionid);
+                // combine disabled, but check pos for special flag do combine
+                if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0 && addr.specialFlags.ContainsKey(Address.SpecialFlags.CombineChargingStates))
+                {
+                    Logfile.Log($"CombineChargingStates disabled globally, but enabled at POI '{addr.name}'");
+                    doCombine = true;
+                }
+            }
+            else
+            {
+                Address addr = GetAddressFromChargingState(sessionid);
+                // check pos for special flag do not combine
+                if (addr is not null && addr.specialFlags is not null && addr.specialFlags.Count > 0)
+                {
+                    // check if DoNotCombineChargingStates is enabled
+                    if (addr.specialFlags.ContainsKey(Address.SpecialFlags.DoNotCombineChargingStates))
+                    {
+                        car.Log($"CombineChargingStates enabled globally, but disabled at POI '{addr.name}'");
+                        doCombine = false;
+                    }
+                }
+            }
+            return doCombine;
+        }
+
+        internal void CombineChangingStates()
+        {
+            Tools.DebugLog("CombineChangingStates()");
+            // find candidates to combine
+            // car.Log("CombineChangingStates start");
+            int t = Environment.TickCount;
+            // find chargingstates with exactly the same odometer -> car did no move between charging states
+            Queue<int> combineCandidates = FindCombineCandidates();
+            foreach (int candidate in combineCandidates)
+            {
+                Tools.DebugLog($"FindCombineCandidates: {candidate}");
+
+                // check if combine is disabled globally or locally
+                if (!CombineChangingStatesAt(candidate))
+                {
+                    Logfile.Log($"CombineChangingStates: skip {candidate} CombineChangingStatesAt is false");
+                    FixChargeEnergyAdded(candidate);
+                    continue;
+                }
+
+                Queue<int> similarChargingStates = FindSimilarChargingStates(candidate);
+                foreach (int similarChargingState in similarChargingStates)
+                {
+                    Tools.DebugLog($"FindSimilarChargingStates: {similarChargingState}");
+                }
+                if (similarChargingStates.Count > 0)
+                {
+                    // find max ID in similarChargingStates and candidate
+                    int maxID = candidate;
+                    foreach (int similarChargingState in similarChargingStates)
+                    {
+                        maxID = Math.Max(maxID, similarChargingState);
+                    }
+                    // find min ID in similarChargingStates and candidate
+                    int minID = candidate;
+                    foreach (int similarChargingState in similarChargingStates)
+                    {
+                        minID = Math.Min(minID, similarChargingState);
+                    }
+                    // build deletion list: all IDs from minID to maxID including minID excluding maxID
+                    List<int> IDsToDelete = new();
+                    if (candidate != maxID)
+                    {
+                        IDsToDelete.Add(candidate);
+                    }
+                    foreach (int similarChargingState in similarChargingStates)
+                    {
+                        if (similarChargingState != maxID)
+                        {
+                            IDsToDelete.Add(similarChargingState);
+                        }
+                    }
+                    GetStartValuesFromChargingState(minID, out DateTime startDate, out int startdID, out int posID, out string _, out object meter_vehicle_kwh_start, out object meter_utility_kwh_start);
+                    car.Log($"Combine charging state{(similarChargingStates.Count > 1 ? "s" : "")} {string.Join(", ", IDsToDelete)} into {maxID}");
+                    Tools.DebugLog($"GetStartValuesFromChargingState: id:{minID} startDate:{startDate} startID:{startdID} posID:{posID}");
+                    // update current charging state with startdate, startID, pos
+                    UpdateChargingstate(maxID, startDate, startdID, meter_vehicle_kwh_start, meter_utility_kwh_start);
+                    // update meter_*_kwh_sum in chargingstate
+                    UpdateMeter_kWh_sum(maxID);
+                    // delete all older charging states
+                    foreach (int chargingState in IDsToDelete)
+                    {
+                        Tools.DebugLog($"delete combined chargingState id:{chargingState}");
+                        DeleteChargingstate(chargingState);
+                    }
+
+                    // calculate chargingstate.charge_energy_added from endchargingid - startchargingid
+                    bool updatedChargePrice = RecalculateChargeEnergyAdded(maxID);
+
+                    // calculate charging price if per_kwh and/or per_minute and/or per_session is available
+                    // but only if it's not updated by RecalculateChargeEnergyAdded
+                    if (!updatedChargePrice)
+                    {
+                        UpdateChargePrice(maxID, true);
+                    }
+
+                    // update chargingsession stats
+                    UpdateMaxChargerPower(maxID);
+                }
+            }
+            car.Log($"CombineChangingStates took {Environment.TickCount - t}ms");
+        }
+
+        private void FixChargeEnergyAdded(int chagingStateID)
+        {
+            // interrupted charging sessions, eg "PV Überschuss" start with charge_energy_added > 0
+            // this leads to wrong calculation of chargingstate.charge_energy_added
+
+            // fix:
+            // - find similar chargingstates
+            // - if start charge_energy_added > 1 then:
+            // check if predecessor chargingstate has similar end charge_energy_added
+            // if yes then:
+            // - recalculate charge_energy_added:
+            //   charge_energy_added =
+            //     chargingstate.endchargingid.charge_energy_added - chargingstate.startchargingid.charge_energy_added
+
+            Tools.DebugLog($"FixChargeEnergyAdded({chagingStateID})");
+
+            Queue<int> chargingstates = FindSimilarChargingStates(chagingStateID);
+
+            foreach (int chargingstate in chargingstates.OrderBy(x => x))
+            {
+                try
+                {
+                    using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                    {
+                        con.Open();
+                        using (MySqlCommand cmd = new MySqlCommand(@"
+SELECT
+    chargingstate.id,
+    chargingstate.startdate,
+    chargingstate.enddate,
+    chargingstate.carid,
+    chargingS.charge_energy_added,
+    chargingE.charge_energy_added
+FROM
+    chargingstate
+    JOIN charging chargingS ON chargingS.id = chargingstate.startchargingid
+    JOIN charging chargingE ON chargingE.id = chargingstate.endchargingid
+WHERE
+    chargingstate.id = @chagingStateID
+", con))
+                        {
+                            cmd.Parameters.AddWithValue("@chagingStateID", chargingstate);
+//                            Tools.DebugLog(cmd);
+                            MySqlDataReader dr = SQLTracer.TraceDR(cmd);
+                            if (dr.Read())
+                            {
+                                Tools.DebugLog($"FixChargeEnergyAdded({chagingStateID}) id:{dr[0]} startdate:{dr[1]} enddate:{dr[2]} carID:{dr[3]} startChargingChargeEnergyAdded:{dr[4]} endChargingChargeEnergyAdded:{dr[5]}");
+                                if (int.TryParse(dr[0].ToString(), out int id) && double.TryParse(dr[4].ToString(), out double cea_S) && double.TryParse(dr[5].ToString(), out double cea_E) && cea_S > 1)
+                                {
+                                    Logfile.Log($"FixChargeEnergyAdded update {id} cea_S:{cea_S} cea_E:{cea_E} to cea {cea_E - cea_S}");
+                                    UpdateChargeEnergyAdded(id, cea_E - cea_S);
+                                    UpdateChargePrice(id, true);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    car.CreateExceptionlessClient(ex).Submit();
+                    Tools.DebugLog($"Exception in FixChargeEnergyAdded({chagingStateID}): {ex}");
+                    Logfile.ExceptionWriter(ex, $"Exception in FixChargeEnergyAdded({chagingStateID})");
+                }
+            }
+        }
+
+        private void UpdateMeter_kWh_sum(int openChargingState)
+        {
+            try
+            {
+                Tools.DebugLog($"UpdateMeter_kWh_sum id:{openChargingState}");
+                using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
+                {
+                    con.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(@"
+UPDATE
+    chargingstate
+SET
+    meter_vehicle_kwh_sum = meter_vehicle_kwh_end - meter_vehicle_kwh_start,
+    meter_utility_kwh_sum = meter_utility_kwh_end - meter_utility_kwh_start,
+    cost_kwh_meter_invoice = meter_vehicle_kwh_end - meter_vehicle_kwh_start
+WHERE
+    id = @ChargingStateID
+    AND CarID = @CarID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@CarID", car.CarInDB);
+                        cmd.Parameters.AddWithValue("@ChargingStateID", openChargingState);
+                        _ = SQLTracer.TraceNQ(cmd, out _);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                car.CreateExceptionlessClient(ex).Submit();
+                Tools.DebugLog($"Exception during UpdateMeter_kWh_sum(): {ex}");
+                Logfile.ExceptionWriter(ex, "Exception during UpdateMeter_kWh_sum()");
+            }
+        }
     }
 }
