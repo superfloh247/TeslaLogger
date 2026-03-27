@@ -193,13 +193,32 @@ namespace TeslaLogger
 
                 // start view update
 
-                _ = Task.Factory.StartNew(() =>
+                // start view update
+
+                _ = Task.Factory.StartNew(async () =>
                 {
                     Logfile.Log("DBView Update (Task) started.");
-                    CheckDBViews();
-                    if (!DBHelper.TableExists("trip") || !DBHelper.ColumnExists("trip", "AP_sec_sum"))
+                    if (DashboardConfigurer != null)
                     {
-                        UpdateDBViews();
+                        try
+                        {
+                            await DashboardConfigurer.ValidateDatabaseViewsAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            ex.ToExceptionless().FirstCarUserID().Submit();
+                            Logfile.Log($"Error during view validation: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        // Fallback if service not initialized
+                        Logfile.Log("WARNING: DashboardConfigurer not initialized, using legacy view update");
+                        CheckDBViews();
+                        if (!DBHelper.TableExists("trip") || !DBHelper.ColumnExists("trip", "AP_sec_sum"))
+                        {
+                            UpdateDBViews();
+                        }
                     }
                     Logfile.Log("DBView Update (Task) finished.");
                 }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
@@ -563,6 +582,15 @@ LIMIT 1", con))
             }
         }
 
+        /// <summary>
+        /// Deprecated: Use IGrafanaDashboardConfigurer.CheckDatabaseViewsAsync() instead.
+        /// This method is retained only for backward compatibility during refactoring.
+        /// </summary>
+        /// <remarks>
+        /// View validation has been moved to GrafanaDashboardConfigurer service.
+        /// The service provides better separation of concerns and async support.
+        /// </remarks>
+        [System.Obsolete("Use DashboardConfigurer.CheckDatabaseViewsAsync() from IGrafanaDashboardConfigurer service.", false)]
         private static void CheckDBViews()
         {
             string viewtrip = string.Empty;
@@ -1877,6 +1905,15 @@ PRIMARY KEY(id)
             }
         }
 
+        /// <summary>
+        /// Deprecated: Use IGrafanaDashboardConfigurer.UpdateDatabaseViewsAsync() instead.
+        /// This method is retained only for backward compatibility during refactoring.
+        /// </summary>
+        /// <remarks>
+        /// View creation and updates have been moved to GrafanaDashboardConfigurer service.
+        /// The service provides better separation of concerns and async support.
+        /// </remarks>
+        [System.Obsolete("Use DashboardConfigurer.UpdateDatabaseViewsAsync() from IGrafanaDashboardConfigurer service.", false)]
         private static void UpdateDBViews()
         {
             try

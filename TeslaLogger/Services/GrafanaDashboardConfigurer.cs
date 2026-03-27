@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using MySql.Data.MySqlClient;
 using Newtonsoft.Json.Linq;
 using Exceptionless;
 
@@ -451,6 +452,121 @@ namespace TeslaLogger.Services
         {
             content = content.Replace($"'{oldText}'", $"'{newText}'");
             return content.Replace($"\"{oldText}\"", $"\"{newText}\"");
+        }
+
+        #endregion
+
+        #region Database View Validation
+
+        /// <summary>
+        /// Validates database views - orchestrates checking and updating views.
+        /// </summary>
+        public async Task ValidateDatabaseViewsAsync()
+        {
+            try
+            {
+                await CheckDatabaseViewsAsync().ConfigureAwait(false);
+                await UpdateDatabaseViewsAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.Log($"Error in ValidateDatabaseViewsAsync: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Checks if required database views exist and logs their status.
+        /// Verifies that the 'trip' view exists in the database schema.
+        /// </summary>
+        public async Task CheckDatabaseViewsAsync()
+        {
+            try
+            {
+                await Task.Run(() =>
+                {
+                    string viewtrip = string.Empty;
+                    try
+                    {
+                        using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
+                        {
+                            con.Open();
+                            using (MySqlCommand cmd = new MySqlCommand("SHOW FULL TABLES", con))
+                            {
+                                MySqlDataReader dr = SQLTracer.TraceDR(cmd);
+                                while (dr.Read())
+                                {
+                                    if (dr[0] is not null && dr[0].ToString().Equals("trip") && dr[1] is not null)
+                                    {
+                                        viewtrip = dr[1].ToString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ex.ToExceptionless().FirstCarUserID().Submit();
+                        Logfile.Log($"CheckDatabaseViews exception: {ex}");
+                    }
+                    Logfile.Log($"CheckDatabaseViews: trip {(viewtrip.Equals("VIEW") ? "OK" : $"NOT OK: type {viewtrip}")}");
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.Log($"Error in CheckDatabaseViewsAsync: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Creates or updates database views with language-specific configurations.
+        /// Drops and recreates the trip view applying Grafana range settings.
+        /// </summary>
+        public async Task UpdateDatabaseViewsAsync()
+        {
+            try
+            {
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        Logfile.Log("UpdateDatabaseViews: trip");
+                        DBHelper.ExecuteSQLQuery("DROP VIEW IF EXISTS `trip`");
+                        string s = DBViews.Trip;
+
+                        Tools.GrafanaSettings(out string power, out string temperature, out string length, out string pressure, out string language,
+                            out string URL_Admin, out string Range, out _, out _, out _);
+
+                        if (Range == "RR")
+                        {
+                            s = s.Replace("`pos_start`.`ideal_battery_range_km` AS `StartRange`,", "`pos_start`.`battery_range_km` AS `StartRange`,");
+                            s = s.Replace("`pos_end`.`ideal_battery_range_km` AS `EndRange`,", "`pos_end`.`battery_range_km` AS `EndRange`,");
+                        }
+
+                        File.WriteAllText("view_trip.txt", s);
+
+                        DBHelper.ExecuteSQLQuery(s, 300);
+
+                        ExceptionlessClient.Default.CreateFeatureUsage($"Language_{language}").FirstCarUserID().Submit();
+                        ExceptionlessClient.Default.CreateFeatureUsage($"Power_{power}").FirstCarUserID().Submit();
+                        ExceptionlessClient.Default.CreateFeatureUsage($"Temperature_{temperature}").FirstCarUserID().Submit();
+                        ExceptionlessClient.Default.CreateFeatureUsage($"Length_{length}").FirstCarUserID().Submit();
+                        ExceptionlessClient.Default.CreateFeatureUsage($"Pressure_{pressure}").FirstCarUserID().Submit();
+                        ExceptionlessClient.Default.CreateFeatureUsage($"Range_{Range}").FirstCarUserID().Submit();
+                    }
+                    catch (Exception ex)
+                    {
+                        ex.ToExceptionless().FirstCarUserID().Submit();
+                        Logfile.Log(ex.ToString());
+                    }
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.Log($"Error in UpdateDatabaseViewsAsync: {ex}");
+            }
         }
 
         #endregion

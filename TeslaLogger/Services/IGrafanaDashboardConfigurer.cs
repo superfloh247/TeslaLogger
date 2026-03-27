@@ -128,5 +128,26 @@ namespace TeslaLogger.Services
         /// <param name="language">Language code (e.g., "en", "de").</param>
         /// <returns>Full path to language file, or empty string if not found.</returns>
         string GetLanguageFilePath(string language);
+
+        /// <summary>
+        /// Validates database views - checks existence and recre ates if missing.
+        /// Orchestrates both validation and update operations for database views.
+        /// </summary>
+        /// <returns>A task representing the asynchronous view validation operation.</returns>
+        Task ValidateDatabaseViewsAsync();
+
+        /// <summary>
+        /// Checks if required database views exist and logs their status.
+        /// Verifies that the 'trip' view exists in the database schema.
+        /// </summary>
+        /// <returns>A task representing the asynchronous check operation.</returns>
+        Task CheckDatabaseViewsAsync();
+
+        /// <summary>
+        /// Creates or updates database views with language-specific configurations.
+        /// Drops and recreates the trip view applying Grafana range settings.
+        /// </summary>
+        /// <returns>A task representing the asynchronous update operation.</returns>
+        Task UpdateDatabaseViewsAsync();
     }
 }
