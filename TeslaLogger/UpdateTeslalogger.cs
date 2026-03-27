@@ -17,7 +17,7 @@ using TeslaLogger.Services;
 
 namespace TeslaLogger
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "Justification: UpdateTeslalogger is an orchestration class that coordinates startup activities with diverse error conditions (database, I/O, HTTP, etc.). Catching specific exception types would require redundant exception handlers throughout the class. All exceptions are logged to Exceptionless for monitoring.")]
     internal class UpdateTeslalogger
     {
         private const string cmd_restart_path = "/tmp/teslalogger-cmd-restart.txt";
