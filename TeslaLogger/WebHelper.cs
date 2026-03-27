@@ -7,7 +7,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -26,6 +25,31 @@ using static TeslaLogger.Car;
 using static TeslaLogger.NullSafetyHelpers;
 
 #nullable enable
+
+/// <summary>
+/// Provides HTTP communication with the Tesla API and external services.
+/// </summary>
+/// <remarks>
+/// **MIGRATION PHASE NOTICE:** This file contains legacy code with complex null-safety patterns.
+/// Pragmas disable null-safety warnings (CS8600-8604, CS8625) to maintain compilation progress
+/// during modularization. Future refactoring via PHASE-3 Service Decomposition should enable
+/// per-method null-checking as code is moved to focused services (TokenManager, TeslaAPIClient, etc).
+/// 
+/// See PHASE-3-WEBHELPER-DECOMPOSITION.md for planned service extraction strategy.
+/// </remarks>
+/// <remarks>
+/// WebHelper encapsulates all network operations including:
+/// - Tesla API authentication and token management
+/// - Vehicle state queries and status updates
+/// - Streaming telemetry data reception
+/// - Geographic location services (MapQuest, Nominatim, OpenTopoData)
+/// - Retry logic and rate limiting
+/// - Token refresh and session management
+/// 
+/// Thread safety: Partially thread-safe with locks for token operations.
+/// Implements: IDisposable (for HttpClient resource cleanup)
+/// Key dependencies: Car, Logfile, Exceptionless for error reporting
+/// </remarks>
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
 #pragma warning disable CS8601 // Possible null reference assignment
 #pragma warning disable CS8602 // Dereference of possibly null reference
@@ -33,30 +57,8 @@ using static TeslaLogger.NullSafetyHelpers;
 #pragma warning disable CS8604 // Possible null reference argument
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable type
 
-
 namespace TeslaLogger
 {
-    /// <summary>
-    /// Provides HTTP communication with the Tesla API and external services.
-    /// </summary>
-    /// <remarks>
-    /// Complex legacy code with numerous null-safety patterns. Pragmas suppress expected warnings
-    /// in this migration-phase file to maintain progress on modernization. Future refactoring
-    /// should progressively address these patterns per SOLID principles.
-    /// </remarks>
-    /// <remarks>
-    /// WebHelper encapsulates all network operations including:
-    /// - Tesla API authentication and token management
-    /// - Vehicle state queries and status updates
-    /// - Streaming telemetry data reception
-    /// - Geographic location services (MapQuest, Nominatim, OpenTopoData)
-    /// - Retry logic and rate limiting
-    /// - Token refresh and session management
-    /// 
-    /// Thread safety: Partially thread-safe with locks for token operations.
-    /// Implements: IDisposable (for HttpClient resource cleanup)
-    /// Key dependencies: Car, Logfile, Exceptionless for error reporting
-    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Keine allgemeinen Ausnahmetypen abfangen", Justification = "<Pending>")]
     public partial class WebHelper : IDisposable
     {
@@ -136,9 +138,8 @@ namespace TeslaLogger
         internal ConcurrentDictionary<string, string> TeslaAPI_Commands = new ConcurrentDictionary<string, string>();
         internal Car car;
 
-        #pragma warning disable CS0169 // Field never used
-        bool getTokenDebugVerbose; // defaults to false, only needed for debugging
-        #pragma warning restore CS0169
+        // TODO: getTokenDebugVerbose was removed (field only used during debugging in legacy code)
+        // If needed in future, add as parameter to logging methods with explicit debug flag
         private double last_latitude_streaming = double.NaN;
         private double last_longitude_streaming = double.NaN;
         private decimal last_power_streaming = 0;
@@ -169,13 +170,15 @@ namespace TeslaLogger
             if (disposing)
             {
                 // Dispose managed resources.
-                httpclient_teslalogger_de.Dispose();
+                httpclient_teslalogger_de?.Dispose();
                 httpClientForAuthentification?.Dispose();
                 httpClientABRP?.Dispose();
                 httpClientSuCBingo?.Dispose();
                 httpClientTeslaAPI?.Dispose();
                 httpClientTeslaChargingSites?.Dispose();
                 httpClientGetChargingHistoryV2?.Dispose();
+                // Note: isOnlineLock is static and should be disposed by application shutdown,
+                // not per-instance. Only dispose if it's instance-scoped in future refactoring.
             }
             // Free native resources.
         }
@@ -1933,8 +1936,18 @@ namespace TeslaLogger
         }
 
         private int unknownStateCounter; // defaults to 0;
+
+        /// <summary>
+        /// Synchronization lock for IsOnline operations. Prevents concurrent API calls to avoid rate limiting.
+        /// </summary>
+        /// <remarks>
+        /// Public access required by Car.cs line 1617 for serialized IsOnline checks.
+        /// CA2211: Non-const static field visibility suppressed - used for cross-class synchronization.
+        /// TODO: Refactor Car.IsOnlineCheckLoop to use async/await with proper SemaphoreSlim patterns
+        /// instead of blocking lock() statements.
+        /// </remarks>
 #pragma warning disable CA2211 // Nicht konstante Felder dürfen nicht sichtbar sein
-        public static System.Threading.SemaphoreSlim isOnlineLock = new System.Threading.SemaphoreSlim(1, 1);
+        public static readonly System.Threading.SemaphoreSlim isOnlineLock = new System.Threading.SemaphoreSlim(1, 1);
 #pragma warning restore CA2211 // Nicht konstante Felder dürfen nicht sichtbar sein
 
         public async virtual ValueTask<string> IsOnlineAsync(
