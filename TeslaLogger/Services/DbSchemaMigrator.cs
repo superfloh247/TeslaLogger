@@ -24,6 +24,7 @@ namespace TeslaLogger.Services
         /// <summary>
         /// Validates and updates all database schemas asynchronously.
         /// Checks all essential tables, creates missing tables, and validates schema integrity.
+        /// Orchestrates all table-specific schema validations in proper order.
         /// </summary>
         public async Task ValidateAllSchemasAsync()
         {
@@ -31,13 +32,16 @@ namespace TeslaLogger.Services
             {
                 await Task.Run(() =>
                 {
-                    // The actual schema validation is performed by UpdateTeslalogger.Start()
-                    // This service primarily provides a structured interface over those operations
                     Logfile.Log("DbSchemaMigrator: Starting comprehensive database schema validation");
                     
                     // KVS must be validated first as it's used for versioning
                     KVS.CheckSchema();
                     DBHelper.EnableUTF8mb4();
+                    CheckDBCharset();
+
+                    // Validate all application tables in dependency order
+                    // Order matters: base tables before dependent tables
+                    ValidateAllTableSchemas();
 
                     // Validate and update known services
                     Journeys.CheckSchema();
@@ -237,6 +241,57 @@ namespace TeslaLogger.Services
         }
 
         #region Private Schema Check Methods
+
+        /// <summary>
+        /// Validates all application table schemas in proper dependency order.
+        /// Delegates to UpdateTeslalogger's schema validation methods which contain
+        /// detailed table creation and column addition logic.
+        /// </summary>
+        /// <remarks>
+        /// This method orchestrates validation of all tables while maintaining the dependency
+        /// order established in the original UpdateTeslalogger implementation.
+        /// As part of ongoing refactoring, individual table validation may be moved to
+        /// dedicated methods in this class.
+        /// </remarks>
+        private static void ValidateAllTableSchemas()
+        {
+            try
+            {
+                // Validate core telemetry tables (order sensitive for foreign key dependencies)
+                UpdateTeslalogger.CheckDBSchema_areaa();
+                UpdateTeslalogger.CheckDBSchema_cars();
+                UpdateTeslalogger.CheckDBSchema_pos();
+                UpdateTeslalogger.CheckDBSchema_drivestate();
+                UpdateTeslalogger.CheckDBSchema_charging();
+                UpdateTeslalogger.CheckDBSchema_chargingstate();
+                UpdateTeslalogger.CheckDBSchema_can();
+                UpdateTeslalogger.CheckDBSchema_candata();
+                UpdateTeslalogger.CheckDBSchema_state();
+                UpdateTeslalogger.CheckDBSchema_shiftstate();
+
+                // Validate metadata and diagnostic tables
+                UpdateTeslalogger.CheckDBSchema_car_version();
+                UpdateTeslalogger.CheckDBSchema_httpcodes();
+                UpdateTeslalogger.CheckDBSchema_mothership();
+                UpdateTeslalogger.CheckDBSchema_mothershipcommands();
+
+                // Validate specialized feature tables
+                UpdateTeslalogger.CheckDBSchema_superchargers();
+                UpdateTeslalogger.CheckDBSchema_superchargerstate();
+                UpdateTeslalogger.CheckDBSchema_TPMS();
+                UpdateTeslalogger.CheckDBSchema_Battery();
+                UpdateTeslalogger.CheckDBSchema_Cruisestate();
+                UpdateTeslalogger.CheckDBSchema_Alerts();
+
+                Logfile.Log("Table schema validation completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                ex.ToExceptionless().FirstCarUserID().Submit();
+                Logfile.Log($"Error in ValidateAllTableSchemas: {ex}");
+                throw;
+            }
+        }
 
         private static void CheckDBCharset()
         {

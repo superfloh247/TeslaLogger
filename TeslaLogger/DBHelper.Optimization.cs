@@ -4,6 +4,7 @@ using System.Data;
 using System.IO;
 using System.Text;
 using MySql.Data.MySqlClient;
+using Exceptionless;
 
 #nullable enable
 
@@ -13,7 +14,7 @@ namespace TeslaLogger
     /// Database optimization and data migration utilities.
     /// Extracted from main DBHelper.cs for better code organization.
     /// </summary>
-    internal partial class DBHelper
+    public partial class DBHelper
     {
         /// <summary>
         /// Ensures all records have a valid CarID, setting null values to 1 (default car).

@@ -352,7 +352,7 @@ namespace TeslaLogger
             }
         }
 
-        private static void CheckDBSchema_Alerts()
+        internal static void CheckDBSchema_Alerts()
         {
             if (!DBHelper.TableExists("alerts"))
             {
@@ -402,7 +402,7 @@ namespace TeslaLogger
             }
         }
 
-        private static void CheckDBSchema_Battery()
+        internal static void CheckDBSchema_Battery()
         {
             if (!DBHelper.TableExists("battery"))
             {
@@ -459,7 +459,7 @@ namespace TeslaLogger
             }
         }
 
-        private static void CheckDBSchema_Cruisestate()
+        internal static void CheckDBSchema_Cruisestate()
         {
             if (!DBHelper.TableExists("cruisestate"))
             {
@@ -477,7 +477,7 @@ namespace TeslaLogger
             }
         }
 
-        private static void CheckDBSchema_areaa()
+        internal static void CheckDBSchema_areaa()
         {
             if (!DBHelper.TableExists("active_route_energy_at_arrival"))
             {
@@ -535,7 +535,7 @@ LIMIT 1", con))
             return -1;
         }
 
-        private static void CheckDBSchema_TPMS()
+        internal static void CheckDBSchema_TPMS()
         {
             
             if (!DBHelper.TableExists("TPMS"))
@@ -592,7 +592,7 @@ LIMIT 1", con))
             Logfile.Log($"CheckDBViews: trip {(viewtrip.Equals("VIEW") ? "OK" : $"NOT OK: type {viewtrip}")}");
         }
 
-        private static void CheckDBSchema_superchargerstate()
+        internal static void CheckDBSchema_superchargerstate()
         {
             
             if (!DBHelper.TableExists("superchargerstate"))
@@ -613,7 +613,7 @@ PRIMARY KEY(id)
                
         }
 
-        private static void CheckDBSchema_superchargers()
+        internal static void CheckDBSchema_superchargers()
         {
             
             if (!DBHelper.TableExists("superchargers"))
@@ -633,23 +633,47 @@ PRIMARY KEY(id)
                 
         }
 
-        private static void CheckDBSchema_candata()
+        /// <summary>
+        /// Schema validation placeholder for candata table.
+        /// Currently no schema validations are required for this table.
+        /// This method is retained for potential future schema requirements.
+        /// </summary>
+        /// <remarks>
+        /// The candata table is expected to be created and managed externally
+        /// or by another component. If schema requirements are identified in the future,
+        /// implement validation logic here following the patterns established by other
+        /// CheckDBSchema_* methods.
+        /// </remarks>
+        internal static void CheckDBSchema_candata()
         {
-            // empty so far
+            // No schema validations required at this time
         }
 
-        private static void CheckDBSchema_state()
+        internal static void CheckDBSchema_state()
         {
             InsertCarID_Column("state");   
         }
 
-        private static void CheckDBSchema_shiftstate()
+        /// <summary>
+        /// Deprecated schema validation for shiftstate table.
+        /// The shiftstate table was used to track vehicle transmission state but has been
+        /// superseded by more accurate telemetry from the vehicle's drivestate data.
+        /// This method is retained for historical compatibility and documentation purposes.
+        /// </summary>
+        /// <remarks>
+        /// Deprecated in v1.50. The shiftstate table migration is intentionally disabled.
+        /// If this table is needed in the future for legacy data reconstruction, the
+        /// InsertCarID_Column("shiftstate") call can be re-enabled.
+        /// See: UNUSED-CODE-INVENTORY.md for additional context.
+        /// </remarks>
+        [System.Obsolete("ShiftState table is deprecated as of v1.50. Drivestate provides superior telemetry.", false)]
+        internal static void CheckDBSchema_shiftstate()
         {
-            // this table is currently unused
+            // Intentionally disabled - see remarks above
             // InsertCarID_Column("shiftstate");
         }
 
-        private static void CheckDBSchema_pos()
+        internal static void CheckDBSchema_pos()
         {
             if (!DBHelper.ColumnExists("pos", "battery_level"))
             {
@@ -749,7 +773,7 @@ PRIMARY KEY(id)
             }
         }
 
-        private static void CheckDBSchema_mothershipcommands()
+        internal static void CheckDBSchema_mothershipcommands()
         {
             if (!DBHelper.TableExists("mothershipcommands"))
             {
@@ -760,7 +784,7 @@ PRIMARY KEY(id)
             DBHelper.ExecuteSQLQuery("ALTER TABLE mothershipcommands MODIFY COLUMN command varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;");
         }
 
-        private static void CheckDBSchema_mothership()
+        internal static void CheckDBSchema_mothership()
         {
             if (!DBHelper.TableExists("mothership"))
             {
@@ -782,7 +806,7 @@ PRIMARY KEY(id)
             }
         }
 
-        private static void CheckDBSchema_httpcodes()
+        internal static void CheckDBSchema_httpcodes()
         {
             if (!DBHelper.TableExists("httpcodes"))
             {
@@ -797,7 +821,7 @@ PRIMARY KEY(id)
             }
         }
 
-        private static void CheckDBSchema_drivestate()
+        internal static void CheckDBSchema_drivestate()
         {
             
             if (!DBHelper.ColumnExists("drivestate", "outside_temp_avg"))
@@ -897,7 +921,7 @@ PRIMARY KEY(id)
             });
         }
 
-        private static void CheckDBSchema_chargingstate()
+        internal static void CheckDBSchema_chargingstate()
         {
             if (!DBHelper.ColumnExists("chargingstate", "conn_charge_cable"))
             {
@@ -1015,7 +1039,7 @@ PRIMARY KEY(id)
             }
         }
 
-        private static void CheckDBSchema_charging()
+        internal static void CheckDBSchema_charging()
         {
             if (!DBHelper.ColumnExists("charging", "charger_pilot_current"))
             {
@@ -1062,7 +1086,7 @@ PRIMARY KEY(id)
             InsertCarID_Column("charging"); 
         }
 
-        private static void CheckDBSchema_car_version()
+        internal static void CheckDBSchema_car_version()
         {
             if (!DBHelper.TableExists("car_version"))
             {
@@ -1074,7 +1098,7 @@ PRIMARY KEY(id)
             InsertCarID_Column("car_version");
         }
 
-        private static void CheckDBSchema_cars()
+        internal static void CheckDBSchema_cars()
         {
             if (!DBHelper.TableExists("cars"))
             {
@@ -1257,7 +1281,7 @@ PRIMARY KEY(id)
             }
         }
 
-        private static void CheckDBSchema_can()
+        internal static void CheckDBSchema_can()
         {
             if (!DBHelper.TableExists("can"))
             {
