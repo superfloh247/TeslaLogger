@@ -2296,15 +2296,6 @@ VALUES(
             }
         }
 
-        public static DateTime UnixToDateTime(long t)
-        {
-            DateTime dt = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            dt = dt.AddMilliseconds(t);
-            dt = dt.ToLocalTime();
-            return dt;
-
-        }
-
         public int GetMaxPosid(bool withReverseGeocoding = true)
         {
             using (MySqlConnection con = new MySqlConnection(DBConnectionstring))
@@ -2991,53 +2982,6 @@ WHERE
             return 0;
         }
 
-        public static object? DBNullIfEmptyOrZero(object? val)
-        {
-            if (val is String s && s.Length == 0)
-                return DBNull.Value;
-
-            if (val is null)
-                return DBNull.Value;
-
-            String temp = val.ToString();
-            if (val.ToString() == "0" || val.ToString() == "0.00")
-                return DBNull.Value;
-
-            return val;
-        }
-
-        public static object? DBNullIfEmpty(object? val)
-        {
-            if (val is String s && s.Length == 0)
-                return DBNull.Value;
-
-            if (val is null)
-                return DBNull.Value;
-
-            if (val is Newtonsoft.Json.Linq.JValue j && !j.HasValues)
-                return DBNull.Value;
-
-            return val;
-        }
-
-        public static bool IsZero(string? val)
-        {
-            if (val is null || val.Length == 0)
-            {
-                return false;
-            }
-
-            if (double.TryParse(val, out double v))
-            {
-                if (v == 0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         public static void EnableUTF8mb4()
         {
             // https://mathiasbynens.be/notes/mysql-utf8mb4
@@ -3457,57 +3401,6 @@ WHERE
                 Tools.DebugLog($"CloseChargingState() charging_state:{chargingState}");
             }
 
-        }
-
-        public static string? GetJQueryDataTableJSON(string? sql)
-        {
-            string json = "";
-            try
-            {
-                using (MySqlConnection con = new MySqlConnection(DBHelper.DBConnectionstring))
-                {
-                    con.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(sql, con))
-                    {
-                        MySqlDataReader dr = SQLTracer.TraceDR(cmd);
-                        json = DBHelper.GetJQueryDataTableJSON(dr);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ex.ToExceptionless().FirstCarUserID().Submit();
-                Logfile.Log(ex.ToString());
-            }
-
-            return json;
-        }
-
-        public static string? GetJQueryDataTableJSON(MySqlDataReader? dr)
-        {
-            var o = new Dictionary<string, object>();
-
-            var aaData = new List<Dictionary<string, object>>();
-            o.Add("aaData", aaData);
-
-            int rows = 0;
-            while (dr.Read())
-            {
-                rows++;
-                var r = new Dictionary<string, object>();
-                for (int x = 0; x < dr.FieldCount; x++)
-                {
-                    r.Add(dr.GetName(x), dr.GetValue(x));
-                }
-
-                aaData.Add(r);
-            }
-
-            o.Add("iTotalRecords", rows);
-            o.Add("iTotalDisplayRecords", rows);
-
-            var json = JsonConvert.SerializeObject(o);
-            return json;
         }
 
         internal static int GetNextAvailableCarID()
