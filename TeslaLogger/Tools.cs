@@ -1750,11 +1750,11 @@ namespace TeslaLogger
                     }
                     var targetFile = Path.Combine(Path.Combine(Logfile.GetExecutingPath(), "logs"), $"nohup-{DateTime.UtcNow:yyyyMMddHHmmssfff}");
                     // copy to logs dir with timestamp
-                    ExecMono("/bin/cp", nohup + " " + targetFile);
+                    CopyFile(nohup, targetFile);
                     // gzip copied file
                     ExecMono("/bin/gzip", targetFile);
                     // empty nohup.out
-                    ExecMono("/bin/sh", $"-c '/bin/echo > {nohup}'");
+                    File.WriteAllText(nohup, "");
                     // cleanup old logfile backups
                     // old means older than 90 days
                     DirectoryInfo di = new DirectoryInfo(LogDir);
@@ -2573,10 +2573,10 @@ WHERE
         private static byte[] Generate128BitsOfRandomEntropy()
         {
             var randomBytes = new byte[16]; // 16 Bytes will give us 128 bits.
-            using (var rngCsp = new RNGCryptoServiceProvider())
+            using (var rng = RandomNumberGenerator.Create())
             {
                 // Fill the array with cryptographically secure random bytes.
-                rngCsp.GetBytes(randomBytes);
+                rng.GetBytes(randomBytes);
             }
             return randomBytes;
         }
